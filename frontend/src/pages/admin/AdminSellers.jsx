@@ -1,0 +1,95 @@
+import React, { useState, useEffect } from 'react';
+import api from '../../utils/api';
+import { Check, X, Search } from 'lucide-react';
+
+const AdminSellers = () => {
+  const [sellers, setSellers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const fetchSellers = async () => {
+    try {
+      const { data } = await api.get('/admin/sellers');
+      setSellers(data.sellers || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSellers();
+  }, []);
+
+  const handleAction = async (id, action) => {
+    try {
+      await api.put(`/admin/${action}/${id}`);
+      fetchSellers();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Action failed');
+    }
+  };
+
+  const filtered = sellers.filter(s => ((s.firstName || '') + ' ' + (s.lastName || '')).toLowerCase().includes(searchTerm.toLowerCase()) || s.email.toLowerCase().includes(searchTerm.toLowerCase()));
+
+  return (
+    <div className="animate-fade-in">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Manage Sellers</h1>
+        <div className="relative w-64">
+          <Search className="absolute left-3 top-2.5 text-text-muted" size={18} />
+          <input type="text" placeholder="Search sellers..." className="input-field pl-10 py-2 text-sm" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+        </div>
+      </div>
+
+      <div className="glass-panel overflow-hidden rounded-2xl">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-surface border-b border-glass-border">
+                <th className="p-4 font-medium">Name</th>
+                <th className="p-4 font-medium">Email</th>
+                <th className="p-4 font-medium">Status</th>
+                <th className="p-4 font-medium text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan="4" className="p-8 text-center text-text-muted">Loading sellers...</td></tr>
+              ) : filtered.length === 0 ? (
+                <tr><td colSpan="4" className="p-8 text-center text-text-muted">No sellers found.</td></tr>
+              ) : (
+                filtered.map(seller => (
+                  <tr key={seller._id} className="border-b border-glass-border hover:bg-surface/30 transition-colors">
+                    <td className="p-4 font-medium">{seller.firstName} {seller.lastName}</td>
+                    <td className="p-4 text-text-muted">{seller.email}</td>
+                    <td className="p-4">
+                      {seller.status === 'approved' ? (
+                        <span className="badge badge-success">Approved</span>
+                      ) : (
+                        <span className="badge badge-warning capitalize">{seller.status}</span>
+                      )}
+                    </td>
+                    <td className="p-4 flex justify-end gap-2">
+                      {seller.status !== 'approved' && (
+                        <button onClick={() => handleAction(seller._id, 'approve')} className="btn bg-success/20 text-success hover:bg-success hover:text-white p-2 rounded-md" title="Approve">
+                          <Check size={18} />
+                        </button>
+                      )}
+                      <button onClick={() => handleAction(seller._id, 'reject')} className="btn bg-error/20 text-error hover:bg-error hover:text-white p-2 rounded-md" title="Reject">
+                        <X size={18} />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AdminSellers;
