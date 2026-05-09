@@ -8,6 +8,9 @@ import {
   getSellerProfile,
   updateSellerProfile,
   getSellerProducts,
+  submitKycStep1,
+  submitKycStep2,
+  finalizeKyc,
 } from "../controllers/seller.controller.js";
 
 const router = express.Router();
@@ -30,5 +33,36 @@ router.post(
     upload.array("documents", 2),
     submitKYC
     );
+
+// 📄 KYC Step 1 (Organization Details)
+router.post(
+    "/kyc/step1",
+    protect,
+    authorizeRoles("seller"),
+    upload.single("logo"),
+    submitKycStep1
+);
+
+// 📄 KYC Step 2 (Business Documents)
+router.post(
+    "/kyc/step2",
+    protect,
+    authorizeRoles("seller"),
+    upload.fields([
+      { name: "registrationCertificate", maxCount: 1 },
+      { name: "orgPanImage", maxCount: 1 },
+      { name: "cancelledCheckImage", maxCount: 1 },
+      { name: "gstImage", maxCount: 1 },
+    ]),
+    submitKycStep2
+);
+
+// ✅ Submit KYC for Verification
+router.post(
+    "/kyc/submit",
+    protect,
+    authorizeRoles("seller"),
+    finalizeKyc
+);
 
 export default router;

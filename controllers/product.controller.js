@@ -1,6 +1,23 @@
 import Product from "../models/Product.js";
 import fs from "fs";
 import csv from "csv-parser";
+import sanitizeHtml from "sanitize-html";
+import sharp from "sharp";
+
+const sanitizeDescription = (html) => {
+  if (!html) return "";
+  return sanitizeHtml(html, {
+    allowedTags: ['b', 'i', 'strong', 'em', 'u', 'p', 'div', 'br', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'],
+    allowedAttributes: {
+      '*': ['style', 'class', 'align'],
+    },
+    allowedStyles: {
+      '*': {
+        'text-align': [/^left$/, /^right$/, /^center$/, /^justify$/],
+      }
+    }
+  });
+};
 
 // ===============================
 // ➕ ADD PRODUCT (WITH APPROVAL)
@@ -13,7 +30,7 @@ export const addProduct = async (req, res) => {
       });
     }
 
-    const { title, description, price, stock, category, keywords } = req.body;
+    const { title, description, price, compareAtPrice, unitPrice, chargeTax, stock, locations, category, keywords, inventoryTracked, sku, barcode, continueSellingWhenOutOfStock, isPhysicalProduct, packageType, packageLength, packageWidth, packageHeight, packageDimensionsUnit, productWeight, productWeightUnit, pageTitle, metaDescription, urlHandle } = req.body;
 
     if (!title || !description || !price || !category) {
       return res.status(400).json({
@@ -25,22 +42,88 @@ export const addProduct = async (req, res) => {
     let imagePaths = [];
     if (req.files && req.files.length > 0) {
       imagePaths = req.files.map((file) => file.path);
+      
+      for (const filePath of imagePaths) {
+        try {
+          let quality = 80;
+          let buffer = await sharp(filePath)
+            .resize(800, 800, { fit: 'cover', position: 'center' })
+            .jpeg({ quality })
+            .toBuffer();
+            
+          while (buffer.length > 100 * 1024 && quality > 10) {
+            quality -= 10;
+            buffer = await sharp(filePath)
+              .resize(800, 800, { fit: 'cover', position: 'center' })
+              .jpeg({ quality })
+              .toBuffer();
+          }
+          fs.writeFileSync(filePath, buffer);
+        } catch (err) {
+          console.error("Image processing error:", err);
+        }
+      }
     }
 
     // 🔍 Keywords
     let keywordArray = [];
-    if (typeof keywords === "string") {
-      keywordArray = keywords.split(",").map((k) => k.trim());
+    if (typeof keywords === "string" && keywords.trim() !== "") {
+      keywordArray = keywords.split(",").map((k) => k.trim()).filter(Boolean);
     } else if (Array.isArray(keywords)) {
-      keywordArray = keywords;
+      keywordArray = keywords.filter(Boolean);
+    }
+
+    let parsedLocations = [];
+    if (locations) {
+      try {
+        parsedLocations = JSON.parse(locations);
+      } catch (e) {
+        if (Array.isArray(locations)) parsedLocations = locations;
+      }
+    }
+    
+    // Filter and sanitize locations
+    if (parsedLocations.length > 0) {
+      parsedLocations = parsedLocations
+        .filter(loc => loc.address && loc.address.trim() !== "")
+        .map(loc => ({
+          address: loc.address,
+          stock: Number(loc.stock) || 0
+        }));
+    }
+    
+    let totalStock = Number(stock) || 0;
+    if (parsedLocations.length > 0) {
+      totalStock = parsedLocations.reduce((sum, loc) => sum + loc.stock, 0);
+    } else {
+      parsedLocations = [{ address: "Main Shop Location", stock: totalStock }];
     }
 
     const product = await Product.create({
       sellerId: req.user._id,
       title,
-      description,
-      price,
-      stock: stock || 0,
+      description: sanitizeDescription(description),
+      price: Number(price),
+      compareAtPrice: compareAtPrice ? Number(compareAtPrice) : undefined,
+      unitPrice: unitPrice ? Number(unitPrice) : undefined,
+      chargeTax: chargeTax === 'true' || chargeTax === true,
+      stock: totalStock,
+      locations: parsedLocations,
+      inventoryTracked: inventoryTracked === 'true' || inventoryTracked === true,
+      sku: sku || "",
+      barcode: barcode || "",
+      continueSellingWhenOutOfStock: continueSellingWhenOutOfStock === 'true' || continueSellingWhenOutOfStock === true,
+      isPhysicalProduct: isPhysicalProduct === undefined ? true : (isPhysicalProduct === 'true' || isPhysicalProduct === true),
+      packageType: packageType || "Store default - Sample box - 22 x 13.7 x 4.2 cm, 0 kg",
+      packageLength: packageLength ? Number(packageLength) : undefined,
+      packageWidth: packageWidth ? Number(packageWidth) : undefined,
+      packageHeight: packageHeight ? Number(packageHeight) : undefined,
+      packageDimensionsUnit: packageDimensionsUnit || "cm",
+      productWeight: productWeight ? Number(productWeight) : 0,
+      productWeightUnit: productWeightUnit || "g",
+      pageTitle: pageTitle || title.substring(0, 70),
+      metaDescription: metaDescription || "",
+      urlHandle: urlHandle || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''),
       category,
       keywords: keywordArray,
       images: imagePaths,
@@ -150,28 +233,71 @@ export const bulkUploadProducts = async (req, res) => {
       });
     }
 
-    const products = [];
+    const rows = [];
 
     fs.createReadStream(req.file.path)
       .pipe(csv())
       .on("data", (row) => {
         if (!row.title || !row.price || !row.category) return;
-
-        products.push({
-          sellerId: req.user._id,
-          title: row.title,
-          description: row.description || "",
-          price: Number(row.price),
-          stock: Number(row.stock || 0),
-          category: row.category,
-          keywords: row.keywords ? row.keywords.split(",") : [],
-          approvalStatus: "pending",
-        });
+        rows.push(row);
       })
       .on("end", async () => {
-        if (products.length === 0) {
+        if (rows.length === 0) {
           return res.status(400).json({
             message: "No valid products found in CSV",
+          });
+        }
+
+        const products = [];
+
+        for (const row of rows) {
+          let localImagePaths = [];
+          
+          if (row.imageLinks) {
+            const urls = row.imageLinks.split(",").map(url => url.trim()).filter(url => url);
+            for (const url of urls) {
+              try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`Failed to fetch: ${response.statusText}`);
+                
+                const arrayBuffer = await response.arrayBuffer();
+                let buffer = Buffer.from(arrayBuffer);
+                
+                const filename = Date.now() + '-' + Math.round(Math.random() * 1E9) + '.jpg';
+                const filePath = 'uploads/' + filename; 
+                
+                let quality = 80;
+                let processedBuffer = await sharp(buffer)
+                  .resize(800, 800, { fit: 'cover', position: 'center' })
+                  .jpeg({ quality })
+                  .toBuffer();
+                  
+                while (processedBuffer.length > 100 * 1024 && quality > 10) {
+                  quality -= 10;
+                  processedBuffer = await sharp(buffer)
+                    .resize(800, 800, { fit: 'cover', position: 'center' })
+                    .jpeg({ quality })
+                    .toBuffer();
+                }
+                
+                fs.writeFileSync(filePath, processedBuffer);
+                localImagePaths.push(filePath);
+              } catch (err) {
+                console.error("Failed to process image from URL:", url, err.message);
+              }
+            }
+          }
+
+          products.push({
+            sellerId: req.user._id,
+            title: row.title,
+            description: row.description || "",
+            price: Number(row.price),
+            stock: Number(row.stock || 0),
+            category: row.category,
+            keywords: row.keywords ? row.keywords.split(",") : [],
+            images: localImagePaths,
+            approvalStatus: "pending",
           });
         }
 
@@ -235,25 +361,90 @@ export const updateProduct = async (req, res) => {
       return res.status(403).json({ message: "Not authorized to edit this product" });
     }
 
-    const { title, description, price, stock, category, keywords } = req.body;
+    const { title, description, price, compareAtPrice, unitPrice, chargeTax, stock, locations, category, keywords, inventoryTracked, sku, barcode, continueSellingWhenOutOfStock, isPhysicalProduct, packageType, packageLength, packageWidth, packageHeight, packageDimensionsUnit, productWeight, productWeightUnit, pageTitle, metaDescription, urlHandle } = req.body;
 
     product.title = title || product.title;
-    product.description = description || product.description;
+    if (description !== undefined) {
+      product.description = sanitizeDescription(description);
+    }
     product.price = price || product.price;
-    product.stock = stock !== undefined ? stock : product.stock;
+    if (compareAtPrice !== undefined) product.compareAtPrice = compareAtPrice ? Number(compareAtPrice) : undefined;
+    if (unitPrice !== undefined) product.unitPrice = unitPrice ? Number(unitPrice) : undefined;
+    if (chargeTax !== undefined) product.chargeTax = chargeTax === 'true' || chargeTax === true;
+    
+    if (locations !== undefined) {
+      let parsedLocations = [];
+      try {
+        parsedLocations = typeof locations === 'string' ? JSON.parse(locations) : locations;
+      } catch (e) {
+        if (Array.isArray(locations)) parsedLocations = locations;
+      }
+      
+      parsedLocations = parsedLocations
+        .filter(loc => loc.address && loc.address.trim() !== "")
+        .map(loc => ({
+          address: loc.address,
+          stock: Number(loc.stock) || 0
+        }));
+        
+      product.locations = parsedLocations;
+      product.stock = parsedLocations.reduce((sum, loc) => sum + loc.stock, 0);
+    } else if (stock !== undefined) {
+      product.stock = stock;
+    }
+
+    if (inventoryTracked !== undefined) product.inventoryTracked = inventoryTracked === 'true' || inventoryTracked === true;
+    if (sku !== undefined) product.sku = sku;
+    if (barcode !== undefined) product.barcode = barcode;
+    if (continueSellingWhenOutOfStock !== undefined) product.continueSellingWhenOutOfStock = continueSellingWhenOutOfStock === 'true' || continueSellingWhenOutOfStock === true;
+    if (isPhysicalProduct !== undefined) product.isPhysicalProduct = isPhysicalProduct === 'true' || isPhysicalProduct === true;
+    if (packageType !== undefined) product.packageType = packageType;
+    if (packageLength !== undefined) product.packageLength = packageLength ? Number(packageLength) : undefined;
+    if (packageWidth !== undefined) product.packageWidth = packageWidth ? Number(packageWidth) : undefined;
+    if (packageHeight !== undefined) product.packageHeight = packageHeight ? Number(packageHeight) : undefined;
+    if (packageDimensionsUnit !== undefined) product.packageDimensionsUnit = packageDimensionsUnit;
+    if (productWeight !== undefined) product.productWeight = Number(productWeight);
+    if (productWeightUnit !== undefined) product.productWeightUnit = productWeightUnit;
+    if (pageTitle !== undefined) product.pageTitle = pageTitle;
+    if (metaDescription !== undefined) product.metaDescription = metaDescription;
+    if (urlHandle !== undefined) product.urlHandle = urlHandle;
     product.category = category || product.category;
 
     if (keywords) {
-      if (typeof keywords === "string") {
-        product.keywords = keywords.split(",").map((k) => k.trim());
+      if (typeof keywords === "string" && keywords.trim() !== "") {
+        product.keywords = keywords.split(",").map((k) => k.trim()).filter(Boolean);
       } else if (Array.isArray(keywords)) {
-        product.keywords = keywords;
+        product.keywords = keywords.filter(Boolean);
+      } else {
+        product.keywords = [];
       }
     }
 
     // Handle new images if any are uploaded
     if (req.files && req.files.length > 0) {
       const newImages = req.files.map((file) => file.path);
+      
+      for (const filePath of newImages) {
+        try {
+          let quality = 80;
+          let buffer = await sharp(filePath)
+            .resize(800, 800, { fit: 'cover', position: 'center' })
+            .jpeg({ quality })
+            .toBuffer();
+            
+          while (buffer.length > 100 * 1024 && quality > 10) {
+            quality -= 10;
+            buffer = await sharp(filePath)
+              .resize(800, 800, { fit: 'cover', position: 'center' })
+              .jpeg({ quality })
+              .toBuffer();
+          }
+          fs.writeFileSync(filePath, buffer);
+        } catch (err) {
+          console.error("Image processing error:", err);
+        }
+      }
+      
       product.images = newImages; // Replace old images with new ones
     }
 

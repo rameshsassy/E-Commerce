@@ -42,6 +42,34 @@ const userSchema = new mongoose.Schema(
     // ===============================
     // 🔐 KYC FIELDS (NEW)
     // ===============================
+    organizationLogo: String,
+    elevatorPitch: String,
+    officialName: String,
+    entityType: {
+      type: String,
+      enum: ["entity 1", "entity 2"],
+    },
+    storeAddresses: {
+      type: [String],
+      default: [],
+    },
+    
+    // Step 2 Documents
+    dateOfRegistration: Date,
+    adminCostPercentage: Number,
+    registrationNumber: String,
+    registrationCertificate: String,
+    orgPanNumber: String,
+    orgPanImage: String,
+    cancelledCheckImage: String,
+    gstNumber: String,
+    gstImage: String,
+    
+    agreedToTerms: {
+      type: Boolean,
+      default: false,
+    },
+
     panNumber: String,
     aadhaarNumber: String,
 

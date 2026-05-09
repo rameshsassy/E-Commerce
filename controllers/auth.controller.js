@@ -22,7 +22,7 @@ export const registerSeller = async (req, res) => {
 
     const exists = await User.findOne({ email });
     if (exists) {
-      return res.status(400).json({ message: "User already exists" });
+      return res.status(400).json({ message: "Hold up! This email is already partying in our database. Try logging in instead! 🕺" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -78,7 +78,7 @@ export const registerCustomer = async (req, res) => {
 
     const exists = await User.findOne({ email });
     if (exists) {
-      return res.status(400).json({ message: "User already exists" });
+      return res.status(400).json({ message: "Hold up! This email is already partying in our database. Try logging in instead! 🕺" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -134,7 +134,7 @@ export const createAdmin = async (req, res) => {
 
     const exists = await User.findOne({ email });
     if (exists) {
-      return res.status(400).json({ message: "Admin already exists" });
+      return res.status(400).json({ message: "Hold up! This email is already partying in our database. Try logging in instead! 🕺" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);

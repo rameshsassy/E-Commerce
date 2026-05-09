@@ -1,6 +1,9 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
+// import helmet from "helmet";
+// import rateLimit from "express-rate-limit";
+// import xss from "xss-clean";
 
 import authRoutes from "./routes/auth.routes.js";
 import sellerRoutes from "./routes/seller.routes.js";
@@ -8,6 +11,9 @@ import adminRoutes from "./routes/admin.routes.js";
 import customerRoutes from "./routes/customer.routes.js";
 import productRoutes from "./routes/product.routes.js";
 import userRoutes from "./routes/user.routes.js"; // ✅ NEW
+import shipmentRoutes from "./routes/shipment.routes.js";
+import returnRoutes from "./routes/return.routes.js";
+import couponRoutes from "./routes/coupon.routes.js";
 
 import { errorHandler } from "./middleware/error.middleware.js";
 
@@ -23,6 +29,20 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ===============================
+// 🛡️ SECURITY HARDENING (Priority 9)
+// ===============================
+// Note: Uncomment these after running `npm install helmet express-rate-limit xss-clean`
+// app.use(helmet()); // Set security HTTP headers
+// app.use(xss()); // Prevent XSS attacks
+// 
+// const limiter = rateLimit({
+//   windowMs: 15 * 60 * 1000, // 15 minutes
+//   max: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
+//   message: "Too many requests from this IP, please try again after 15 minutes"
+// });
+// app.use('/api/', limiter); // Apply rate limiting to all API routes
+
+// ===============================
 // 📁 STATIC FILES (images, KYC docs)
 // ===============================
 app.use("/uploads", express.static("uploads"));
@@ -36,6 +56,9 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/customer", customerRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/user", userRoutes); // ✅ NEW (COMMON PROFILE)
+app.use("/api/shipments", shipmentRoutes);
+app.use("/api/returns", returnRoutes);
+app.use("/api/coupons", couponRoutes);
 
 // ===============================
 // 🏠 ROOT ROUTE

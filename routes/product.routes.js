@@ -12,6 +12,11 @@ import {
   deleteProduct,
 } from "../controllers/product.controller.js";
 
+import {
+  createProductReview,
+  getProductReviews,
+} from "../controllers/review.controller.js";
+
 const router = express.Router();
 
 // ===============================
@@ -25,6 +30,12 @@ router.get("/", getAllProducts);
 router.get("/:id", getProductById);
 
 // ===============================
+// ⭐ PRODUCT REVIEWS
+// ===============================
+router.post("/:id/reviews", protect, authorizeRoles("customer"), createProductReview);
+router.get("/:id/reviews", getProductReviews);
+
+// ===============================
 // ➕ SELLER PRODUCT UPLOAD
 // ===============================
 
@@ -33,7 +44,7 @@ router.post(
   "/",
   protect,
   authorizeRoles("seller"),
-  upload.array("images", 100), // generously high limit acting as unlimited
+  upload.array("images", 5), // limited to 5 images
   addProduct
 );
 
@@ -42,7 +53,7 @@ router.put(
   "/:id",
   protect,
   authorizeRoles("seller"),
-  upload.array("images", 100),
+  upload.array("images", 5),
   updateProduct
 );
 
