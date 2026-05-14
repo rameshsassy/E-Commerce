@@ -109,7 +109,7 @@ app.use("/api/categories", categoryRoutes);
 // 🏠 ROOT ROUTE
 // ===============================
 app.get("/", (req, res) => {
-  res.send("API is running...");
+  res.send("API is running with updated cors");
 });
 
 // ===============================
