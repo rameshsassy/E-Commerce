@@ -24,28 +24,6 @@ import { getUploadsRoot, ensureUploadsRoot } from "./utils/uploadPaths.js";
 dotenv.config();
 ensureUploadsRoot();
 
-/** Origins allowed when credentials (cookies) are used — cannot use "*" with credentials: true (browser blocks). */
-function getCorsAllowedOrigins() {
-  const fromEnv = (process.env.CORS_ORIGINS || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  const devDefaults = [
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:5173",
-    "https://e-commerce-snj1.vercel.app"
-  ];
-  const set = new Set([...devDefaults, ...fromEnv]);
-  if (process.env.CORS_ALLOW_NULL_ORIGIN === "true") {
-    set.add("null");
-  }
-  return set;
-}
-
-const corsAllowedOrigins = getCorsAllowedOrigins();
-
 const app = express();
 
 // Request Logger
@@ -59,20 +37,12 @@ if (process.env.NODE_ENV !== 'production') {
 // ===============================
 // ✅ MIDDLEWARE
 // ===============================
+// origin: true echoes the request Origin (any site). "*" is invalid with credentials: true.
 app.use(
   cors({
-    origin(origin, callback) {
-      if (!origin) {
-        return callback(null, true);
-      }
-      if (corsAllowedOrigins.has(origin)) {
-        return callback(null, true);
-      }
-      callback(null, false);
-    },
+    origin: true,
     credentials: true,
     methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
     optionsSuccessStatus: 200,
   })
 );
