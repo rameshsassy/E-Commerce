@@ -21,16 +21,30 @@ import OrderSuccess from './pages/public/OrderSuccess';
 import CustomerProfile from './pages/public/CustomerProfile';
 import OrderTracking from './pages/public/OrderTracking';
 import PaymentFailed from './pages/public/PaymentFailed';
+import Notifications from './pages/public/Notifications';
+import Support from './pages/public/Support';
+import FAQ from './pages/public/FAQ';
 
 import SellerDashboard from './pages/seller/SellerDashboard';
 import SellerProfile from './pages/seller/SellerProfile';
 import SellerProducts from './pages/seller/SellerProducts';
 import SellerKYC from './pages/seller/SellerKYC';
+import SellerSubscription from './pages/seller/SellerSubscription';
+import SellerAnalytics from './pages/seller/SellerAnalytics';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminSellers from './pages/admin/AdminSellers';
 import AdminKYC from './pages/admin/AdminKYC';
 import AdminProducts from './pages/admin/AdminProducts';
+import AdminOrders from './pages/admin/AdminOrders';
+import AdminReturns from './pages/admin/AdminReturns';
+import AdminCoupons from './pages/admin/AdminCoupons';
+import AdminCategories from './pages/admin/AdminCategories';
+import SellerPremium from './pages/seller/SellerPremium';
+import AdminPremiumSellers from './pages/admin/AdminPremiumSellers';
+import AdminPremiumSellerDashboard from './pages/admin/AdminPremiumSellerDashboard';
+import AdminRoles from './pages/admin/AdminRoles';
+import AdminEmailLogs from './pages/admin/AdminEmailLogs';
 
 const App = () => {
   return (
@@ -48,6 +62,9 @@ const App = () => {
           <Route path="/payment-failed" element={<PaymentFailed />} />
           <Route path="/track/:shipmentId" element={<OrderTracking />} />
           <Route path="/profile/*" element={<CustomerProfile />} />
+          <Route path="/notifications" element={<Notifications />} />
+          <Route path="/support" element={<Support />} />
+          <Route path="/faq" element={<FAQ />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/admin-setup" element={<AdminRegister />} />
@@ -56,19 +73,30 @@ const App = () => {
         </Route>
 
         {/* Seller Routes */}
-        <Route element={<DashboardLayout role="seller" />}>
+        <Route element={<DashboardLayout variant="seller" />}>
           <Route path="/seller/dashboard" element={<SellerDashboard />} />
+          <Route path="/seller/analytics" element={<SellerAnalytics />} />
           <Route path="/seller/profile" element={<SellerProfile />} />
           <Route path="/seller/products" element={<SellerProducts />} />
           <Route path="/seller/kyc" element={<SellerKYC />} />
+          <Route path="/seller/subscription" element={<SellerSubscription />} />
+          <Route path="/seller/premium" element={<SellerPremium />} />
         </Route>
 
         {/* Admin Routes */}
-        <Route element={<DashboardLayout role="admin" />}>
+        <Route element={<DashboardLayout variant="admin" />}>
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/roles" element={<AdminRoles />} />
           <Route path="/admin/sellers" element={<AdminSellers />} />
           <Route path="/admin/kyc" element={<AdminKYC />} />
           <Route path="/admin/products" element={<AdminProducts />} />
+          <Route path="/admin/orders" element={<AdminOrders />} />
+          <Route path="/admin/returns" element={<AdminReturns />} />
+          <Route path="/admin/coupons" element={<AdminCoupons />} />
+          <Route path="/admin/premium-sellers" element={<AdminPremiumSellers />} />
+          <Route path="/admin/premium-seller-dashboard" element={<AdminPremiumSellerDashboard />} />
+          <Route path="/admin/categories" element={<AdminCategories />} />
+          <Route path="/admin/email-logs" element={<AdminEmailLogs />} />
         </Route>
 
         {/* Fallback */}

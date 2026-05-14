@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldCheck, Truck, CreditCard, ChevronRight, CheckCircle } from 'lucide-react';
-import api from '../../utils/api';
+import api, { BASE_URL } from '../../utils/api';
 
 const Checkout = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [cartData, setCartData] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [selectedAddressId, setSelectedAddressId] = useState('new');
   
   const [address, setAddress] = useState({
     fullName: '', phone: '', addressLine1: '', city: '', state: '', pinCode: ''
@@ -22,10 +25,12 @@ const Checkout = () => {
         const cartRes = await api.get('/customer/cart');
         setCartData(cartRes.data);
         
-        // Try loading default address
+        // Try loading saved addresses
         const addrRes = await api.get('/customer/address');
         if (addrRes.data && addrRes.data.length > 0) {
+          setSavedAddresses(addrRes.data);
           const defAddr = addrRes.data.find(a => a.isDefault) || addrRes.data[0];
+          setSelectedAddressId(defAddr._id);
           setAddress({
             fullName: defAddr.fullName,
             phone: defAddr.phone,
@@ -44,12 +49,41 @@ const Checkout = () => {
     loadData();
   }, []);
 
+  const handleSelectSavedAddress = (id) => {
+    setSelectedAddressId(id);
+    if (id === 'new') {
+      setAddress({ fullName: '', phone: '', addressLine1: '', city: '', state: '', pinCode: '' });
+    } else {
+      const addr = savedAddresses.find(a => a._id === id);
+      if (addr) {
+        setAddress({
+          fullName: addr.fullName,
+          phone: addr.phone,
+          addressLine1: addr.addressLine1,
+          city: addr.city,
+          state: addr.state,
+          pinCode: addr.pinCode
+        });
+      }
+    }
+  };
+
   const handleAddressChange = (e) => {
     setAddress({ ...address, [e.target.name]: e.target.value });
   };
 
-  const handleAddressSubmit = (e) => {
+  const handleAddressSubmit = async (e) => {
     e.preventDefault();
+    
+    // Save address if it's a new one before proceeding
+    if (selectedAddressId === 'new') {
+      try {
+        await api.post('/customer/address', { ...address, isDefault: savedAddresses.length === 0 });
+      } catch (err) {
+        console.error("Failed to save new address during checkout", err);
+      }
+    }
+    
     setStep(2);
   };
 
@@ -66,7 +100,7 @@ const Checkout = () => {
     setProcessing(true);
     try {
       // 1. Create Razorpay Order
-      const { data: rzpOrder } = await api.post('/customer/order/razorpay', { amount: total });
+      const { data: rzpOrder } = await api.post('/customer/order/razorpay', { amount: total, shippingAddress: address });
 
       // 2. Initialize Razorpay Checkout
       const options = {
@@ -124,7 +158,7 @@ const Checkout = () => {
       rzp.open();
     } catch (err) {
       console.error('Payment error', err);
-      alert('Failed to initialize payment.');
+      alert(err.response?.data?.message || 'Failed to initialize payment.');
       setProcessing(false);
     }
   };
@@ -153,30 +187,66 @@ const Checkout = () => {
         {step === 1 && (
           <div className="glass-panel p-6 rounded-2xl">
             <h2 className="text-xl font-bold mb-6 flex items-center gap-2"><Truck size={20}/> Shipping Address</h2>
+            
+            {savedAddresses.length > 0 && (
+              <div className="mb-6">
+                <h3 className="font-bold text-sm mb-3 text-text-muted">Select Saved Address:</h3>
+                <div className="flex flex-col gap-3">
+                  {savedAddresses.map(addr => (
+                    <label key={addr._id} className={`p-4 border rounded-xl cursor-pointer flex gap-3 transition-all ${selectedAddressId === addr._id ? 'border-primary bg-primary/5' : 'border-glass-border hover:bg-surface-hover'}`}>
+                      <input 
+                        type="radio" 
+                        name="addressSelection" 
+                        checked={selectedAddressId === addr._id} 
+                        onChange={() => handleSelectSavedAddress(addr._id)}
+                        className="mt-1 accent-primary" 
+                      />
+                      <div>
+                        <p className="font-bold">{addr.fullName} {addr.isDefault && <span className="ml-2 badge bg-primary/20 text-primary text-[10px]">Default</span>}</p>
+                        <p className="text-sm text-text-muted">{addr.addressLine1}, {addr.city}, {addr.state} - {addr.pinCode}</p>
+                        <p className="text-sm text-text-muted">Phone: {addr.phone}</p>
+                      </div>
+                    </label>
+                  ))}
+                  
+                  <label className={`p-4 border rounded-xl cursor-pointer flex gap-3 transition-all ${selectedAddressId === 'new' ? 'border-primary bg-primary/5' : 'border-glass-border hover:bg-surface-hover'}`}>
+                    <input 
+                      type="radio" 
+                      name="addressSelection" 
+                      checked={selectedAddressId === 'new'} 
+                      onChange={() => handleSelectSavedAddress('new')}
+                      className="mt-1 accent-primary" 
+                    />
+                    <div className="font-bold">Add New Address</div>
+                  </label>
+                </div>
+              </div>
+            )}
+
             <form onSubmit={handleAddressSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
                 <label className="block text-sm mb-1">Full Name</label>
-                <input type="text" name="fullName" required className="input-field" value={address.fullName} onChange={handleAddressChange} />
+                <input type="text" name="fullName" required className="input-field disabled:opacity-50" value={address.fullName} onChange={handleAddressChange} disabled={selectedAddressId !== 'new'} />
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm mb-1">Phone Number</label>
-                <input type="text" name="phone" required className="input-field" value={address.phone} onChange={handleAddressChange} />
+                <input type="text" name="phone" required className="input-field disabled:opacity-50" value={address.phone} onChange={handleAddressChange} disabled={selectedAddressId !== 'new'} />
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm mb-1">Address Line 1</label>
-                <input type="text" name="addressLine1" required className="input-field" value={address.addressLine1} onChange={handleAddressChange} />
+                <input type="text" name="addressLine1" required className="input-field disabled:opacity-50" value={address.addressLine1} onChange={handleAddressChange} disabled={selectedAddressId !== 'new'} />
               </div>
               <div>
                 <label className="block text-sm mb-1">City</label>
-                <input type="text" name="city" required className="input-field" value={address.city} onChange={handleAddressChange} />
+                <input type="text" name="city" required className="input-field disabled:opacity-50" value={address.city} onChange={handleAddressChange} disabled={selectedAddressId !== 'new'} />
               </div>
               <div>
                 <label className="block text-sm mb-1">State</label>
-                <input type="text" name="state" required className="input-field" value={address.state} onChange={handleAddressChange} />
+                <input type="text" name="state" required className="input-field disabled:opacity-50" value={address.state} onChange={handleAddressChange} disabled={selectedAddressId !== 'new'} />
               </div>
               <div>
                 <label className="block text-sm mb-1">PIN Code</label>
-                <input type="text" name="pinCode" required className="input-field" value={address.pinCode} onChange={handleAddressChange} />
+                <input type="text" name="pinCode" required className="input-field disabled:opacity-50" value={address.pinCode} onChange={handleAddressChange} disabled={selectedAddressId !== 'new'} />
               </div>
               <div className="md:col-span-2 mt-4">
                 <button type="submit" className="btn btn-primary w-full py-3 text-lg">Continue to Payment</button>
@@ -224,10 +294,13 @@ const Checkout = () => {
           {cartData.items.map(item => (
             <div key={item.product._id} className="flex gap-3 text-sm">
               <div className="w-12 h-12 bg-surface rounded overflow-hidden shrink-0 border border-glass-border">
-                <img src={`http://localhost:5000/${item.product.images[0].replace(/\\/g, '/')}`} className="w-full h-full object-cover" alt={item.product.title} />
+                <img src={`${BASE_URL}/${item.product.images[0].replace(/\\/g, '/')}`} className="w-full h-full object-cover" alt={item.product.title} />
               </div>
               <div className="flex-1">
                 <p className="font-bold line-clamp-1">{item.product.title}</p>
+                <p className="text-text-muted text-[10px] uppercase font-bold tracking-wider mb-1">
+                  Sold by: {item.product.seller?.businessName || item.product.seller?.firstName || 'Aashansh Assured'}
+                </p>
                 <p className="text-text-muted text-xs">Qty: {item.quantity}</p>
               </div>
               <div className="font-bold text-success">Rs. {(item.product.price * item.quantity).toFixed(2)}</div>

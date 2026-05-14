@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingBag, Trash2, Plus, Minus, ArrowRight, Store } from 'lucide-react';
-import api from '../../utils/api';
+import { ShoppingBag, Trash2, Plus, Minus, ArrowRight, Store, ShieldCheck } from 'lucide-react';
+
+import api, { BASE_URL } from '../../utils/api';
+import RelatedProducts from '../../components/recommendations/RelatedProducts';
 
 const Cart = () => {
   const [cartData, setCartData] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    fetchCart();
-  }, []);
 
   const fetchCart = async () => {
     try {
@@ -22,6 +20,10 @@ const Cart = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchCart();
+  }, []);
 
   const updateQuantity = async (productId, currentQty, change) => {
     const newQty = currentQty + change;
@@ -122,7 +124,7 @@ const Cart = () => {
                     <div key={item.product._id} className="flex gap-4 p-4 rounded-xl bg-bg/50 border border-glass-border hover:border-primary/30 transition-colors">
                       <div className="w-24 h-24 rounded-lg bg-surface overflow-hidden shrink-0">
                         <img 
-                          src={item.product.images && item.product.images.length > 0 ? `http://localhost:5000/${item.product.images[0].replace(/\\/g, '/')}` : 'https://placehold.co/400x400/1e293b/f8fafc'} 
+                          src={item.product.images && item.product.images.length > 0 ? `${BASE_URL}/${item.product.images[0].replace(/\\/g, '/')}` : 'https://placehold.co/400x400/1e293b/f8fafc'} 
                           alt={item.product.title} 
                           className="w-full h-full object-cover"
                         />
@@ -139,23 +141,28 @@ const Cart = () => {
                         <p className="text-sm text-text-muted mt-1 mb-4">Rs. {item.product.price.toFixed(2)} each</p>
                         
                         <div className="mt-auto flex items-center justify-between">
-                          <div className="flex items-center gap-3 bg-surface rounded-lg p-1 border border-glass-border">
-                            <button 
-                              className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-surface-hover text-text-muted transition-colors"
-                              onClick={() => updateQuantity(item.product._id, item.quantity, -1)}
-                              disabled={item.quantity <= 1}
-                            >
-                              <Minus size={14} />
-                            </button>
-                            <span className="w-6 text-center font-bold">{item.quantity}</span>
-                            <button 
-                              className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-surface-hover text-text-muted transition-colors"
-                              onClick={() => updateQuantity(item.product._id, item.quantity, 1)}
-                              disabled={item.quantity >= item.product.stock}
-                            >
-                              <Plus size={14} />
-                            </button>
-                          </div>
+                            <div className="flex flex-col items-center">
+                              <div className="flex items-center gap-3 bg-surface rounded-lg p-1 border border-glass-border">
+                                <button 
+                                  className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-surface-hover text-text-muted transition-colors disabled:opacity-50"
+                                  onClick={() => updateQuantity(item.product._id, item.quantity, -1)}
+                                  disabled={item.quantity <= 1}
+                                >
+                                  <Minus size={14} />
+                                </button>
+                                <span className="w-6 text-center font-bold">{item.quantity}</span>
+                                <button 
+                                  className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-surface-hover text-text-muted transition-colors disabled:opacity-50"
+                                  onClick={() => updateQuantity(item.product._id, item.quantity, 1)}
+                                  disabled={item.quantity >= 5 || item.quantity >= item.product.stock}
+                                >
+                                  <Plus size={14} />
+                                </button>
+                              </div>
+                              {item.quantity >= 5 && (
+                                <span className="text-[10px] text-warning mt-1 font-medium">Max 5 units</span>
+                              )}
+                            </div>
                           
                           <button 
                             className="text-text-muted hover:text-error flex items-center gap-1 text-sm font-medium transition-colors"
@@ -173,7 +180,7 @@ const Cart = () => {
           </div>
 
           {/* Order Summary */}
-          <div className="w-full lg:w-96 glass-panel p-6 rounded-2xl sticky top-24 shrink-0">
+          <div className="w-full lg:w-96 glass-panel p-6 rounded-2xl sticky top-24 shrink-0 h-fit">
             <h2 className="text-xl font-bold mb-6 border-b border-glass-border pb-4">Order Summary</h2>
             
             <div className="space-y-4 mb-6">
@@ -214,6 +221,8 @@ const Cart = () => {
           </div>
         </div>
       )}
+
+      <RelatedProducts title="Recommended for you" />
     </div>
   );
 };

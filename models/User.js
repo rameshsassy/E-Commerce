@@ -20,8 +20,18 @@ const userSchema = new mongoose.Schema(
 
     role: {
       type: String,
-      enum: ["admin", "seller", "customer"],
+      enum: ["admin", "admin_staff", "seller", "customer"],
       required: true,
+    },
+
+    /** Sub-admin accounts created by primary admin */
+    adminAccessLevel: {
+      type: String,
+      enum: ["full", "limited"],
+    },
+    adminAllowedSections: {
+      type: [String],
+      default: [],
     },
 
     status: {
@@ -38,6 +48,18 @@ const userSchema = new mongoose.Schema(
     city: String,
     state: String,
     pincode: String,
+    
+    // ===============================
+    // 🚚 HYPERLOCAL DELIVERY
+    // ===============================
+    isHyperlocal: {
+      type: Boolean,
+      default: false,
+    },
+    deliverablePincodes: {
+      type: [String],
+      default: [],
+    },
 
     // ===============================
     // 🔐 KYC FIELDS (NEW)
@@ -83,10 +105,45 @@ const userSchema = new mongoose.Schema(
     },
 
     // ===============================
+    // 🌟 PREMIUM SELLER FIELDS
+    // ===============================
+    sellerType: {
+      type: String,
+      enum: ["free", "premium"],
+      default: "free",
+    },
+    bulkPurchaseEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    subscriptionActive: {
+      type: Boolean,
+      default: false,
+    },
+
+    /** Last Razorpay order created for premium checkout (must match on verify). */
+    pendingPremiumOrderId: { type: String, default: null },
+    pendingPremiumOrderAt: { type: Date, default: null },
+    /** Last successful premium payment id (support / audit). */
+    premiumLastPaymentId: { type: String, default: null },
+
+    // ===============================
     // 🔐 FORGOT PASSWORD
     // ===============================
     resetPasswordToken: String,
     resetPasswordExpire: Date,
+
+    // ===============================
+    // 📧 EMAIL PREFERENCES (customer)
+    // ===============================
+    emailNewProductAlerts: {
+      type: Boolean,
+      default: false,
+    },
+    marketingEmailsEnabled: {
+      type: Boolean,
+      default: true,
+    },
   },
   { timestamps: true }
 );

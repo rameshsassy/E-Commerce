@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../utils/api';
 import { Package, TrendingUp, DollarSign } from 'lucide-react';
+import BulkInquiriesPanel from '../../components/bulk/BulkInquiriesPanel';
 
 const SellerDashboard = () => {
   const [stats, setStats] = useState({ products: 0, pending: 0, sales: 0 });
@@ -31,6 +32,12 @@ const SellerDashboard = () => {
     };
     fetchDashboard();
   }, []);
+
+  useEffect(() => {
+    if (!loading && window.location.hash === '#bulk-inquiries') {
+      document.getElementById('bulk-inquiries')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [loading]);
 
   return (
     <div className="animate-fade-in">
@@ -68,16 +75,18 @@ const SellerDashboard = () => {
         </div>
       </div>
 
-      <div className="glass-panel p-8 min-h-[400px]">
+      <div className="glass-panel p-8 min-h-[200px] mb-8">
         <h2 className="text-xl font-bold mb-4">Recent Activity</h2>
         {loading ? (
           <p>Loading...</p>
         ) : (
-          <div className="text-center py-20 text-text-muted">
+          <div className="text-center py-8 text-text-muted">
             <p>No recent activity.</p>
           </div>
         )}
       </div>
+
+      <BulkInquiriesPanel isAdmin={false} title="Bulk order inquiries" />
     </div>
   );
 };

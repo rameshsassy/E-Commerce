@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import api from '../../utils/api';
+import api, { BASE_URL } from '../../utils/api';
 import { Plus, Upload, FileSpreadsheet, Image as ImageIcon, List, CheckCircle, Clock, XCircle, Edit2, Trash2, X } from 'lucide-react';
 
 const RichTextEditor = ({ value, onChange }) => {
@@ -54,24 +54,23 @@ const SellerProducts = () => {
   const [editLoading, setEditLoading] = useState(false);
   const [editMsg, setEditMsg] = useState('');
 
-  useEffect(() => {
-    if (activeTab === 'list') {
-      fetchMyProducts();
-    }
-  }, [activeTab]);
-
   const fetchMyProducts = async () => {
     setLoadingProducts(true);
     try {
       const { data } = await api.get('/seller/products');
       setMyProducts(data);
-    } catch (err) {
-      console.error('Failed to fetch products', err);
+    } catch (error) {
+      console.error('Error fetching products:', error);
     } finally {
       setLoadingProducts(false);
     }
   };
-  
+
+  useEffect(() => {
+    if (activeTab === 'list') {
+      fetchMyProducts();
+    }
+  }, [activeTab]);
   // Single Product State
   const [productData, setProductData] = useState({ 
     title: '', description: '', price: '', compareAtPrice: '', unitPrice: '', chargeTax: false, category: '', stock: 0, locations: [{ address: 'Main Shop Location', stock: 0 }], keywords: '',
@@ -248,7 +247,7 @@ const SellerProducts = () => {
                         <td className="p-4">
                           <div className="w-12 h-12 rounded-lg bg-surface flex items-center justify-center overflow-hidden">
                             {product.images && product.images.length > 0 ? (
-                              <img src={`http://localhost:5000/${product.images[0].replace(/\\/g, '/')}`} alt={product.title} className="w-full h-full object-cover" />
+                              <img src={`${BASE_URL}/${product.images[0].replace(/\\/g, '/')}`} alt={product.title} className="w-full h-full object-cover" />
                             ) : (
                               <ImageIcon size={20} className="text-text-muted" />
                             )}
@@ -307,10 +306,7 @@ const SellerProducts = () => {
               )}
             </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-              
-              {/* LEFT COLUMN */}
-              <div className="lg:col-span-2 space-y-6">
+            <div className="space-y-6">
                 
                 {/* 1. BASIC INFO */}
                 <div className="bg-white border border-[#E1E3E5] rounded-lg shadow-sm overflow-hidden">
@@ -578,29 +574,6 @@ const SellerProducts = () => {
                   </div>
                 </div>
 
-              </div>
-              
-              {/* RIGHT COLUMN - ORGANIZATION */}
-              <div className="space-y-6">
-                <div className="bg-white border border-[#E1E3E5] rounded-lg shadow-sm overflow-hidden">
-                  <div className="p-5 border-b border-[#E1E3E5]">
-                    <h3 className="font-semibold text-[15px] text-[#202223]">Product organization</h3>
-                  </div>
-                  <div className="p-5 space-y-4">
-                    <div>
-                      <label className="block text-[13px] text-[#202223] mb-1">Product Category</label>
-                      <select required className="w-full border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] outline-none focus:ring-2 focus:ring-[#005bd3] focus:border-[#005bd3] bg-white" value={productData.category} onChange={e => setProductData({...productData, category: e.target.value})}>
-                        <option value="" disabled>Select category</option>
-                        <option value="Category 1">Category 1</option>
-                        <option value="Category 2">Category 2</option>
-                        <option value="Category 3">Category 3</option>
-                      </select>
-                    </div>
-
-                  </div>
-                </div>
-              </div>
-              
             </div>
 
             {/* FORM FOOTER ACTION */}

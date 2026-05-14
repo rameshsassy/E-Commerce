@@ -91,6 +91,10 @@ const orderSchema = new mongoose.Schema(
     razorpaySignature: {
       type: String,
     },
+    thankYouEmailSent: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

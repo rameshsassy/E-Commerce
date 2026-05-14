@@ -10,11 +10,14 @@ import {
   getProductById,
   updateProduct,
   deleteProduct,
+  checkPincode,
 } from "../controllers/product.controller.js";
+import { createBulkInquiry } from "../controllers/bulkInquiry.controller.js";
 
 import {
   createProductReview,
   getProductReviews,
+  markReviewHelpful
 } from "../controllers/review.controller.js";
 
 const router = express.Router();
@@ -29,11 +32,18 @@ router.get("/", getAllProducts);
 // Get single approved product by ID
 router.get("/:id", getProductById);
 
+// Check if a product is deliverable to a pincode
+router.get("/:id/check-pincode", checkPincode);
+
+// Bulk order inquiry (Premium sellers only — enforced in controller)
+router.post("/:id/bulk-inquiry", createBulkInquiry);
+
 // ===============================
 // ⭐ PRODUCT REVIEWS
 // ===============================
-router.post("/:id/reviews", protect, authorizeRoles("customer"), createProductReview);
+router.post("/:id/reviews", protect, authorizeRoles("customer"), upload.array("images", 3), createProductReview);
 router.get("/:id/reviews", getProductReviews);
+router.put("/:id/reviews/:reviewId/helpful", protect, markReviewHelpful);
 
 // ===============================
 // ➕ SELLER PRODUCT UPLOAD

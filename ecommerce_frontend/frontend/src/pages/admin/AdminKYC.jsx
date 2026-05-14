@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../utils/api';
+import api, { BASE_URL } from '../../utils/api';
 import { Check, X, Eye, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
 
 const AdminKYC = () => {
@@ -46,7 +46,7 @@ const AdminKYC = () => {
               <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
                 <div className="flex items-center gap-4">
                   {seller.organizationLogo ? (
-                    <img src={`http://localhost:5000/${seller.organizationLogo}`} alt="Logo" className="w-16 h-16 rounded-full object-cover border border-[#E1E3E5]" />
+                    <img src={`${BASE_URL}/${seller.organizationLogo.replace(/\\/g, '/')}`} alt="Logo" className="w-16 h-16 rounded-full object-cover border border-[#E1E3E5]" />
                   ) : (
                     <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-xl border border-[#E1E3E5]">
                       {seller.firstName?.[0]}{seller.lastName?.[0]}
@@ -114,7 +114,7 @@ const AdminKYC = () => {
                           <p className="font-bold font-mono">{seller.registrationNumber || 'N/A'}</p>
                         </div>
                         {seller.registrationCertificate && (
-                          <a href={`http://localhost:5000/${seller.registrationCertificate}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-sm text-primary hover:underline bg-primary/10 px-2 py-1 rounded">
+                          <a href={`${BASE_URL}/${seller.registrationCertificate}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-sm text-primary hover:underline bg-primary/10 px-2 py-1 rounded">
                             <ExternalLink size={14} /> View
                           </a>
                         )}
@@ -126,7 +126,7 @@ const AdminKYC = () => {
                           <p className="font-bold font-mono">{seller.orgPanNumber || 'N/A'}</p>
                         </div>
                         {seller.orgPanImage && (
-                          <a href={`http://localhost:5000/${seller.orgPanImage}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-sm text-primary hover:underline bg-primary/10 px-2 py-1 rounded">
+                          <a href={`${BASE_URL}/${seller.orgPanImage}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-sm text-primary hover:underline bg-primary/10 px-2 py-1 rounded">
                             <ExternalLink size={14} /> View
                           </a>
                         )}
@@ -138,7 +138,7 @@ const AdminKYC = () => {
                           <p className="font-bold font-mono">{seller.gstNumber || 'N/A'}</p>
                         </div>
                         {seller.gstImage && (
-                          <a href={`http://localhost:5000/${seller.gstImage}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-sm text-primary hover:underline bg-primary/10 px-2 py-1 rounded">
+                          <a href={`${BASE_URL}/${seller.gstImage}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-sm text-primary hover:underline bg-primary/10 px-2 py-1 rounded">
                             <ExternalLink size={14} /> View
                           </a>
                         )}
@@ -150,7 +150,7 @@ const AdminKYC = () => {
                             <p className="text-xs text-text-muted uppercase tracking-wider mb-1">Bank Proof</p>
                             <p className="font-medium text-[#202223]">Cancelled Check</p>
                           </div>
-                          <a href={`http://localhost:5000/${seller.cancelledCheckImage}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-sm text-primary hover:underline bg-primary/10 px-2 py-1 rounded">
+                          <a href={`${BASE_URL}/${seller.cancelledCheckImage}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-sm text-primary hover:underline bg-primary/10 px-2 py-1 rounded">
                             <ExternalLink size={14} /> View
                           </a>
                         </div>
@@ -160,12 +160,12 @@ const AdminKYC = () => {
                       {(seller.panImage || seller.aadhaarImage) && (
                         <div className="flex gap-4 pt-2">
                           {seller.panImage && (
-                            <a href={`http://localhost:5000/${seller.panImage}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline bg-primary/10 px-3 py-1.5 rounded-md">
+                            <a href={`${BASE_URL}/${seller.panImage}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline bg-primary/10 px-3 py-1.5 rounded-md">
                               <Eye size={16} /> Personal PAN Image
                             </a>
                           )}
                           {seller.aadhaarImage && (
-                            <a href={`http://localhost:5000/${seller.aadhaarImage}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline bg-primary/10 px-3 py-1.5 rounded-md">
+                            <a href={`${BASE_URL}/${seller.aadhaarImage}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline bg-primary/10 px-3 py-1.5 rounded-md">
                               <Eye size={16} /> Aadhaar Image
                             </a>
                           )}

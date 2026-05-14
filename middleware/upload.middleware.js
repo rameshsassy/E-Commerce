@@ -17,6 +17,8 @@ const storage = multer.diskStorage({
     // 👉 If KYC route
     if (req.originalUrl.includes("kyc")) {
       uploadPath = "uploads/kyc";
+    } else if (req.originalUrl.includes("support")) {
+      uploadPath = "uploads/support";
     }
 
     ensureDir(uploadPath);

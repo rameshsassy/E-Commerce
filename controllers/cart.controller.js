@@ -8,7 +8,7 @@ export const getCart = async (req, res) => {
   try {
     let cart = await Cart.findOne({ user: req.user._id }).populate({
       path: "items.product",
-      populate: { path: "seller", select: "firstName lastName businessName" }
+      populate: { path: "sellerId", select: "firstName lastName businessName" }
     });
     
     if (!cart) {
@@ -32,6 +32,12 @@ export const addToCart = async (req, res) => {
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
+    
+    const reqQuantity = quantity || 1;
+    
+    if (reqQuantity > 5) {
+      return res.status(400).json({ message: "Maximum 5 units allowed per product." });
+    }
 
     let cart = await Cart.findOne({ user: req.user._id });
     
@@ -47,17 +53,21 @@ export const addToCart = async (req, res) => {
     
     if (itemIndex > -1) {
       // Update quantity
-      cart.items[itemIndex].quantity += quantity || 1;
+      const newQuantity = cart.items[itemIndex].quantity + reqQuantity;
+      if (newQuantity > 5) {
+        return res.status(400).json({ message: "Maximum 5 units allowed per product. You already have some in your cart." });
+      }
+      cart.items[itemIndex].quantity = newQuantity;
     } else {
       // Add new item
-      cart.items.push({ product: productId, quantity: quantity || 1 });
+      cart.items.push({ product: productId, quantity: reqQuantity });
     }
     
     await cart.save();
     
     const updatedCart = await Cart.findOne({ user: req.user._id }).populate({
       path: "items.product",
-      populate: { path: "seller", select: "firstName lastName businessName" }
+      populate: { path: "sellerId", select: "firstName lastName businessName" }
     });
     
     res.json(updatedCart);
@@ -77,6 +87,10 @@ export const updateCartItem = async (req, res) => {
     if (quantity < 1) {
       return res.status(400).json({ message: "Quantity must be at least 1" });
     }
+    
+    if (quantity > 5) {
+      return res.status(400).json({ message: "Maximum 5 units allowed per product." });
+    }
 
     const cart = await Cart.findOne({ user: req.user._id });
     if (!cart) {
@@ -91,7 +105,7 @@ export const updateCartItem = async (req, res) => {
       
       const updatedCart = await Cart.findOne({ user: req.user._id }).populate({
         path: "items.product",
-        populate: { path: "seller", select: "firstName lastName businessName" }
+        populate: { path: "sellerId", select: "firstName lastName businessName" }
       });
       res.json(updatedCart);
     } else {
@@ -120,7 +134,7 @@ export const removeFromCart = async (req, res) => {
     
     const updatedCart = await Cart.findOne({ user: req.user._id }).populate({
       path: "items.product",
-      populate: { path: "seller", select: "firstName lastName businessName" }
+      populate: { path: "sellerId", select: "firstName lastName businessName" }
     });
     res.json(updatedCart);
   } catch (error) {

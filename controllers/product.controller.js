@@ -4,6 +4,11 @@ import csv from "csv-parser";
 import sanitizeHtml from "sanitize-html";
 import sharp from "sharp";
 
+// Ensure uploads directory exists
+if (!fs.existsSync("uploads")) {
+  fs.mkdirSync("uploads", { recursive: true });
+}
+
 const sanitizeDescription = (html) => {
   if (!html) return "";
   return sanitizeHtml(html, {
@@ -32,9 +37,14 @@ export const addProduct = async (req, res) => {
 
     const { title, description, price, compareAtPrice, unitPrice, chargeTax, stock, locations, category, keywords, inventoryTracked, sku, barcode, continueSellingWhenOutOfStock, isPhysicalProduct, packageType, packageLength, packageWidth, packageHeight, packageDimensionsUnit, productWeight, productWeightUnit, pageTitle, metaDescription, urlHandle } = req.body;
 
-    if (!title || !description || !price || !category) {
+    const categoryValue =
+      category != null && String(category).trim() !== ""
+        ? String(category).trim()
+        : "Uncategorized";
+
+    if (!title || !description || !price) {
       return res.status(400).json({
-        message: "Title, description, price, and category are required",
+        message: "Title, description, and price are required",
       });
     }
 
@@ -124,7 +134,7 @@ export const addProduct = async (req, res) => {
       pageTitle: pageTitle || title.substring(0, 70),
       metaDescription: metaDescription || "",
       urlHandle: urlHandle || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''),
-      category,
+      category: categoryValue,
       keywords: keywordArray,
       images: imagePaths,
       approvalStatus: "pending",
@@ -150,6 +160,8 @@ export const getAllProducts = async (req, res) => {
       category,
       minPrice,
       maxPrice,
+      seller,
+      sort,
       page = 1,
       limit = 10,
     } = req.query;
@@ -181,18 +193,31 @@ export const getAllProducts = async (req, res) => {
       if (maxPrice) query.price.$lte = Number(maxPrice);
     }
 
+    // 🧑‍💼 SELLER FILTER
+    if (seller) {
+      query.sellerId = seller;
+    }
+
     const pageNumber = Number(page);
     const limitNumber = Number(limit);
     const skip = (pageNumber - 1) * limitNumber;
+
+    // 🔄 SORTING LOGIC
+    let sortObj = { createdAt: -1 }; // newest default
+    if (sort === "price-low") sortObj = { price: 1 };
+    if (sort === "price-high") sortObj = { price: -1 };
+    if (sort === "newest") sortObj = { createdAt: -1 };
+    // if (sort === "best-selling") sortObj = { soldCount: -1 }; // Future use when soldCount exists
+    // if (sort === "highest-rated") sortObj = { averageRating: -1 }; // Future use for ratings
 
     // 🔥 IMPORTANT: enforce KYC here
     const products = await Product.find(query)
       .populate({
         path: "sellerId",
         match: { status: "approved" }, // ✅ KYC must be approved
-        select: "firstName email",
+        select: "firstName lastName businessName email",
       })
-      .sort({ createdAt: -1 })
+      .sort(sortObj)
       .skip(skip)
       .limit(limitNumber);
 
@@ -330,7 +355,8 @@ export const getProductById = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id).populate({
       path: "sellerId",
-      select: "firstName lastName businessName email",
+      select:
+        "firstName lastName businessName email mobile sellerType subscriptionActive bulkPurchaseEnabled",
     });
 
     if (!product) {
@@ -408,7 +434,10 @@ export const updateProduct = async (req, res) => {
     if (pageTitle !== undefined) product.pageTitle = pageTitle;
     if (metaDescription !== undefined) product.metaDescription = metaDescription;
     if (urlHandle !== undefined) product.urlHandle = urlHandle;
-    product.category = category || product.category;
+    if (category !== undefined) {
+      product.category =
+        String(category).trim() !== "" ? String(category).trim() : "Uncategorized";
+    }
 
     if (keywords) {
       if (typeof keywords === "string" && keywords.trim() !== "") {
@@ -471,6 +500,53 @@ export const deleteProduct = async (req, res) => {
 
     await product.deleteOne();
     res.json({ message: "Product deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ===============================
+// 📍 CHECK PINCODE SERVICEABILITY
+// ===============================
+export const checkPincode = async (req, res) => {
+  try {
+    const { pincode } = req.query;
+    if (!pincode) {
+      return res.status(400).json({ message: "Pincode is required" });
+    }
+
+    const product = await Product.findById(req.params.id).populate({
+      path: "sellerId",
+      select: "isHyperlocal deliverablePincodes",
+    });
+
+    if (!product || !product.sellerId) {
+      return res.status(404).json({ message: "Product or seller not found" });
+    }
+
+    const seller = product.sellerId;
+
+    if (!seller.isHyperlocal) {
+      // Seller delivers everywhere
+      return res.json({ 
+        serviceable: true, 
+        message: "Delivery available to this pincode." 
+      });
+    }
+
+    const isDeliverable = seller.deliverablePincodes.includes(pincode.trim());
+
+    if (isDeliverable) {
+      return res.json({ 
+        serviceable: true, 
+        message: "Delivery available to this pincode." 
+      });
+    } else {
+      return res.json({ 
+        serviceable: false, 
+        message: `Currently not delivering to ${pincode}.` 
+      });
+    }
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

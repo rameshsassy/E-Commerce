@@ -1,15 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, Trash2, ShoppingCart, ArrowRight } from 'lucide-react';
-import api from '../../utils/api';
+import api, { BASE_URL } from '../../utils/api';
 
 const Wishlist = () => {
   const [wishlistItems, setWishlistItems] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchWishlist();
-  }, []);
 
   const fetchWishlist = async () => {
     try {
@@ -21,6 +17,10 @@ const Wishlist = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchWishlist();
+  }, []);
 
   const removeFromWishlist = async (productId) => {
     try {
@@ -74,7 +74,7 @@ const Wishlist = () => {
             <div key={product._id} className="glass-panel p-4 rounded-2xl flex gap-4 hover:shadow-lg transition-all group">
               <div className="w-32 h-32 rounded-xl bg-surface overflow-hidden shrink-0">
                 <img 
-                  src={product.images && product.images.length > 0 ? `http://localhost:5000/${product.images[0].replace(/\\/g, '/')}` : 'https://placehold.co/400x400/1e293b/f8fafc'} 
+                  src={product.images && product.images.length > 0 ? `${BASE_URL}/${product.images[0].replace(/\\/g, '/')}` : 'https://placehold.co/400x400/1e293b/f8fafc'} 
                   alt={product.title} 
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                 />

@@ -1,10 +1,31 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowRight, ShoppingBag, ShieldCheck, HeartHandshake, Truck, Star, Sparkles } from 'lucide-react';
-import api from '../../utils/api';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowRight, ShoppingBag, ShieldCheck, HeartHandshake, Truck, Star, Heart } from 'lucide-react';
+import api, { BASE_URL } from '../../utils/api';
+import { useAuth } from '../../context/AuthContext';
+import AuthModal from '../../components/auth/AuthModal';
 
 const Home = () => {
   const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const handleAddToCart = async (e, product) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) {
+      setAuthModalOpen(true);
+      return;
+    }
+    
+    try {
+      await api.post('/customer/cart', { productId: product._id, quantity: 1 });
+      navigate('/cart');
+    } catch (err) {
+      console.error('Failed to add to cart:', err);
+    }
+  };
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -29,6 +50,7 @@ const Home = () => {
 
   return (
     <div className="flex flex-col animate-fade-in">
+      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
       
       {/* 1. HERO BANNER */}
       <section className="relative px-8 py-24 overflow-hidden flex items-center min-h-[75vh]">
@@ -37,16 +59,6 @@ const Home = () => {
         <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-secondary/10 rounded-full blur-3xl translate-x-1/3 translate-y-1/3"></div>
         
         <div className="relative z-10 max-w-5xl mx-auto text-center">
-          <span className="badge badge-warning mb-6 inline-flex items-center gap-2 px-4 py-2 text-sm border border-warning/30">
-            <Sparkles size={16} /> Purpose-Driven Marketplace
-          </span>
-          <h1 className="text-5xl md:text-8xl font-extrabold tracking-tight mb-8 leading-tight">
-            Empowering Women, <br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-secondary to-primary">
-              One Handcrafted Product
-            </span><br/>
-            at a Time.
-          </h1>
           <p className="text-xl text-text-muted mb-12 max-w-3xl mx-auto leading-relaxed">
             Discover premium handcrafted bags, jewellery, and organic products made by talented women artisans across the country. Support the cause and shop with purpose.
           </p>
@@ -145,7 +157,7 @@ const Home = () => {
                     {product.images && product.images.length > 0 ? (
                       <div className="w-full h-full relative">
                         <img 
-                          src={`http://localhost:5000/${product.images[0].replace(/\\/g, '/')}`} 
+                          src={`${BASE_URL}/${product.images[0].replace(/\\/g, '/')}`} 
                           alt={product.title}
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                         />
@@ -182,7 +194,7 @@ const Home = () => {
                         )}
                         <span className="text-xl font-extrabold text-primary">Rs. {product.price.toFixed(2)}</span>
                       </div>
-                      <button className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors" onClick={(e) => { e.preventDefault(); /* Add to cart logic */ }}>
+                      <button className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors" onClick={(e) => handleAddToCart(e, product)}>
                         <ShoppingBag size={20} />
                       </button>
                     </div>

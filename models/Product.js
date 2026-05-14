@@ -36,7 +36,6 @@ const productSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      enum: ["Category 1", "Category 2", "Category 3"],
       index: true,
     },
 

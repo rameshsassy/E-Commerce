@@ -5,18 +5,29 @@ import upload from "../middleware/upload.middleware.js";
 import { submitKYC } from "../controllers/seller.controller.js";
 import {
   getDashboard,
+  getAnalytics,
   getSellerProfile,
   updateSellerProfile,
   getSellerProducts,
   submitKycStep1,
   submitKycStep2,
   finalizeKyc,
+  createSubscriptionOrder,
+  verifySubscriptionPayment,
+  upgradeSellerToPremiumManual,
 } from "../controllers/seller.controller.js";
+import {
+  listSellerBulkInquiries,
+  updateBulkInquiryStatus,
+} from "../controllers/bulkInquiry.controller.js";
 
 const router = express.Router();
 
 // 📊 Dashboard
 router.get("/dashboard", protect, authorizeRoles("seller"), getDashboard);
+router.get("/analytics", protect, authorizeRoles("seller"), getAnalytics);
+router.get("/bulk-inquiries", protect, authorizeRoles("seller"), listSellerBulkInquiries);
+router.patch("/bulk-inquiries/:id", protect, authorizeRoles("seller"), updateBulkInquiryStatus);
 
 // 👤 Profile
 router.get("/profile", protect, authorizeRoles("seller"), getSellerProfile);
@@ -64,5 +75,10 @@ router.post(
     authorizeRoles("seller"),
     finalizeKyc
 );
+
+// 💎 Subscription Flow
+router.post("/subscription/razorpay", protect, authorizeRoles("seller"), createSubscriptionOrder);
+router.post("/subscription/razorpay/verify", protect, authorizeRoles("seller"), verifySubscriptionPayment);
+router.post("/upgrade", protect, authorizeRoles("seller"), upgradeSellerToPremiumManual);
 
 export default router;

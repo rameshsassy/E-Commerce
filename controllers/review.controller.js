@@ -23,39 +23,94 @@ export const createProductReview = async (req, res) => {
     });
 
     if (alreadyReviewed) {
-      return res.status(400).json({ message: "Product already reviewed" });
+      return res.status(400).json({ message: "You have already reviewed this product" });
     }
 
-    // Check if user bought the product (Optional but good for verified purchase)
-    const orders = await Order.find({ user: req.user._id, "items.product": productId });
-    const isVerifiedPurchase = orders.length > 0;
+    // Must have purchased and order delivered to review
+    const orders = await Order.find({ 
+      user: req.user._id, 
+      "items.product": productId,
+      orderStatus: "Delivered" 
+    });
+
+    if (orders.length === 0) {
+      return res.status(403).json({ message: "You can only review products after they have been delivered to you." });
+    }
+
+    let images = [];
+    if (req.files && req.files.length > 0) {
+      images = req.files.map(file => file.path);
+    }
 
     const review = new Review({
       user: req.user._id,
       product: productId,
       rating: Number(rating),
       comment,
-      isVerifiedPurchase,
+      images,
+      isVerifiedPurchase: true,
     });
 
     await review.save();
 
-    res.status(201).json({ message: "Review added", review });
+    res.status(201).json({ message: "Review added successfully", review });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// @desc    Get product reviews
+// @desc    Get product reviews with sorting and filtering
 // @route   GET /api/products/:id/reviews
 // @access  Public
 export const getProductReviews = async (req, res) => {
   try {
-    const reviews = await Review.find({ product: req.params.id })
+    const { sort = 'newest', filter = 'all' } = req.query;
+    let query = { product: req.params.id };
+
+    if (filter === 'images') {
+      query.images = { $exists: true, $not: { $size: 0 } };
+    } else if (filter === '5star') {
+      query.rating = 5;
+    }
+
+    let sortObj = { createdAt: -1 };
+    if (sort === 'highest') sortObj = { rating: -1 };
+    if (sort === 'lowest') sortObj = { rating: 1 };
+    if (sort === 'helpful') sortObj = { helpfulVotes: -1 };
+
+    const reviews = await Review.find(query)
       .populate("user", "firstName lastName")
-      .sort({ createdAt: -1 });
+      .sort(sortObj);
 
     res.json(reviews);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Mark review as helpful
+// @route   PUT /api/products/:id/reviews/:reviewId/helpful
+// @access  Private
+export const markReviewHelpful = async (req, res) => {
+  try {
+    const review = await Review.findById(req.params.reviewId);
+    
+    if (!review) {
+      return res.status(404).json({ message: "Review not found" });
+    }
+
+    if (review.helpfulVotes.includes(req.user._id)) {
+      // Toggle off if already voted
+      review.helpfulVotes = review.helpfulVotes.filter(
+        id => id.toString() !== req.user._id.toString()
+      );
+    } else {
+      // Toggle on
+      review.helpfulVotes.push(req.user._id);
+    }
+
+    await review.save();
+    res.json({ message: "Helpful vote updated", helpfulCount: review.helpfulVotes.length });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

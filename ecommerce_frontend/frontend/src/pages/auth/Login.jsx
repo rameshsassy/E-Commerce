@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Mail, Lock, LogIn } from 'lucide-react';
 
@@ -11,6 +11,9 @@ const Login = () => {
   
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const from = location.state?.from?.pathname || null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,9 +23,32 @@ const Login = () => {
     try {
       const user = await login(email, password);
       // Redirect based on role
-      if (user.role === 'admin') navigate('/admin/dashboard');
-      else if (user.role === 'seller') navigate('/seller/dashboard');
-      else navigate('/products');
+      // Redirect based on role – give priority to role-specific dashboard
+      if (user.role === 'admin' || user.role === 'admin_staff') {
+        if (user.role === 'admin_staff' && (user.adminAccessLevel ?? 'full') === 'limited') {
+          const a = user.adminAllowedSections || [];
+          const order = [
+            ['dashboard', '/admin/dashboard'],
+            ['sellers', '/admin/sellers'],
+            ['kyc', '/admin/kyc'],
+            ['products', '/admin/products'],
+            ['orders', '/admin/orders'],
+            ['returns', '/admin/returns'],
+            ['coupons', '/admin/coupons'],
+            ['categories', '/admin/categories'],
+          ];
+          const hit = order.find(([key]) => a.includes(key));
+          navigate(hit ? hit[1] : '/admin/dashboard');
+        } else {
+          navigate('/admin/dashboard');
+        }
+      } else if (user.role === 'seller') {
+        navigate('/seller/dashboard');
+      } else if (from) {
+        navigate(from);
+      } else {
+        navigate('/products');
+      }
     } catch (err) {
       setError(err);
     } finally {

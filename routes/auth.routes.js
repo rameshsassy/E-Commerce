@@ -5,8 +5,10 @@ import {
   registerCustomer,
   loginUser,
   createAdmin,
-  forgotPassword,   // ✅ NEW
-  resetPassword,    // ✅ NEW
+  forgotPassword,
+  resetPassword,
+  refreshTokenHandler,
+  logoutUser,
 } from "../controllers/auth.controller.js";
 
 const router = express.Router();
@@ -18,6 +20,8 @@ router.post("/seller/register", registerSeller);
 router.post("/customer/register", registerCustomer);
 router.post("/admin/register", createAdmin);
 router.post("/login", loginUser);
+router.post("/refresh-token", refreshTokenHandler);
+router.post("/logout", logoutUser);
 
 // ===============================
 // 🔑 PASSWORD RESET ROUTES

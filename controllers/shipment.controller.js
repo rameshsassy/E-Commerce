@@ -1,6 +1,8 @@
 import Shipment from "../models/Shipment.js";
 import { trackShipmentAPI, createShippingLabel } from "../services/shipping.service.js";
 import { sendShipmentUpdateEmail } from "../services/email.service.js";
+import Notification from "../models/Notification.js";
+import { sendNotificationToUser } from "../utils/socket.js";
 
 // @desc    Get all shipments for an order
 // @route   GET /api/customer/shipments/order/:orderId
@@ -74,8 +76,19 @@ export const updateShipmentStatus = async (req, res) => {
     try {
       const user = await import("../models/User.js").then(m => m.default.findById(shipment.order.user));
       await sendShipmentUpdateEmail(user, shipment.order, shipment.trackingId, shipment.courierName, status);
+      
+      // ✅ CREATE NOTIFICATION
+      const notification = await Notification.create({
+        user: user._id,
+        title: `Shipment Updated: ${status}`,
+        message: `Your package (ID: #${shipment._id.toString().slice(-8)}) is now ${status}.`,
+        type: 'shipment',
+        link: `/track/${shipment._id}`
+      });
+      sendNotificationToUser(user._id, notification);
+
     } catch(err) {
-      console.error("Failed to send shipment update email");
+      console.error("Failed to send shipment notification", err);
     }
 
     res.json(shipment);

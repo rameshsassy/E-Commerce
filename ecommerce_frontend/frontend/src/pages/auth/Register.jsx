@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/api';
 import { Mail, Lock, User, UserPlus, Store, Phone, Shield } from 'lucide-react';
 
 const Register = () => {
-  const [role, setRole] = useState('customer');
+  const [role, setRole] = useState(new URLSearchParams(useLocation().search).get('role') || 'customer');
   const [formData, setFormData] = useState({ firstName: '', lastName: '', mobile: '', email: '', password: '', confirmPassword: '', secretKey: '' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from?.pathname || null;
+  const { setSession } = useAuth();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -20,22 +24,20 @@ const Register = () => {
     e.preventDefault();
     setError('');
     setSuccess('');
+    setLoading(true);
     try {
       if (formData.mobile.replace(/\D/g, '').length !== 10) {
-        setLoading(false);
         setError("If I need to contact you, you need to give your correct mobile number right? Give me the mobile number correctly!");
         return;
       }
 
       if (formData.password !== formData.confirmPassword) {
-        setLoading(false);
         setError("Passwords do not match!");
         return;
       }
 
       const isStrong = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/.test(formData.password);
       if (!isStrong) {
-        setLoading(false);
         setError("Come on, my cat could guess that password! Make it stronger with at least 8 characters, 1 uppercase letter, 1 number, and 1 special character (like @).");
         return;
       }
@@ -43,12 +45,54 @@ const Register = () => {
       let endpoint = '/auth/customer/register';
       if (role === 'seller') endpoint = '/auth/seller/register';
       if (role === 'admin') endpoint = '/auth/admin/register';
-      
-      await api.post(endpoint, formData);
-      setSuccess('Registration successful! Please login.');
-      setTimeout(() => navigate('/login'), 2000);
+
+      const payload =
+        role === 'admin'
+          ? {
+              firstName: formData.firstName.trim(),
+              lastName: formData.lastName.trim(),
+              email: formData.email.trim(),
+              mobile: formData.mobile.trim(),
+              password: formData.password,
+              secretKey: formData.secretKey,
+            }
+          : {
+              firstName: formData.firstName.trim(),
+              lastName: formData.lastName.trim(),
+              email: formData.email.trim(),
+              mobile: formData.mobile.trim(),
+              password: formData.password,
+            };
+
+      const { data } = await api.post(endpoint, payload);
+
+      if ((role === 'customer' || role === 'seller') && data.token && data.user) {
+        setSession(data.token, data.user);
+      }
+
+      const defaultMsg =
+        role === 'customer'
+          ? 'Customer Registered Successfully'
+          : role === 'seller'
+            ? 'Seller Registered Successfully'
+            : 'Registration successful';
+
+      setSuccess(data.message || defaultMsg);
+
+      setTimeout(() => {
+        if (role === 'admin') {
+          navigate('/login');
+          return;
+        }
+        if (from) navigate(from);
+        else if (role === 'seller') navigate('/seller/dashboard');
+        else navigate('/products');
+      }, 2000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed');
+      console.error("Registration error:", err);
+      const raw = err.response?.data?.message;
+      const msg = Array.isArray(raw) ? raw.join(" ") : raw || err.message || "Registration failed";
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -62,9 +106,22 @@ const Register = () => {
           <p className="text-text-muted">Join E-commerce website today</p>
         </div>
 
-        {/* Role Toggle removed for Customer-Only Flow */}
-        <div className="hidden">
-          {/* We keep the state 'customer' by default */}
+        {/* Role Toggle */}
+        <div className="flex bg-surface/50 p-1 rounded-xl border border-glass-border mb-8">
+          <button 
+            type="button"
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-bold transition-all ${role === 'customer' ? 'bg-primary text-white shadow-glow' : 'text-text-muted hover:text-text'}`}
+            onClick={() => setRole('customer')}
+          >
+            <User size={16} /> Customer
+          </button>
+          <button 
+            type="button"
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-bold transition-all ${role === 'seller' ? 'bg-secondary text-white shadow-glow' : 'text-text-muted hover:text-text'}`}
+            onClick={() => setRole('seller')}
+          >
+            <Store size={16} /> Seller
+          </button>
         </div>
 
         {error && <div className="bg-error/20 border border-error text-error p-3 rounded-md mb-6 text-sm text-center">{error}</div>}

@@ -1,6 +1,7 @@
 import express from "express";
 import {
   getCustomerProfile,
+  updateCustomerEmailPreferences,
 } from "../controllers/customer.controller.js";
 
 import {
@@ -40,6 +41,12 @@ const router = express.Router();
 // ✅ CUSTOMER PROFILE
 // ===============================
 router.get("/profile", protect, authorizeRoles("customer"), getCustomerProfile);
+router.put(
+  "/email-preferences",
+  protect,
+  authorizeRoles("customer"),
+  updateCustomerEmailPreferences
+);
 
 // ===============================
 // ✅ ADDRESSES

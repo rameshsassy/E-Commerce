@@ -1,23 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
-import { Upload, CheckCircle, AlertTriangle, FileText, User, MapPin } from 'lucide-react';
+import { User, MapPin, Phone, Mail, Building, Globe, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const SellerProfile = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   
   // Profile update state
-  const [profileData, setProfileData] = useState({ businessName: '', address: '', city: '', state: '', pincode: '' });
+  const [profileData, setProfileData] = useState({ 
+    businessName: '', address: '', city: '', state: '', pincode: '',
+    isHyperlocal: false, deliverablePincodes: ''
+  });
   const [profileMsg, setProfileMsg] = useState('');
   
   // KYC State
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState('');
-
-  useEffect(() => {
-    fetchProfile();
-  }, []);
 
   const fetchProfile = async () => {
     try {
@@ -28,7 +28,9 @@ const SellerProfile = () => {
         address: data.address || '',
         city: data.city || '',
         state: data.state || '',
-        pincode: data.pincode || ''
+        pincode: data.pincode || '',
+        isHyperlocal: data.isHyperlocal || false,
+        deliverablePincodes: Array.isArray(data.deliverablePincodes) ? data.deliverablePincodes.join(', ') : (data.deliverablePincodes || '')
       });
     } catch (err) {
       console.error(err);
@@ -37,11 +39,15 @@ const SellerProfile = () => {
     }
   };
 
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
     setProfileMsg('');
     try {
-      await api.put('/user/profile', profileData);
+      await api.put('/seller/profile', profileData);
       setProfileMsg('Profile updated successfully');
       fetchProfile();
     } catch (err) {
@@ -104,6 +110,37 @@ const SellerProfile = () => {
               <input type="text" className="input-field" value={profileData.pincode} onChange={e => setProfileData({...profileData, pincode: e.target.value})} />
             </div>
 
+            <div className="pt-4 border-t border-glass-border">
+              <h3 className="text-md font-bold mb-3 flex items-center gap-2"><MapPin size={16} className="text-primary"/> Delivery Settings</h3>
+              
+              <div className="flex items-center gap-3 mb-4 bg-surface/50 p-3 rounded-lg border border-glass-border">
+                <input 
+                  type="checkbox" 
+                  id="isHyperlocal"
+                  className="w-5 h-5 accent-primary"
+                  checked={profileData.isHyperlocal}
+                  onChange={(e) => setProfileData({...profileData, isHyperlocal: e.target.checked})}
+                />
+                <label htmlFor="isHyperlocal" className="text-sm font-medium cursor-pointer">
+                  Enable Hyperlocal Delivery (Restrict to specific pincodes)
+                </label>
+              </div>
+
+              {profileData.isHyperlocal && (
+                <div className="animate-fade-in">
+                  <label className="block text-sm font-medium mb-1">Deliverable Pincodes (comma separated)</label>
+                  <input 
+                    type="text" 
+                    className="input-field" 
+                    placeholder="e.g. 400092, 400091, 400103"
+                    value={profileData.deliverablePincodes} 
+                    onChange={e => setProfileData({...profileData, deliverablePincodes: e.target.value})} 
+                  />
+                  <p className="text-xs text-text-muted mt-1">Leave empty if you don't want to deliver anywhere.</p>
+                </div>
+              )}
+            </div>
+
             {profileMsg && <div className="text-success text-sm bg-success/20 p-2 rounded">{profileMsg}</div>}
 
             <button type="submit" className="btn btn-secondary w-full">Update Profile</button>
@@ -130,7 +167,7 @@ const SellerProfile = () => {
             <div className="text-center space-y-6">
               <p className="text-text-muted">You have not completed your full KYC verification. Please click the button below to start the multi-step verification process.</p>
               <button 
-                onClick={() => window.location.href = '/seller/kyc'} 
+                onClick={() => navigate('/seller/kyc')} 
                 className="btn btn-primary w-full"
               >
                 Start KYC Application
