@@ -1,3 +1,5 @@
+import dns from "node:dns/promises";
+import net from "node:net";
 import nodemailer from "nodemailer";
 
 const transporterCache = new Map();
@@ -45,20 +47,52 @@ export function resolveSmtpCredentials(senderType = "customer") {
   return null;
 }
 
-function getOrCreateTransporter(creds) {
-  const key = `${creds.host}|${creds.port}|${creds.user}`;
-  if (!transporterCache.has(key)) {
-    transporterCache.set(
-      key,
-      nodemailer.createTransport({
-        host: creds.host,
-        port: creds.port,
-        secure: Number(creds.port) === 465,
-        auth: { user: creds.user, pass: creds.pass },
-      })
+/**
+ * Default 4: resolve hostname to IPv4 before connecting so we never pick a random AAAA
+ * (Nodemailer 8 mixes A/AAAA and chooses randomly; ENETUNREACH happens when IPv6 is not routable).
+ * Set SMTP_CONNECTION_FAMILY=auto to pass the hostname through unchanged.
+ */
+function smtpSocketFamily() {
+  const raw = String(process.env.SMTP_CONNECTION_FAMILY ?? "4").trim().toLowerCase();
+  if (raw === "auto" || raw === "0" || raw === "") return undefined;
+  const n = Number(raw);
+  if (n === 4 || n === 6) return n;
+  return 4;
+}
+
+async function smtpConnectTarget(hostname, family) {
+  if (!hostname) return { connectHost: "localhost", servername: undefined };
+  if (family === undefined) return { connectHost: hostname, servername: undefined };
+  if (net.isIP(hostname)) return { connectHost: hostname, servername: undefined };
+  try {
+    const { address } = await dns.lookup(hostname, { family });
+    return { connectHost: address, servername: hostname };
+  } catch (err) {
+    console.warn(
+      `[mailer] DNS lookup family=${family} for ${hostname} failed (${err.message}); using hostname`
     );
+    return { connectHost: hostname, servername: undefined };
   }
-  return transporterCache.get(key);
+}
+
+async function getOrCreateTransporter(creds) {
+  const family = smtpSocketFamily();
+  const key = `${creds.host}|${creds.port}|${creds.user}|${family ?? "auto"}`;
+  if (transporterCache.has(key)) {
+    return transporterCache.get(key);
+  }
+
+  const { connectHost, servername } = await smtpConnectTarget(creds.host, family);
+
+  const transport = nodemailer.createTransport({
+    host: connectHost,
+    port: creds.port,
+    secure: Number(creds.port) === 465,
+    ...(servername ? { servername } : {}),
+    auth: { user: creds.user, pass: creds.pass },
+  });
+  transporterCache.set(key, transport);
+  return transport;
 }
 
 const displayNames = {
@@ -78,7 +112,7 @@ export const sendEmail = async ({ to, subject, html, senderType = "customer" }) 
     );
   }
 
-  const transporter = getOrCreateTransporter(creds);
+  const transporter = await getOrCreateTransporter(creds);
   const fromName = displayNames[senderType] || "Aashansh";
   const from = `"${fromName}" <${creds.user}>`;
 
@@ -103,7 +137,7 @@ export const sendEmail = async ({ to, subject, html, senderType = "customer" }) 
   }
 };
 
-function verifyTransporters() {
+async function verifyTransporters() {
   const seen = new Set();
   for (const st of ["customer", "seller", "order"]) {
     const creds = resolveSmtpCredentials(st);
@@ -111,18 +145,23 @@ function verifyTransporters() {
       console.warn(`[mailer] No SMTP credentials resolved for senderType="${st}"`);
       continue;
     }
-    const key = `${creds.host}|${creds.port}|${creds.user}`;
+    const family = smtpSocketFamily();
+    const key = `${creds.host}|${creds.port}|${creds.user}|${family ?? "auto"}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    const t = getOrCreateTransporter(creds);
-    t.verify((error) => {
-      if (error) {
-        console.warn(`[mailer] SMTP verify failed (${creds.profile}):`, error.message);
-      } else {
-        console.log(`[mailer] SMTP ready (${creds.profile}) <${creds.user}>`);
-      }
-    });
+    try {
+      const t = await getOrCreateTransporter(creds);
+      t.verify((error) => {
+        if (error) {
+          console.warn(`[mailer] SMTP verify failed (${creds.profile}):`, error.message);
+        } else {
+          console.log(`[mailer] SMTP ready (${creds.profile}) <${creds.user}>`);
+        }
+      });
+    } catch (e) {
+      console.warn(`[mailer] SMTP transport init failed (${creds.profile}):`, e.message);
+    }
   }
 }
 
-verifyTransporters();
+verifyTransporters().catch((e) => console.warn("[mailer] verify bootstrap:", e.message));
