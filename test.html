@@ -29,7 +29,11 @@
         //     console.error(error);
         // });
 
-        fetch("")
+        fetch("https://e-commerce-omega-fawn-68.vercel.app/api/auth/login").then(response => response.json()).then(data => {
+            console.log(data);
+        }).catch(error => {
+            console.error(error);
+        });
 
     </script>
 </body>

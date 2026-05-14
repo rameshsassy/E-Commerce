@@ -24,6 +24,67 @@ import { getUploadsRoot, ensureUploadsRoot } from "./utils/uploadPaths.js";
 dotenv.config();
 ensureUploadsRoot();
 
+/** Split comma-separated env URLs (e.g. prod + preview frontends). */
+function parseOriginList(value) {
+  if (!value || typeof value !== "string") return [];
+  return value
+    .split(",")
+    .map((s) => s.trim().replace(/\/$/, ""))
+    .filter(Boolean);
+}
+
+const DEFAULT_CORS_ORIGINS = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "http://localhost:5174",
+  "http://127.0.0.1:5174",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+];
+
+function buildCorsAllowedSet() {
+  const set = new Set([
+    ...DEFAULT_CORS_ORIGINS,
+    ...parseOriginList(process.env.FRONTEND_URL),
+    ...parseOriginList(process.env.CORS_EXTRA_ORIGINS),
+  ]);
+  return set;
+}
+
+function corsOriginCallback(origin, callback) {
+  const allowed = buildCorsAllowedSet();
+
+  if (!origin) {
+    return callback(null, true);
+  }
+
+  if (allowed.has(origin)) {
+    return callback(null, true);
+  }
+
+  if (process.env.CORS_ALLOW_VERCEL === "true") {
+    try {
+      const { hostname } = new URL(origin);
+      if (hostname === "vercel.app" || hostname.endsWith(".vercel.app")) {
+        return callback(null, true);
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  if (origin === "null" && process.env.ALLOW_CORS_NULL_ORIGIN === "true") {
+    return callback(null, true);
+  }
+
+  if (origin === "null" && process.env.NODE_ENV !== "production") {
+    return callback(null, true);
+  }
+
+  console.warn("[cors] blocked origin:", origin);
+  callback(null, false);
+}
+
 const app = express();
 
 // Request Logger
@@ -37,13 +98,12 @@ if (process.env.NODE_ENV !== 'production') {
 // ===============================
 // ✅ MIDDLEWARE
 // ===============================
-// origin: true echoes the request Origin (any site). "*" is invalid with credentials: true.
 app.use(
   cors({
-    origin: true,
+    origin: corsOriginCallback,
     credentials: true,
     methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
-    optionsSuccessStatus: 200,
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 app.use(express.json());
@@ -109,7 +169,7 @@ app.use("/api/categories", categoryRoutes);
 // 🏠 ROOT ROUTE
 // ===============================
 app.get("/", (req, res) => {
-  res.send("API is running with updated cors");
+  res.send("API is running...");
 });
 
 // ===============================
