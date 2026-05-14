@@ -1,6 +1,7 @@
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { getUploadsRoot } from "../utils/uploadPaths.js";
 
 // 🔧 Create folder if not exists
 const ensureDir = (dir) => {
@@ -12,15 +13,17 @@ const ensureDir = (dir) => {
 // 📦 Storage config
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    let uploadPath = "uploads/products";
+    const base = getUploadsRoot();
+    let rel = "products";
 
     // 👉 If KYC route
     if (req.originalUrl.includes("kyc")) {
-      uploadPath = "uploads/kyc";
+      rel = "kyc";
     } else if (req.originalUrl.includes("support")) {
-      uploadPath = "uploads/support";
+      rel = "support";
     }
 
+    const uploadPath = path.join(base, rel);
     ensureDir(uploadPath);
     cb(null, uploadPath);
   },

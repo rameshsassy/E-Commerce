@@ -1,6 +1,7 @@
 import Review from "../models/Review.js";
 import Product from "../models/Product.js";
 import Order from "../models/Order.js";
+import { absoluteToWebPath } from "../utils/uploadPaths.js";
 
 // @desc    Create new review
 // @route   POST /api/products/:id/reviews
@@ -39,7 +40,7 @@ export const createProductReview = async (req, res) => {
 
     let images = [];
     if (req.files && req.files.length > 0) {
-      images = req.files.map(file => file.path);
+      images = req.files.map((file) => absoluteToWebPath(file.path));
     }
 
     const review = new Review({

@@ -1,4 +1,5 @@
 import SupportTicket from '../models/SupportTicket.js';
+import { absoluteToWebPath } from "../utils/uploadPaths.js";
 
 // @desc    Create a support ticket
 // @route   POST /api/support
@@ -9,7 +10,7 @@ export const createTicket = async (req, res) => {
 
     let attachments = [];
     if (req.files && req.files.length > 0) {
-      attachments = req.files.map((file) => file.path);
+      attachments = req.files.map((file) => absoluteToWebPath(file.path));
     }
 
     const ticket = await SupportTicket.create({

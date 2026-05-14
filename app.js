@@ -19,8 +19,10 @@ import supportRoutes from "./routes/support.routes.js";
 import categoryRoutes from "./routes/category.routes.js";
 
 import { errorHandler } from "./middleware/error.middleware.js";
+import { getUploadsRoot, ensureUploadsRoot } from "./utils/uploadPaths.js";
 
 dotenv.config();
+ensureUploadsRoot();
 
 const app = express();
 
@@ -88,7 +90,7 @@ app.use((req, res, next) => {
 // ===============================
 // 📁 STATIC FILES (images, KYC docs)
 // ===============================
-app.use("/uploads", express.static("uploads"));
+app.use("/uploads", express.static(getUploadsRoot()));
 
 // ===============================
 // ✅ ROUTES

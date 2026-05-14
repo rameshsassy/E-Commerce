@@ -6,6 +6,7 @@ import User from "../models/User.js";
 import crypto from "crypto";
 import Razorpay from "razorpay";
 import { sendPremiumUpgradeEmail } from "../services/email.service.js";
+import { absoluteToWebPath } from "../utils/uploadPaths.js";
 
 function getRazorpayOrThrow() {
   const key_id = process.env.RAZORPAY_KEY_ID;
@@ -316,8 +317,8 @@ export const submitKYC = async (req, res) => {
       });
     }
 
-    const panImage = req.files[0].path;
-    const aadhaarImage = req.files[1].path;
+    const panImage = absoluteToWebPath(req.files[0].path);
+    const aadhaarImage = absoluteToWebPath(req.files[1].path);
 
     user.panNumber = panNumber;
     user.aadhaarNumber = aadhaarNumber;
@@ -356,7 +357,7 @@ export const submitKycStep1 = async (req, res) => {
     // Logo is optional during this step, but typically required
     let organizationLogo = user.organizationLogo;
     if (req.file) {
-      organizationLogo = req.file.path;
+      organizationLogo = absoluteToWebPath(req.file.path);
     }
 
     // Update user details
@@ -418,16 +419,16 @@ export const submitKycStep2 = async (req, res) => {
     // Update files if provided
     if (req.files) {
       if (req.files.registrationCertificate && req.files.registrationCertificate[0]) {
-        user.registrationCertificate = req.files.registrationCertificate[0].path;
+        user.registrationCertificate = absoluteToWebPath(req.files.registrationCertificate[0].path);
       }
       if (req.files.orgPanImage && req.files.orgPanImage[0]) {
-        user.orgPanImage = req.files.orgPanImage[0].path;
+        user.orgPanImage = absoluteToWebPath(req.files.orgPanImage[0].path);
       }
       if (req.files.cancelledCheckImage && req.files.cancelledCheckImage[0]) {
-        user.cancelledCheckImage = req.files.cancelledCheckImage[0].path;
+        user.cancelledCheckImage = absoluteToWebPath(req.files.cancelledCheckImage[0].path);
       }
       if (req.files.gstImage && req.files.gstImage[0]) {
-        user.gstImage = req.files.gstImage[0].path;
+        user.gstImage = absoluteToWebPath(req.files.gstImage[0].path);
       }
     }
 

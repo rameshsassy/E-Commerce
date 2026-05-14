@@ -1,13 +1,12 @@
 import Product from "../models/Product.js";
 import fs from "fs";
+import path from "path";
 import csv from "csv-parser";
 import sanitizeHtml from "sanitize-html";
 import sharp from "sharp";
+import { ensureUploadsRoot, absoluteToWebPath, getUploadsRoot } from "../utils/uploadPaths.js";
 
-// Ensure uploads directory exists
-if (!fs.existsSync("uploads")) {
-  fs.mkdirSync("uploads", { recursive: true });
-}
+ensureUploadsRoot();
 
 const sanitizeDescription = (html) => {
   if (!html) return "";
@@ -51,16 +50,15 @@ export const addProduct = async (req, res) => {
     // 🖼️ Images
     let imagePaths = [];
     if (req.files && req.files.length > 0) {
-      imagePaths = req.files.map((file) => file.path);
-      
-      for (const filePath of imagePaths) {
+      const absPaths = req.files.map((file) => file.path);
+      for (const filePath of absPaths) {
         try {
           let quality = 80;
           let buffer = await sharp(filePath)
             .resize(800, 800, { fit: 'cover', position: 'center' })
             .jpeg({ quality })
             .toBuffer();
-            
+          
           while (buffer.length > 100 * 1024 && quality > 10) {
             quality -= 10;
             buffer = await sharp(filePath)
@@ -73,6 +71,7 @@ export const addProduct = async (req, res) => {
           console.error("Image processing error:", err);
         }
       }
+      imagePaths = absPaths.map((p) => absoluteToWebPath(p));
     }
 
     // 🔍 Keywords
@@ -289,8 +288,13 @@ export const bulkUploadProducts = async (req, res) => {
                 let buffer = Buffer.from(arrayBuffer);
                 
                 const filename = Date.now() + '-' + Math.round(Math.random() * 1E9) + '.jpg';
-                const filePath = 'uploads/' + filename; 
-                
+                ensureUploadsRoot();
+                const productsDir = path.join(getUploadsRoot(), "products");
+                if (!fs.existsSync(productsDir)) {
+                  fs.mkdirSync(productsDir, { recursive: true });
+                }
+                const absPath = path.join(productsDir, filename);
+
                 let quality = 80;
                 let processedBuffer = await sharp(buffer)
                   .resize(800, 800, { fit: 'cover', position: 'center' })
@@ -305,8 +309,8 @@ export const bulkUploadProducts = async (req, res) => {
                     .toBuffer();
                 }
                 
-                fs.writeFileSync(filePath, processedBuffer);
-                localImagePaths.push(filePath);
+                fs.writeFileSync(absPath, processedBuffer);
+                localImagePaths.push(absoluteToWebPath(absPath));
               } catch (err) {
                 console.error("Failed to process image from URL:", url, err.message);
               }
@@ -451,16 +455,15 @@ export const updateProduct = async (req, res) => {
 
     // Handle new images if any are uploaded
     if (req.files && req.files.length > 0) {
-      const newImages = req.files.map((file) => file.path);
-      
-      for (const filePath of newImages) {
+      const absPaths = req.files.map((file) => file.path);
+      for (const filePath of absPaths) {
         try {
           let quality = 80;
           let buffer = await sharp(filePath)
             .resize(800, 800, { fit: 'cover', position: 'center' })
             .jpeg({ quality })
             .toBuffer();
-            
+          
           while (buffer.length > 100 * 1024 && quality > 10) {
             quality -= 10;
             buffer = await sharp(filePath)
@@ -473,8 +476,7 @@ export const updateProduct = async (req, res) => {
           console.error("Image processing error:", err);
         }
       }
-      
-      product.images = newImages; // Replace old images with new ones
+      product.images = absPaths.map((p) => absoluteToWebPath(p));
     }
 
     await product.save();
