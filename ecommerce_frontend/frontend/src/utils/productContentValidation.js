@@ -122,7 +122,12 @@ export function getKeyHighlightsValidation(html) {
 export function isProductBasicInfoValid(productData) {
   const titleOk = getProductTitleValidation(productData.title).looksGood;
   const descOk = getProductDescriptionValidation(productData.description).looksGood;
-  return titleOk && descOk;
+  const keywordCount = (productData.keywords || '')
+    .split(',')
+    .map((k) => k.trim())
+    .filter(Boolean).length;
+  const keywordsOk = keywordCount <= 5;
+  return titleOk && descOk && keywordsOk;
 }
 
 /** If seller wrote terms, treat policy as enabled for save. */

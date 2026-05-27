@@ -1,6 +1,15 @@
 import DeliveryByFields from './DeliveryByFields';
 
+function parseSeoKeywordsInput(input) {
+  return (input || '')
+    .split(',')
+    .map((k) => k.trim())
+    .filter(Boolean);
+}
+
 export default function ProductShippingFields({ productData, setProductData }) {
+  const seoKeywords = parseSeoKeywordsInput(productData.keywords);
+  const seoKeywordsTooMany = seoKeywords.length > 5;
   return (
     <div className="mt-8 border-t border-[#E1E3E5] pt-6">
       <div className="p-0">
@@ -170,16 +179,20 @@ export default function ProductShippingFields({ productData, setProductData }) {
           </p>
         </div>
         <div>
-          <label className="block text-[13px] text-[#202223] mb-1">URL handle</label>
+          <label className="block text-[13px] text-[#202223] mb-1">SEO Keywords</label>
           <input
             type="text"
             className="w-full border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] outline-none focus:ring-2 focus:ring-[#005bd3] focus:border-[#005bd3]"
-            value={productData.urlHandle}
-            onChange={(e) => setProductData({ ...productData, urlHandle: e.target.value })}
+            value={productData.keywords}
+            onChange={(e) => setProductData({ ...productData, keywords: e.target.value })}
+            placeholder="Enter keywords separated by commas"
           />
           <p className="text-[12px] text-[#6D7175] mt-1">
-            https://aashansh.org/products/{productData.urlHandle}
+            {Math.min(seoKeywords.length, 5)}/5 keywords used
           </p>
+          {seoKeywordsTooMany && (
+            <p className="text-[12px] text-[#D82C0D] mt-1">Maximum 5 keywords allowed</p>
+          )}
         </div>
       </div>
     </div>
