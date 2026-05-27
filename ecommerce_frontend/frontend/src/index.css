@@ -162,3 +162,27 @@ a {
 .badge-success { background-color: rgba(16, 185, 129, 0.2); color: var(--color-success); }
 .badge-warning { background-color: rgba(245, 158, 11, 0.2); color: var(--color-warning); }
 .badge-error { background-color: rgba(239, 68, 68, 0.2); color: var(--color-error); }
+
+/* Rich text editor lists (care instructions, product description) */
+.product-rich-editor ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin: 0.35rem 0;
+}
+
+.product-rich-editor ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin: 0.35rem 0;
+}
+
+.product-rich-editor li {
+  display: list-item;
+  margin: 0.15rem 0;
+}
+
+.product-rich-editor:empty::before {
+  content: attr(data-placeholder);
+  color: #6d7175;
+  pointer-events: none;
+}

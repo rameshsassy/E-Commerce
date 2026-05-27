@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle, ArrowRight, ArrowLeft } from 'lucide-react';
 import getCroppedImg from '../../utils/cropImage';
@@ -114,7 +114,8 @@ const SellerKYC = () => {
       formData.append('entityType', step1Data.entityType);
       
       const addressesArray = step1Data.storeAddresses.split('\n').filter(a => a.trim() !== '');
-      addressesArray.forEach(addr => formData.append('storeAddresses[]', addr));
+      // Send multiple addresses under the same key; backend will normalize.
+      addressesArray.forEach((addr) => formData.append('storeAddresses', addr));
       
       if (logo) formData.append('logo', logo);
 
