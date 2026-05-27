@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api, { BASE_URL } from '../../utils/api';
-import { Plus, Upload, FileSpreadsheet, Image as ImageIcon, List, CheckCircle, Clock, XCircle, Edit2, Trash2, X } from 'lucide-react';
+import { Plus, Upload, FileSpreadsheet, Image as ImageIcon, List, CheckCircle, Clock, XCircle, Edit2, Trash2, X, Store } from 'lucide-react';
+import StoreFormFields, { isStoreFormValid } from '../../components/seller/StoreFormFields';
+import DeliveryByFields from '../../components/seller/DeliveryByFields';
 
 const RichTextEditor = ({ value, onChange }) => {
   const editorRef = useRef(null);
@@ -42,6 +44,18 @@ const RichTextEditor = ({ value, onChange }) => {
   );
 };
 
+const defaultProductData = {
+  title: '', description: '', price: '', compareAtPrice: '', unitPrice: '', chargeTax: false, category: '', stock: 0,
+  locations: [{ address: 'Main Shop Location', stock: 0 }], keywords: '',
+  inventoryTracked: true, sku: '', purchaseType: 'one_time', shipFromStoreAddresses: [],
+  barcode: '', continueSellingWhenOutOfStock: false,
+  isPhysicalProduct: true, packageType: 'Store default - Sample box - 22 x 13.7 x 4.2 cm, 0 kg',
+  packageLength: '', packageWidth: '', packageHeight: '', packageDimensionsUnit: 'cm',
+  productWeight: 0, productWeightUnit: 'g',
+  deliveryBy: '', deliveryInput: '', deliveryValues: [],
+  pageTitle: '', metaDescription: '', urlHandle: '',
+};
+
 const SellerProducts = () => {
   const [activeTab, setActiveTab] = useState('list');
   
@@ -53,6 +67,12 @@ const SellerProducts = () => {
   const [editingProduct, setEditingProduct] = useState(null);
   const [editLoading, setEditLoading] = useState(false);
   const [editMsg, setEditMsg] = useState('');
+
+  const [productData, setProductData] = useState(defaultProductData);
+  const [images, setImages] = useState([]);
+  const [singleLoading, setSingleLoading] = useState(false);
+  const [singleMsg, setSingleMsg] = useState('');
+  const [inventoryOptions, setInventoryOptions] = useState(null);
 
   const fetchMyProducts = async () => {
     setLoadingProducts(true);
@@ -71,21 +91,157 @@ const SellerProducts = () => {
       fetchMyProducts();
     }
   }, [activeTab]);
-  // Single Product State
-  const [productData, setProductData] = useState({ 
-    title: '', description: '', price: '', compareAtPrice: '', unitPrice: '', chargeTax: false, category: '', stock: 0, locations: [{ address: 'Main Shop Location', stock: 0 }], keywords: '',
-    inventoryTracked: true, sku: '', barcode: '', continueSellingWhenOutOfStock: false,
-    isPhysicalProduct: true, packageType: 'Store default - Sample box - 22 x 13.7 x 4.2 cm, 0 kg', packageLength: '', packageWidth: '', packageHeight: '', packageDimensionsUnit: 'cm', productWeight: 0, productWeightUnit: 'g',
-    pageTitle: '', metaDescription: '', urlHandle: ''
-  });
-  const [images, setImages] = useState([]);
-  const [singleLoading, setSingleLoading] = useState(false);
-  const [singleMsg, setSingleMsg] = useState('');
+
+  useEffect(() => {
+    if (activeTab === 'single') {
+      api.get('/seller/products/inventory-options')
+        .then(({ data }) => setInventoryOptions(data))
+        .catch((err) => console.error('Inventory options:', err));
+    }
+  }, [activeTab]);
+
+  const toggleShipFromStoreAddress = (addr) => {
+    const current = productData.shipFromStoreAddresses || [];
+    const max = inventoryOptions?.maxStoreAddresses ?? 1;
+    if (current.includes(addr)) {
+      setProductData({
+        ...productData,
+        shipFromStoreAddresses: current.filter((a) => a !== addr),
+      });
+    } else if (max <= 1) {
+      setProductData({ ...productData, shipFromStoreAddresses: [addr] });
+    } else {
+      setProductData({
+        ...productData,
+        shipFromStoreAddresses: [...current, addr],
+      });
+    }
+  };
 
   // Bulk Product State
   const [csvFile, setCsvFile] = useState(null);
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkMsg, setBulkMsg] = useState('');
+
+  // My Store
+  const [myStore, setMyStore] = useState(null);
+  const [hasStore, setHasStore] = useState(false);
+  const [platformHost, setPlatformHost] = useState('aashansh.org');
+  const [storeView, setStoreView] = useState('hub'); // hub | create | edit
+  const [storeLoading, setStoreLoading] = useState(false);
+  const [storeMsg, setStoreMsg] = useState('');
+  const defaultStoreForm = {
+    storeName: '',
+    keywordsInput: '',
+    detailedAddress: '',
+    additionalAddresses: [''],
+    domainType: 'platform_subdomain',
+    customDomain: '',
+    subdomain: '',
+    isActive: true,
+  };
+  const [storeForm, setStoreForm] = useState(defaultStoreForm);
+  const [storeLogoFile, setStoreLogoFile] = useState(null);
+  const [storeLogoPreview, setStoreLogoPreview] = useState(null);
+
+  const fetchMyStore = async () => {
+    try {
+      const { data } = await api.get('/seller/store');
+      setMyStore(data.store);
+      setHasStore(data.hasStore);
+      if (data.platformHost) setPlatformHost(data.platformHost);
+      if (data.store) {
+        setStoreForm({
+          storeName: data.store.storeName || '',
+          keywordsInput: (data.store.keywords || []).join(', '),
+          detailedAddress: data.store.detailedAddress || '',
+          additionalAddresses:
+            data.store.additionalAddresses?.length > 0
+              ? data.store.additionalAddresses
+              : [''],
+          domainType: data.store.domainType || 'platform_subdomain',
+          customDomain: data.store.customDomain || '',
+          subdomain: data.store.subdomain || '',
+          isActive: data.store.isActive !== false,
+        });
+        setStoreLogoPreview(null);
+        setStoreLogoFile(null);
+      }
+    } catch (err) {
+      console.error('Fetch store:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'store') {
+      setStoreView('hub');
+      fetchMyStore();
+    }
+  }, [activeTab]);
+
+  const openCreateStore = () => {
+    setStoreForm({ ...defaultStoreForm });
+    setStoreLogoFile(null);
+    setStoreLogoPreview(null);
+    setStoreMsg('');
+    setStoreView('create');
+  };
+
+  const openEditStore = () => {
+    if (!hasStore) {
+      setStoreMsg('Create your store first.');
+      return;
+    }
+    setStoreMsg('');
+    setStoreView('edit');
+  };
+
+  const handleStoreSubmit = async (e) => {
+    e.preventDefault();
+    if (!isStoreFormValid(storeForm)) {
+      setStoreMsg('Please fix validation errors before saving.');
+      return;
+    }
+    setStoreLoading(true);
+    setStoreMsg('');
+
+    const formData = new FormData();
+    formData.append('storeName', storeForm.storeName);
+    formData.append('keywords', storeForm.keywordsInput);
+    formData.append('detailedAddress', storeForm.detailedAddress);
+    const extra = (storeForm.additionalAddresses || []).filter((a) => a.trim());
+    formData.append('additionalAddresses', JSON.stringify(extra));
+    formData.append('domainType', storeForm.domainType);
+    if (storeForm.domainType === 'own_domain') {
+      formData.append('customDomain', storeForm.customDomain);
+    }
+    formData.append('isActive', storeForm.isActive);
+    if (storeLogoFile) {
+      formData.append('logo', storeLogoFile);
+    }
+
+    try {
+      if (storeView === 'create') {
+        const { data } = await api.post('/seller/store', formData);
+        setStoreMsg(data.message || 'Store created!');
+        setMyStore(data.store);
+        setHasStore(true);
+        setStoreView('hub');
+      } else {
+        const { data } = await api.put('/seller/store', formData);
+        setStoreMsg(data.message || 'Store updated!');
+        setMyStore(data.store);
+        setStoreView('hub');
+      }
+      setStoreLogoFile(null);
+      setStoreLogoPreview(null);
+      await fetchMyStore();
+    } catch (err) {
+      setStoreMsg(err.response?.data?.message || 'Failed to save store');
+    } finally {
+      setStoreLoading(false);
+    }
+  };
 
   const handleDeleteProduct = async (id) => {
     if (!window.confirm('Are you sure you want to delete this product?')) return;
@@ -111,6 +267,8 @@ const SellerProducts = () => {
       locations: product.locations && product.locations.length > 0 ? product.locations : [{ address: 'Main Shop Location', stock: product.stock || 0 }],
       inventoryTracked: product.inventoryTracked !== undefined ? product.inventoryTracked : true,
       sku: product.sku || '',
+      purchaseType: product.purchaseType || 'one_time',
+      shipFromStoreAddresses: product.shipFromStoreAddresses || [],
       barcode: product.barcode || '',
       continueSellingWhenOutOfStock: product.continueSellingWhenOutOfStock || false,
       isPhysicalProduct: product.isPhysicalProduct !== undefined ? product.isPhysicalProduct : true,
@@ -121,6 +279,9 @@ const SellerProducts = () => {
       packageDimensionsUnit: product.packageDimensionsUnit || 'cm',
       productWeight: product.productWeight || 0,
       productWeightUnit: product.productWeightUnit || 'g',
+      deliveryBy: product.deliveryBy || '',
+      deliveryInput: '',
+      deliveryValues: product.deliveryValues || [],
       pageTitle: product.pageTitle || '',
       metaDescription: product.metaDescription || '',
       urlHandle: product.urlHandle || '',
@@ -137,8 +298,10 @@ const SellerProducts = () => {
 
     const formData = new FormData();
     Object.keys(productData).forEach(key => {
-      if (key === 'locations') {
+      if (key === 'locations' || key === 'shipFromStoreAddresses' || key === 'deliveryValues') {
         formData.append(key, JSON.stringify(productData[key]));
+      } else if (key === 'deliveryInput') {
+        /* UI-only; values sent via deliveryValues */
       } else {
         formData.append(key, productData[key]);
       }
@@ -156,7 +319,7 @@ const SellerProducts = () => {
         await api.post('/products', formData);
         setSingleMsg('Product added successfully. Pending admin approval!');
       }
-      setProductData({ title: '', description: '', price: '', compareAtPrice: '', unitPrice: '', chargeTax: false, category: '', stock: 0, locations: [{ address: 'Main Shop Location', stock: 0 }], keywords: '', inventoryTracked: true, sku: '', barcode: '', continueSellingWhenOutOfStock: false, isPhysicalProduct: true, packageType: 'Store default - Sample box - 22 x 13.7 x 4.2 cm, 0 kg', packageLength: '', packageWidth: '', packageHeight: '', packageDimensionsUnit: 'cm', productWeight: 0, productWeightUnit: 'g', pageTitle: '', metaDescription: '', urlHandle: '' });
+      setProductData({ ...defaultProductData });
       setImages([]);
       fetchMyProducts(); // Refresh list just in case
     } catch (err) {
@@ -190,7 +353,17 @@ const SellerProducts = () => {
     <div className="animate-fade-in max-w-4xl">
       <h1 className="text-3xl font-bold mb-8">Manage Products</h1>
 
-      <div className="flex gap-4 mb-8 border-b border-glass-border pb-2">
+      <div className="flex flex-wrap gap-4 mb-8 border-b border-glass-border pb-2">
+        <button
+          className={`pb-2 px-4 font-medium transition-colors border-b-2 flex items-center gap-2 ${activeTab === 'store' ? 'border-primary text-primary' : 'border-transparent text-[#94a3b8] hover:text-white'}`}
+          onClick={() => {
+            setActiveTab('store');
+            setStoreView('hub');
+            setStoreMsg('');
+          }}
+        >
+          <Store size={18} /> My Store
+        </button>
         <button 
           className={`pb-2 px-4 font-medium transition-colors border-b-2 flex items-center gap-2 ${activeTab === 'list' ? 'border-primary text-primary' : 'border-transparent text-text-muted hover:text-white'}`}
           onClick={() => {
@@ -206,7 +379,7 @@ const SellerProducts = () => {
           onClick={() => {
             setActiveTab('single');
             setEditingProduct(null);
-            setProductData({ title: '', description: '', price: '', compareAtPrice: '', unitPrice: '', chargeTax: false, category: '', stock: 0, locations: [{ address: 'Main Shop Location', stock: 0 }], keywords: '', inventoryTracked: true, sku: '', barcode: '', continueSellingWhenOutOfStock: false, isPhysicalProduct: true, packageType: 'Store default - Sample box - 22 x 13.7 x 4.2 cm, 0 kg', packageLength: '', packageWidth: '', packageHeight: '', packageDimensionsUnit: 'cm', productWeight: 0, productWeightUnit: 'g', pageTitle: '', metaDescription: '', urlHandle: '' });
+            setProductData({ ...defaultProductData });
             setSingleMsg('');
           }}
         >
@@ -221,7 +394,107 @@ const SellerProducts = () => {
       </div>
 
       <div className="glass-panel p-8 rounded-2xl">
-        {activeTab === 'list' ? (
+        {activeTab === 'store' ? (
+          <div className="text-[#202223]">
+            {storeView === 'hub' ? (
+              <div className="bg-white rounded-lg border border-[#E1E3E5] p-6 shadow-sm">
+                <h2 className="text-xl font-bold mb-8 flex items-center gap-2 text-[#202223]">
+                  <Store size={20} /> My Store
+                </h2>
+                {myStore?.storeUrl && (
+                  <div className="mb-6 p-4 rounded-xl border border-[#E1E3E5] bg-[#F6F6F7]">
+                    <p className="text-sm text-[#6D7175] mb-1">Your store is live at</p>
+                    <a
+                      href={myStore.storeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#005bd3] font-medium break-all hover:underline"
+                    >
+                      {myStore.storeUrl}
+                    </a>
+                  </div>
+                )}
+                {storeMsg && (
+                  <p className={`mb-4 text-sm ${storeMsg.includes('success') || storeMsg.includes('created') || storeMsg.includes('updated') ? 'text-[#008060]' : 'text-[#B98900]'}`}>
+                    {storeMsg}
+                  </p>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl">
+                  <button
+                    type="button"
+                    onClick={openCreateStore}
+                    disabled={hasStore}
+                    className="min-h-[120px] rounded-2xl font-bold text-lg text-[#202223] transition-transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-md"
+                    style={{ backgroundColor: '#FFD700' }}
+                  >
+                    Create Store
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openEditStore}
+                    disabled={!hasStore}
+                    className="min-h-[120px] rounded-2xl font-bold text-lg text-[#202223] transition-transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-md"
+                    style={{ backgroundColor: '#FFD700' }}
+                  >
+                    Edit Store
+                  </button>
+                </div>
+                {hasStore && (
+                  <p className="mt-6 text-sm text-[#6D7175]">
+                    You already have a store. Use <strong className="text-[#202223]">Edit Store</strong> to change your domain or details.
+                  </p>
+                )}
+              </div>
+            ) : (
+              <form onSubmit={handleStoreSubmit} className="max-w-xl text-[#202223]">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-bold text-[#202223]">
+                    {storeView === 'create' ? 'Create Store' : 'Edit Store'}
+                  </h2>
+                  <button
+                    type="button"
+                    className="text-[#6D7175] hover:text-[#202223] text-sm"
+                    onClick={() => {
+                      setStoreView('hub');
+                      setStoreMsg('');
+                      setStoreLogoFile(null);
+                      setStoreLogoPreview(null);
+                    }}
+                  >
+                    ← Back
+                  </button>
+                </div>
+
+                <div className="bg-white rounded-lg border border-[#E1E3E5] p-6 shadow-sm text-[#202223]">
+                  <StoreFormFields
+                    storeForm={storeForm}
+                    setStoreForm={setStoreForm}
+                    platformHost={platformHost}
+                    storeView={storeView}
+                    logoPreview={storeLogoPreview}
+                    setLogoPreview={setStoreLogoPreview}
+                    setLogoFile={setStoreLogoFile}
+                    existingLogoPath={myStore?.logo}
+                  />
+                </div>
+
+                {storeMsg && (
+                  <p className={`mt-4 text-sm ${storeMsg.includes('success') || storeMsg.includes('created') || storeMsg.includes('updated') ? 'text-[#008060]' : 'text-[#D82C0D]'}`}>
+                    {storeMsg}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={storeLoading || !isStoreFormValid(storeForm)}
+                  className="mt-6 w-full sm:w-auto disabled:opacity-50 bg-[#008060] hover:bg-[#006e52] text-white font-medium py-2 px-6 rounded-md text-[14px]"
+                >
+                  {storeLoading ? 'Saving...' : storeView === 'create' ? 'Create Store' : 'Save Changes'}
+                </button>
+              </form>
+            )}
+          </div>
+        ) : activeTab === 'list' ? (
           <div>
             <h2 className="text-xl font-bold mb-6 flex items-center gap-2"><List size={20} /> Your Uploaded Products</h2>
             {loadingProducts ? (
@@ -471,6 +744,58 @@ const SellerProducts = () => {
                         <label className="block text-[13px] text-[#202223] mb-1">SKU (Stock Keeping Unit)</label>
                         <input type="text" className="w-full border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] outline-none focus:ring-2 focus:ring-[#005bd3] focus:border-[#005bd3]" value={productData.sku} onChange={e => setProductData({...productData, sku: e.target.value})} />
                       </div>
+                      <div className="sm:col-span-2">
+                        <label className="block text-[13px] text-[#202223] mb-1">Purchase Type</label>
+                        <select
+                          className="w-full border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] outline-none focus:ring-2 focus:ring-[#005bd3] focus:border-[#005bd3] bg-white"
+                          value={productData.purchaseType || 'one_time'}
+                          onChange={e => setProductData({ ...productData, purchaseType: e.target.value })}
+                          disabled={editingProduct?.approvalStatus === 'approved'}
+                        >
+                          {(inventoryOptions?.purchaseTypeOptions || [
+                            { value: 'one_time', label: 'One-time purchase', available: true },
+                            { value: 'subscription', label: 'Subscription', available: false },
+                            { value: 'custom_order', label: 'Custom Order', available: false },
+                          ]).map((opt) => (
+                            <option key={opt.value} value={opt.value} disabled={opt.available === false}>
+                              {opt.label}{opt.available === false ? ' (Subscribers only)' : ''}
+                            </option>
+                          ))}
+                        </select>
+                        <ul className="mt-2 space-y-1 text-[12px] text-[#6D7175]">
+                          {(inventoryOptions?.purchaseTypeOptions || []).map((opt) => (
+                            <li key={opt.value} className={opt.note ? 'text-[#D82C0D]' : ''}>
+                              • {opt.label}{opt.note ? ` (${opt.note})` : ''}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="block text-[13px] text-[#202223] mb-1">Store Address</label>
+                        <p className="text-[12px] text-[#6D7175] mb-2">
+                          {inventoryOptions?.storeAddressHint || 'Select store address(es) to ship this product from.'}
+                        </p>
+                        {inventoryOptions?.storeAddresses?.length > 0 ? (
+                          <div className="border border-[#E1E3E5] rounded-md p-3 max-h-40 overflow-y-auto space-y-2 bg-[#FAFBFB]">
+                            {inventoryOptions.storeAddresses.map((addr) => (
+                              <label key={addr} className="flex items-start gap-2 text-[14px] text-[#202223] cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  className="mt-0.5 w-4 h-4 rounded border-[#8C9196] text-[#005bd3] focus:ring-[#005bd3]"
+                                  checked={(productData.shipFromStoreAddresses || []).includes(addr)}
+                                  onChange={() => toggleShipFromStoreAddress(addr)}
+                                  disabled={editingProduct?.approvalStatus === 'approved'}
+                                />
+                                <span>{addr}</span>
+                              </label>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-[13px] text-[#B98900] bg-[#FFF5E6] border border-[#FFEA8A] rounded-md px-3 py-2">
+                            No store addresses on your profile. Add them in KYC (Organization details) first.
+                          </p>
+                        )}
+                      </div>
                       <div>
                         <label className="block text-[13px] text-[#202223] mb-1">Barcode (ISBN, UPC, GTIN)</label>
                         <input type="text" className="w-full border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] outline-none focus:ring-2 focus:ring-[#005bd3] focus:border-[#005bd3]" value={productData.barcode} onChange={e => setProductData({...productData, barcode: e.target.value})} />
@@ -497,7 +822,7 @@ const SellerProducts = () => {
                     <div className="p-5 border-t border-[#E1E3E5]">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div>
-                          <label className="block text-[13px] text-[#202223] mb-1">Weight</label>
+                          <label className="block text-[13px] text-[#202223] mb-1">Package weight along with product</label>
                           <div className="flex gap-2">
                             <input type="number" step="0.1" min="0" className="flex-1 border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] outline-none focus:ring-2 focus:ring-[#005bd3] focus:border-[#005bd3]" value={productData.productWeight} onChange={e => setProductData({...productData, productWeight: e.target.value})} />
                             <select className="w-20 border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] outline-none focus:ring-2 focus:ring-[#005bd3] focus:border-[#005bd3] bg-white" value={productData.productWeightUnit} onChange={e => setProductData({...productData, productWeightUnit: e.target.value})}>
@@ -506,37 +831,38 @@ const SellerProducts = () => {
                             </select>
                           </div>
                         </div>
-                        <div className="col-span-1 sm:col-span-2">
-                          <label className="block text-[13px] text-[#202223] mb-1">Package Size</label>
-                          <select className="w-full border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] outline-none focus:ring-2 focus:ring-[#005bd3] focus:border-[#005bd3] bg-white mb-3" value={productData.packageType} onChange={e => setProductData({...productData, packageType: e.target.value})}>
-                            <option value="Store default - Sample box - 22 x 13.7 x 4.2 cm, 0 kg">Store default • Sample box - 22 × 13.7 × 4.2 cm</option>
-                            <option value="custom">Custom Dimensions</option>
-                          </select>
-                          
-                          {productData.packageType === 'custom' && (
-                            <div className="grid grid-cols-4 gap-2">
-                              <div>
-                                <label className="block text-[12px] text-[#6D7175] mb-1">Length</label>
-                                <input type="number" step="0.1" min="0" className="w-full border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] outline-none focus:ring-2 focus:ring-[#005bd3] focus:border-[#005bd3]" value={productData.packageLength} onChange={e => setProductData({...productData, packageLength: e.target.value})} placeholder="0" />
-                              </div>
-                              <div>
-                                <label className="block text-[12px] text-[#6D7175] mb-1">Width</label>
-                                <input type="number" step="0.1" min="0" className="w-full border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] outline-none focus:ring-2 focus:ring-[#005bd3] focus:border-[#005bd3]" value={productData.packageWidth} onChange={e => setProductData({...productData, packageWidth: e.target.value})} placeholder="0" />
-                              </div>
-                              <div>
-                                <label className="block text-[12px] text-[#6D7175] mb-1">Height</label>
-                                <input type="number" step="0.1" min="0" className="w-full border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] outline-none focus:ring-2 focus:ring-[#005bd3] focus:border-[#005bd3]" value={productData.packageHeight} onChange={e => setProductData({...productData, packageHeight: e.target.value})} placeholder="0" />
-                              </div>
-                              <div>
-                                <label className="block text-[12px] text-[#6D7175] mb-1">Unit</label>
-                                <select className="w-full border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] outline-none focus:ring-2 focus:ring-[#005bd3] focus:border-[#005bd3] bg-white" value={productData.packageDimensionsUnit} onChange={e => setProductData({...productData, packageDimensionsUnit: e.target.value})}>
-                                  <option value="cm">cm</option>
-                                  <option value="in">in</option>
-                                </select>
-                              </div>
+                        <div>
+                          <label className="block text-[13px] text-[#202223] mb-1">Package dimensions</label>
+                          {productData.packageType === 'custom' ? (
+                            <div className="grid grid-cols-3 gap-2">
+                              <input type="number" step="0.1" min="0" className="border border-[#8C9196] rounded-md px-2 py-2 text-[14px] text-[#202223]" placeholder="Length" value={productData.packageLength} onChange={e => setProductData({...productData, packageLength: e.target.value})} />
+                              <input type="number" step="0.1" min="0" className="border border-[#8C9196] rounded-md px-2 py-2 text-[14px] text-[#202223]" placeholder="Width" value={productData.packageWidth} onChange={e => setProductData({...productData, packageWidth: e.target.value})} />
+                              <input type="number" step="0.1" min="0" className="border border-[#8C9196] rounded-md px-2 py-2 text-[14px] text-[#202223]" placeholder="Height" value={productData.packageHeight} onChange={e => setProductData({...productData, packageHeight: e.target.value})} />
                             </div>
+                          ) : (
+                            <input
+                              type="text"
+                              readOnly
+                              className="w-full border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#6D7175] bg-[#F6F6F7]"
+                              placeholder="Length × Width × Height"
+                              value="22 × 13.7 × 4.2 cm (store default)"
+                            />
                           )}
                         </div>
+                        <div className="col-span-1 sm:col-span-2">
+                          <label className="block text-[13px] text-[#202223] mb-1">Package size</label>
+                          <select className="w-full border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] outline-none focus:ring-2 focus:ring-[#005bd3] focus:border-[#005bd3] bg-white mb-3" value={productData.packageType} onChange={e => setProductData({...productData, packageType: e.target.value})}>
+                            <option value="Store default - Sample box - 22 x 13.7 x 4.2 cm, 0 kg">Store default • Sample box - 22 × 13.7 × 4.2 cm</option>
+                            <option value="custom">Custom dimensions</option>
+                          </select>
+                          {productData.packageType === 'custom' && (
+                            <select className="w-24 border border-[#8C9196] rounded-md px-2 py-1 text-[13px] text-[#202223] bg-white" value={productData.packageDimensionsUnit} onChange={e => setProductData({...productData, packageDimensionsUnit: e.target.value})}>
+                              <option value="cm">cm</option>
+                              <option value="in">in</option>
+                            </select>
+                          )}
+                        </div>
+                        <DeliveryByFields productData={productData} setProductData={setProductData} />
                       </div>
                     </div>
                   )}
