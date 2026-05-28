@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../../utils/api';
-import { Mail, Lock, User, UserPlus, Phone, Shield } from 'lucide-react';
+import { Mail, Lock, User, Phone, Shield } from 'lucide-react';
 
 const AdminRegister = () => {
   const [formData, setFormData] = useState({ firstName: '', lastName: '', mobile: '', email: '', password: '', confirmPassword: '', secretKey: '' });

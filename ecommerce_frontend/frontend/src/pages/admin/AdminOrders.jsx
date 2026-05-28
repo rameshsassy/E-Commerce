@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Package, Search, ChevronRight } from 'lucide-react';
+import { Package, Search } from 'lucide-react';
 import api from '../../utils/api';
 
 const AdminOrders = () => {

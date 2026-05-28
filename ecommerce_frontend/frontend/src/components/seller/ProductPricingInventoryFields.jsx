@@ -701,7 +701,7 @@ export default function ProductPricingInventoryFields({
                 <button
                   type="button"
                   disabled={!productData.bulkPurchaseEnabled}
-                  className="h-1/2 px-3 border border-[#8C9196] rounded-t-md bg-white hover:bg-[#F6F6F7] disabled:opacity-50"
+                  className="h-1/2 px-3 border border-[#8C9196] rounded-t-md bg-white text-[#202223] hover:bg-[#F6F6F7] disabled:opacity-50"
                   onClick={() => {
                     const cur = Number(productData.bulkPurchaseMinOrderQuantity ?? 50);
                     const next = Number.isFinite(cur) ? cur + 1 : 50;
@@ -717,7 +717,7 @@ export default function ProductPricingInventoryFields({
                 <button
                   type="button"
                   disabled={!productData.bulkPurchaseEnabled}
-                  className="h-1/2 px-3 border border-t-0 border-[#8C9196] rounded-b-md bg-white hover:bg-[#F6F6F7] disabled:opacity-50"
+                  className="h-1/2 px-3 border border-t-0 border-[#8C9196] rounded-b-md bg-white text-[#202223] hover:bg-[#F6F6F7] disabled:opacity-50"
                   onClick={() => {
                     const cur = Number(productData.bulkPurchaseMinOrderQuantity ?? 50);
                     const next = Number.isFinite(cur) ? Math.max(1, cur - 1) : 50;

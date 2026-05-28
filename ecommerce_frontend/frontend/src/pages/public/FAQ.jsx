@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, ChevronDown, MessageCircle, Mail, HelpCircle, Package, CreditCard, RefreshCw, Truck, User } from 'lucide-react';
+import { Search, ChevronDown, MessageCircle, HelpCircle, Package, CreditCard, RefreshCw, Truck, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const FAQS_DATA = [

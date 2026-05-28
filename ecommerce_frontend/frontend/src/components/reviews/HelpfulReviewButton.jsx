@@ -20,7 +20,7 @@ const HelpfulReviewButton = ({ reviewId, initialVotes = [], productId }) => {
 
     setLoading(true);
     try {
-      const { data } = await api.put(`/products/${productId}/reviews/${reviewId}/helpful`);
+      await api.put(`/products/${productId}/reviews/${reviewId}/helpful`);
       
       if (hasVoted) {
         setVotes(votes.filter(id => id !== user._id));

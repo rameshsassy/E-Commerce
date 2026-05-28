@@ -13,10 +13,6 @@ const AdminCategories = () => {
     name: '', description: '', icon: '', commissionRate: 5, isActive: true, isFeatured: false, parentCategory: ''
   });
 
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
   const fetchCategories = async () => {
     try {
       setLoading(true);
@@ -28,6 +24,10 @@ const AdminCategories = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -73,7 +73,7 @@ const AdminCategories = () => {
       try {
         await api.delete(`/categories/${id}`);
         fetchCategories();
-      } catch (err) {
+      } catch (_err) {
         alert("Failed to delete category");
       }
     }

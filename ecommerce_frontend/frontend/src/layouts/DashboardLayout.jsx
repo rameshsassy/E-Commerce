@@ -15,6 +15,10 @@ import {
   Star,
   Boxes,
   Mail,
+  Home,
+  ClipboardList,
+  Receipt,
+  HandCoins,
 } from 'lucide-react';
 
 const ADMIN_PATH_SECTIONS = [
@@ -145,22 +149,28 @@ const DashboardLayout = ({ variant }) => {
           {isSeller && (
             <>
               <Link to="/seller/dashboard" className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-hover transition-colors" style={{ transition: 'background-color 0.2s' }}>
-                <LayoutDashboard size={20} /> Dashboard
+                <Home size={20} /> Home
               </Link>
-              <Link to="/seller/dashboard#bulk-inquiries" className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-hover transition-colors border border-glass-border/60">
-                <Boxes size={20} className="text-warning" /> Bulk inquiries
+              <Link to="/seller/orders-enquiries" className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-hover transition-colors border border-glass-border/60">
+                <ClipboardList size={20} className="text-warning" /> Order &amp; Enquiries
               </Link>
               <Link to="/seller/analytics" className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-hover transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg> Analytics
               </Link>
               <Link to="/seller/products" className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-hover transition-colors">
-                <Package size={20} /> My Products
+                <Package size={20} /> My products
               </Link>
-              <Link to="/seller/profile" className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-hover transition-colors">
-                <FileCheck size={20} /> Profile & KYC
+              <Link to="/seller/kyc" className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-hover transition-colors">
+                <FileCheck size={20} /> Profile &amp; KYC
               </Link>
-              <Link to="/seller/subscription" className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-hover transition-colors">
-                <Zap size={20} className="text-warning fill-warning/20" /> Premium Plan
+              <Link to="/seller/invoices" className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-hover transition-colors">
+                <Receipt size={20} /> Invoices
+              </Link>
+              <Link to="/seller/raise-funds" className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-hover transition-colors">
+                <HandCoins size={20} /> Raise funds
+              </Link>
+              <Link to="/seller/premium" className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-hover transition-colors">
+                <Zap size={20} className="text-warning fill-warning/20" /> Premium
               </Link>
             </>
           )}

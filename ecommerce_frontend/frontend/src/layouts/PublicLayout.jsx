@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, Link } from 'react-router-dom';
-import { Search, ShoppingBag, Heart, User, Store } from 'lucide-react';
+import { ShoppingBag, Heart, User, Store } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import SearchBar from '../components/search/SearchBar';
 import NotificationBell from '../components/notifications/NotificationBell';

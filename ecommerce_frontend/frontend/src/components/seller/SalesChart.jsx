@@ -1,33 +1,39 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 
 const SalesChart = ({ data = [] }) => {
-  // If no data, show placeholder
-  if (!data || data.length === 0) {
-    return (
-      <div className="glass-panel p-6 rounded-2xl h-[400px] flex flex-col justify-center items-center">
-        <h3 className="text-xl font-bold mb-6 self-start">Revenue Over Time</h3>
-        <p className="text-text-muted">No sales data available for the selected period.</p>
-      </div>
-    );
-  }
+  const safeData = Array.isArray(data) ? data : [];
 
-  // Calculate SVG path
   const chartWidth = 700;
   const chartHeight = 250;
   const padding = 40;
 
-  const maxRevenue = useMemo(() => Math.max(...data.map(d => d.revenue), 1000), [data]);
-  
+  const maxRevenue = useMemo(
+    () => Math.max(...safeData.map((d) => d.revenue), 1000),
+    [safeData]
+  );
+
   const points = useMemo(() => {
-    return data.map((d, i) => {
-      const x = (i / (data.length - 1)) * (chartWidth - padding * 2) + padding;
-      const y = chartHeight - (d.revenue / maxRevenue) * (chartHeight - padding * 2) - padding;
-      return { x, y, revenue: d.revenue, date: d.date };
+    if (safeData.length < 2) {
+      return safeData.map((d) => ({
+        x: padding,
+        y: chartHeight - padding,
+        revenue: d?.revenue ?? 0,
+        date: d?.date,
+      }));
+    }
+
+    return safeData.map((d, i) => {
+      const x = (i / (safeData.length - 1)) * (chartWidth - padding * 2) + padding;
+      const y =
+        chartHeight -
+        ((d.revenue || 0) / maxRevenue) * (chartHeight - padding * 2) -
+        padding;
+      return { x, y, revenue: d.revenue || 0, date: d.date };
     });
-  }, [data, maxRevenue]);
+  }, [safeData, maxRevenue, chartWidth, chartHeight, padding]);
 
   const linePath = useMemo(() => {
-    if (points.length < 2) return "";
+    if (points.length < 2) return '';
     return points.reduce((path, p, i) => {
       if (i === 0) return `M ${p.x},${p.y}`;
       // Use bezier curves for smoothness
@@ -37,13 +43,23 @@ const SalesChart = ({ data = [] }) => {
       const cp2x = prev.x + (p.x - prev.x) / 2;
       const cp2y = p.y;
       return `${path} C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p.x},${p.y}`;
-    }, "");
+    }, '');
   }, [points]);
 
   const areaPath = useMemo(() => {
-    if (linePath === "") return "";
+    if (linePath === '') return '';
     return `${linePath} L ${points[points.length - 1].x},${chartHeight - padding} L ${points[0].x},${chartHeight - padding} Z`;
-  }, [linePath, points]);
+  }, [linePath, points, chartHeight, padding]);
+
+  // If no data, show placeholder
+  if (safeData.length === 0) {
+    return (
+      <div className="glass-panel p-6 rounded-2xl h-[400px] flex flex-col justify-center items-center">
+        <h3 className="text-xl font-bold mb-6 self-start">Revenue Over Time</h3>
+        <p className="text-text-muted">No sales data available for the selected period.</p>
+      </div>
+    );
+  }
 
   const formatXAxis = (tickItem) => {
     const date = new Date(tickItem);

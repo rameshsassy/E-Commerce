@@ -15,8 +15,8 @@ const Notifications = () => {
       try {
         const { data } = await api.get('/notifications');
         setNotifications(data);
-      } catch (err) {
-        console.error("Failed to fetch notifications");
+      } catch (_err) {
+        console.error("Failed to fetch notifications", _err);
       } finally {
         setLoading(false);
       }

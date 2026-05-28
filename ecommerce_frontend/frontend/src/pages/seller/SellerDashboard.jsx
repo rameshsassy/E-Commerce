@@ -1,11 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import api from '../../utils/api';
 import { Package, TrendingUp, DollarSign } from 'lucide-react';
 import BulkInquiriesPanel from '../../components/bulk/BulkInquiriesPanel';
+import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const SellerDashboard = () => {
+  const { user, mergeUser } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState({ products: 0, pending: 0, sales: 0 });
   const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState(null);
+
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }, []);
+
+  const sellerName = profile?.firstName || user?.firstName || user?.name || 'Seller';
+  const planLabel = profile?.plan || (user?.sellerType === 'premium' && user?.subscriptionActive ? 'Premium' : 'Free');
+  const isFree = planLabel === 'Free';
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -18,6 +34,12 @@ const SellerDashboard = () => {
         
         const dashboardData = dashboardRes.data?.data || { totalProducts: 0, totalValue: 0 };
         const profileData = profileRes.data;
+        setProfile(profileData);
+        // Keep auth user in sync with plan fields (so sidebar and other pages update).
+        mergeUser({
+          sellerType: profileData.sellerType,
+          subscriptionActive: profileData.subscriptionActive,
+        });
 
         setStats({
           products: dashboardData.totalProducts || 0,
@@ -31,7 +53,7 @@ const SellerDashboard = () => {
       }
     };
     fetchDashboard();
-  }, []);
+  }, [mergeUser]);
 
   useEffect(() => {
     if (!loading && window.location.hash === '#bulk-inquiries') {
@@ -41,7 +63,26 @@ const SellerDashboard = () => {
 
   return (
     <div className="animate-fade-in">
-      <h1 className="text-3xl font-bold mb-8">Dashboard Overview</h1>
+      <div className="bg-white border border-[#E1E3E5] rounded-2xl shadow-sm px-6 py-4 mb-8 flex items-center justify-between gap-4">
+        <div className="text-[18px] md:text-[22px] font-semibold text-[#202223] truncate">
+          {greeting} {sellerName}
+        </div>
+
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="text-[16px] md:text-[20px] font-medium text-[#202223]">
+            Plan: {planLabel}
+          </div>
+          {isFree && (
+            <button
+              type="button"
+              onClick={() => navigate('/seller/subscription')}
+              className="px-4 py-2 rounded-full bg-[#FFD700] hover:bg-[#F2C400] text-[#202223] font-semibold text-[13px] md:text-[14px] shadow-sm"
+            >
+              Upgrade
+            </button>
+          )}
+        </div>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="glass-panel p-6 flex items-center gap-4">

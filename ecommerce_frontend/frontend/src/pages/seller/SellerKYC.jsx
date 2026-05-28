@@ -19,10 +19,7 @@ const SellerKYC = () => {
   });
   const [logo, setLogo] = useState(null);
 
-  // Cropper State
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [showCropper, setShowCropper] = useState(false);
   const [logoSrc, setLogoSrc] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
@@ -43,10 +40,6 @@ const SellerKYC = () => {
       setShowCropper(true);
     }
     e.target.value = ''; // reset input so they can re-select the same file if needed
-  };
-
-  const onCropComplete = (croppedArea, croppedAreaPixels) => {
-    setCroppedAreaPixels(croppedAreaPixels);
   };
 
   const showCroppedImage = async () => {

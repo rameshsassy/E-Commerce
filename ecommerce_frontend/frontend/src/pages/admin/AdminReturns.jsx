@@ -25,7 +25,7 @@ const AdminReturns = () => {
     try {
       await api.put(`/returns/${id}/status`, { status });
       setReturns(returns.map(r => r._id === id ? { ...r, status } : r));
-    } catch (err) {
+    } catch (_err) {
       alert("Failed to update status");
     }
   };

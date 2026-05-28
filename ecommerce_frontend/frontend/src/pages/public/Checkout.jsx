@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, Truck, CreditCard, ChevronRight, CheckCircle } from 'lucide-react';
+import { ShieldCheck, Truck, CreditCard } from 'lucide-react';
 import api, { BASE_URL } from '../../utils/api';
 
 const Checkout = () => {
@@ -16,7 +16,7 @@ const Checkout = () => {
     fullName: '', phone: '', addressLine1: '', city: '', state: '', pinCode: ''
   });
   
-  const [paymentMethod, setPaymentMethod] = useState('razorpay');
+  const [paymentMethod] = useState('razorpay');
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {

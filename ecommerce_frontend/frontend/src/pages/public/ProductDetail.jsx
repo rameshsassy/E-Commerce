@@ -117,7 +117,7 @@ const ProductDetail = () => {
         serviceable: data.serviceable,
         message: data.message
       });
-    } catch (err) {
+    } catch (_err) {
       setPincodeStatus({
         checking: false,
         serviceable: false,

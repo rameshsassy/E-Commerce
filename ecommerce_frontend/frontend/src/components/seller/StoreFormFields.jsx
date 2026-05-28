@@ -1,5 +1,5 @@
-import React, { useRef } from 'react';
-import { Plus, CheckCircle, XCircle } from 'lucide-react';
+import { useRef } from 'react';
+import { Plus, XCircle } from 'lucide-react';
 import { BASE_URL } from '../../utils/api';
 
 export const STORE_NAME_MAX = 1500;

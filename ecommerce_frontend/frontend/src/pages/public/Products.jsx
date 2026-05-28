@@ -28,6 +28,27 @@ const Products = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalResults, setTotalResults] = useState(0);
 
+  const fetchProducts = async () => {
+    setLoading(true);
+    try {
+      let query = `/products?page=${filters.page}&limit=12`;
+      if (filters.keyword) query += `&keyword=${encodeURIComponent(filters.keyword)}`;
+      if (filters.category) query += `&category=${encodeURIComponent(filters.category)}`;
+      if (filters.minPrice) query += `&minPrice=${filters.minPrice}`;
+      if (filters.maxPrice) query += `&maxPrice=${filters.maxPrice}`;
+      if (filters.sort) query += `&sort=${filters.sort}`;
+      
+      const { data } = await api.get(query);
+      setProducts(data.products || []);
+      setTotalPages(data.pages || 1);
+      setTotalResults(data.total || 0);
+    } catch (err) {
+      console.error('Error fetching products:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Sync state with URL when searchParams change (e.g. from SearchBar in Navbar)
   useEffect(() => {
     setFilters(prev => ({
@@ -56,27 +77,6 @@ const Products = () => {
 
     return () => clearTimeout(timer);
   }, [filters.category, filters.minPrice, filters.maxPrice, filters.sort, filters.page, filters.keyword]);
-
-  const fetchProducts = async () => {
-    setLoading(true);
-    try {
-      let query = `/products?page=${filters.page}&limit=12`;
-      if (filters.keyword) query += `&keyword=${encodeURIComponent(filters.keyword)}`;
-      if (filters.category) query += `&category=${encodeURIComponent(filters.category)}`;
-      if (filters.minPrice) query += `&minPrice=${filters.minPrice}`;
-      if (filters.maxPrice) query += `&maxPrice=${filters.maxPrice}`;
-      if (filters.sort) query += `&sort=${filters.sort}`;
-      
-      const { data } = await api.get(query);
-      setProducts(data.products || []);
-      setTotalPages(data.pages || 1);
-      setTotalResults(data.total || 0);
-    } catch (err) {
-      console.error('Error fetching products:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const categories = ["Bags", "Jewellery", "Snacks", "Women Hygiene", "Books", "Lifestyle", "Handcrafted", "Electronics", "Clothing", "Home", "Beauty"];
 

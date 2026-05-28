@@ -31,6 +31,9 @@ import SellerProducts from './pages/seller/SellerProducts';
 import SellerKYC from './pages/seller/SellerKYC';
 import SellerSubscription from './pages/seller/SellerSubscription';
 import SellerAnalytics from './pages/seller/SellerAnalytics';
+import SellerOrdersEnquiries from './pages/seller/SellerOrdersEnquiries';
+import SellerInvoices from './pages/seller/SellerInvoices';
+import SellerRaiseFunds from './pages/seller/SellerRaiseFunds';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminSellers from './pages/admin/AdminSellers';
@@ -75,11 +78,14 @@ const App = () => {
         {/* Seller Routes */}
         <Route element={<DashboardLayout variant="seller" />}>
           <Route path="/seller/dashboard" element={<SellerDashboard />} />
+          <Route path="/seller/orders-enquiries" element={<SellerOrdersEnquiries />} />
           <Route path="/seller/analytics" element={<SellerAnalytics />} />
           <Route path="/seller/profile" element={<SellerProfile />} />
           <Route path="/seller/products" element={<SellerProducts />} />
           <Route path="/seller/kyc" element={<SellerKYC />} />
           <Route path="/seller/subscription" element={<SellerSubscription />} />
+          <Route path="/seller/invoices" element={<SellerInvoices />} />
+          <Route path="/seller/raise-funds" element={<SellerRaiseFunds />} />
           <Route path="/seller/premium" element={<SellerPremium />} />
         </Route>
 

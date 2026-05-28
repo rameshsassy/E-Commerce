@@ -9,7 +9,6 @@ const NotificationBell = () => {
   const [notifications, setNotifications] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
-  const socketRef = useRef(null);
 
   // Initialize Socket and Fetch Initial Notifications
   useEffect(() => {
@@ -30,8 +29,8 @@ const NotificationBell = () => {
           }
           return data;
         });
-      } catch (err) {
-        console.error("Failed to fetch notifications");
+      } catch (_err) {
+        console.error("Failed to fetch notifications", _err);
       }
     };
     

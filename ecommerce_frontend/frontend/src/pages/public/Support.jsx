@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, MessageCircle, Phone, FileText, ChevronDown, CheckCircle, HelpCircle, Send } from 'lucide-react';
+import { Mail, MessageCircle, FileText, ChevronDown, CheckCircle, HelpCircle, Send } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import api from '../../utils/api';
@@ -20,12 +20,6 @@ const Support = () => {
   });
   const [attachments, setAttachments] = useState([]);
 
-  useEffect(() => {
-    if (user && activeTab === 'history') {
-      fetchTickets();
-    }
-  }, [user, activeTab]);
-
   const fetchTickets = async () => {
     setLoading(true);
     try {
@@ -37,6 +31,12 @@ const Support = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (user && activeTab === 'history') {
+      fetchTickets();
+    }
+  }, [user, activeTab]);
 
   const handleFileChange = (e) => {
     if (e.target.files) {

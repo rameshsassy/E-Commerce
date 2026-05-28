@@ -29,7 +29,7 @@ export const AuthProvider = ({ children }) => {
             setUser(userObj);
           }
         }
-      } catch (error) {
+      } catch (_error) {
         // Silent failure is fine here, means user needs to log in
         localStorage.removeItem('token');
         localStorage.removeItem('user');
@@ -68,8 +68,8 @@ export const AuthProvider = ({ children }) => {
     try {
       // Invalidate refresh token on backend
       await api.post('/auth/logout');
-    } catch (err) {
-      console.error("Logout API failed, continuing local clear.");
+    } catch (_err) {
+      console.error("Logout API failed, continuing local clear.", _err);
     } finally {
       // Always clear local state
       localStorage.removeItem('token');

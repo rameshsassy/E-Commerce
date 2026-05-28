@@ -1,5 +1,4 @@
-import React from 'react';
-import { CheckCircle, XCircle } from 'lucide-react';
+import { XCircle } from 'lucide-react';
 import ProductRichTextEditor from './ProductRichTextEditor';
 import {
   POLICY_TERMS_MAX,

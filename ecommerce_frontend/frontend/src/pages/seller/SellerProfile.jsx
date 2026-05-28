@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
-import { User, MapPin, Phone, Mail, Building, Globe, CheckCircle, AlertTriangle } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { User, MapPin, CheckCircle, AlertTriangle } from 'lucide-react';
 
 const SellerProfile = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   
@@ -50,7 +48,7 @@ const SellerProfile = () => {
       await api.put('/seller/profile', profileData);
       setProfileMsg('Profile updated successfully');
       fetchProfile();
-    } catch (err) {
+    } catch (_err) {
       setProfileMsg('Failed to update profile');
     }
   };

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api, { BASE_URL } from '../../utils/api';
-import { Plus, Upload, FileSpreadsheet, Image as ImageIcon, List, CheckCircle, Clock, XCircle, Edit2, Trash2, X, Store } from 'lucide-react';
+import { Upload, FileSpreadsheet, Image as ImageIcon, List, CheckCircle, Clock, XCircle, Edit2, Trash2, X, Store } from 'lucide-react';
 import StoreFormFields, { isStoreFormValid } from '../../components/seller/StoreFormFields';
 import ProductBasicFields from '../../components/seller/ProductBasicFields';
 import ProductPremiumCategoryKeywordsFields from '../../components/seller/ProductPremiumCategoryKeywordsFields';
@@ -45,8 +45,6 @@ const SellerProducts = () => {
   
   // Edit State
   const [editingProduct, setEditingProduct] = useState(null);
-  const [editLoading, setEditLoading] = useState(false);
-  const [editMsg, setEditMsg] = useState('');
 
   const [productData, setProductData] = useState(defaultProductData);
   const [productImages, setProductImages] = useState([]);
@@ -58,7 +56,6 @@ const SellerProducts = () => {
   const [draftId, setDraftId] = useState(null);
   const [autoSaving, setAutoSaving] = useState(false);
   const [autoSaveMsg, setAutoSaveMsg] = useState('');
-  const autosaveTimerRef = useRef(null);
   const skipNextAutosaveRef = useRef(false);
   const hydratedDraftRef = useRef(false);
   const lastAutosaveSignatureRef = useRef('');
