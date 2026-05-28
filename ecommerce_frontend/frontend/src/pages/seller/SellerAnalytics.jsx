@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import api from '../../utils/api';
 import AnalyticsCard from '../../components/seller/AnalyticsCard';
 import SalesChart from '../../components/seller/SalesChart';

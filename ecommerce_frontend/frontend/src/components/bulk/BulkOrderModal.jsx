@@ -25,6 +25,8 @@ const BulkOrderModal = ({
   const [email, setEmail] = useState('');
   const [quantityRequired, setQuantityRequired] = useState('');
   const [message, setMessage] = useState('');
+  const [buyerCity, setBuyerCity] = useState('');
+  const [companyOrganisation, setCompanyOrganisation] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -36,6 +38,8 @@ const BulkOrderModal = ({
       setContactNumber(defaultPhone || '');
       setQuantityRequired('');
       setMessage('');
+      setBuyerCity('');
+      setCompanyOrganisation('');
       setError('');
       setSuccess('');
     }
@@ -60,6 +64,8 @@ const BulkOrderModal = ({
         email: email.trim(),
         quantityRequired: quantityRequired.trim(),
         message: message.trim(),
+        buyerCity: buyerCity.trim(),
+        companyOrganisation: companyOrganisation.trim(),
       });
       setSuccess(data.message || 'Bulk inquiry submitted successfully.');
     } catch (err) {
@@ -159,6 +165,24 @@ const BulkOrderModal = ({
                 onChange={(e) => setQuantityRequired(e.target.value)}
                 required
                 placeholder="e.g. 500 units, 2 pallets"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">City</label>
+              <input
+                className="input-field"
+                value={buyerCity}
+                onChange={(e) => setBuyerCity(e.target.value)}
+                placeholder="e.g. Mumbai"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Company / Organisation</label>
+              <input
+                className="input-field"
+                value={companyOrganisation}
+                onChange={(e) => setCompanyOrganisation(e.target.value)}
+                placeholder="e.g. Funds and Toil Private Limited"
               />
             </div>
             <div>

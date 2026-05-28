@@ -19,7 +19,22 @@ import {
   ClipboardList,
   Receipt,
   HandCoins,
+  Gift,
+  Info,
 } from 'lucide-react';
+
+const SELLER_NAV = [
+  { to: '/seller/dashboard', label: 'Home', icon: Home },
+  { to: '/seller/orders-enquiries', label: 'Orders & Enquiries', icon: ClipboardList, iconAccent: true },
+  { to: '/seller/analytics', label: 'Analytics', icon: 'chart' },
+  { to: '/seller/products', label: 'My products', icon: Package },
+  { to: '/seller/kyc', label: 'Profile & KYC', icon: FileCheck },
+  { to: '/seller/invoices', label: 'Invoices', icon: Receipt },
+  { to: '/seller/raise-funds', label: 'Raise funds', icon: HandCoins },
+  { to: '/seller/premium', label: 'Premium', icon: Zap, premium: true },
+  { to: '/seller/refer-and-earn', label: 'Refer and Earn', icon: Gift },
+  { to: '/seller/about-us', label: 'About Us', icon: Info },
+];
 
 const ADMIN_PATH_SECTIONS = [
   [/^\/admin\/dashboard/, 'dashboard'],
@@ -115,7 +130,7 @@ const DashboardLayout = ({ variant }) => {
           </h2>
         </div>
 
-        <nav className="flex-1 p-4 flex flex-col gap-2">
+        <nav className={`flex-1 p-4 flex flex-col ${isSeller ? 'gap-2.5' : 'gap-2'}`}>
           {isAdmin && showAdminLink('dashboard') && (
             <Link
               to="/admin/dashboard"
@@ -146,34 +161,33 @@ const DashboardLayout = ({ variant }) => {
             </Link>
           )}
 
-          {isSeller && (
-            <>
-              <Link to="/seller/dashboard" className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-hover transition-colors" style={{ transition: 'background-color 0.2s' }}>
-                <Home size={20} /> Home
-              </Link>
-              <Link to="/seller/orders-enquiries" className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-hover transition-colors border border-glass-border/60">
-                <ClipboardList size={20} className="text-warning" /> Order &amp; Enquiries
-              </Link>
-              <Link to="/seller/analytics" className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-hover transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg> Analytics
-              </Link>
-              <Link to="/seller/products" className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-hover transition-colors">
-                <Package size={20} /> My products
-              </Link>
-              <Link to="/seller/kyc" className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-hover transition-colors">
-                <FileCheck size={20} /> Profile &amp; KYC
-              </Link>
-              <Link to="/seller/invoices" className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-hover transition-colors">
-                <Receipt size={20} /> Invoices
-              </Link>
-              <Link to="/seller/raise-funds" className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-hover transition-colors">
-                <HandCoins size={20} /> Raise funds
-              </Link>
-              <Link to="/seller/premium" className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-hover transition-colors">
-                <Zap size={20} className="text-warning fill-warning/20" /> Premium
-              </Link>
-            </>
-          )}
+          {isSeller &&
+            SELLER_NAV.map((item) => {
+              const active =
+                location.pathname === item.to ||
+                (item.to !== '/seller/dashboard' && location.pathname.startsWith(item.to));
+              const Icon = item.icon;
+              const baseClass = [
+                'flex items-center gap-3 p-3 rounded-xl border transition-colors',
+                'border-white/25 hover:bg-surface-hover hover:border-white/40',
+                active ? 'bg-surface-hover border-white/50' : '',
+              ].join(' ');
+
+              return (
+                <Link key={item.to} to={item.to} className={baseClass} style={{ transition: 'background-color 0.2s, border-color 0.2s' }}>
+                  {item.icon === 'chart' ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+                  ) : item.premium ? (
+                    <Icon size={20} className="text-warning fill-warning/20" />
+                  ) : item.iconAccent ? (
+                    <Icon size={20} className="text-warning" />
+                  ) : (
+                    <Icon size={20} />
+                  )}
+                  {item.label}
+                </Link>
+              );
+            })}
 
           {isAdmin && (
             <div className="space-y-1">

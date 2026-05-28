@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../utils/api';
 import { Boxes, Loader2, RefreshCw } from 'lucide-react';
+import SellerBulkOrderDetail from '../seller/SellerBulkOrderDetail';
 
-const STATUSES = [
+const ADMIN_STATUSES = [
   'Negotiation Pending',
   'Meeting Scheduled',
   'Completed',
@@ -14,11 +15,14 @@ const stripHtml = (s) => {
   return String(s).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120);
 };
 
+const money = (n) => (n != null ? `₹ ${Number(n).toLocaleString('en-IN')}/-` : '—');
+
 const BulkInquiriesPanel = ({ isAdmin = false, title = 'Bulk order inquiries' }) => {
   const [inquiries, setInquiries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [updatingId, setUpdatingId] = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
 
   const listUrl = isAdmin ? '/admin/bulk-inquiries' : '/seller/bulk-inquiries';
 
@@ -52,6 +56,18 @@ const BulkInquiriesPanel = ({ isAdmin = false, title = 'Bulk order inquiries' })
     }
   };
 
+  if (!isAdmin && selectedId) {
+    return (
+      <SellerBulkOrderDetail
+        inquiryId={selectedId}
+        onClose={() => {
+          setSelectedId(null);
+          load();
+        }}
+      />
+    );
+  }
+
   return (
     <div id="bulk-inquiries" className="glass-panel p-6 md:p-8 rounded-2xl border border-glass-border scroll-mt-24">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
@@ -64,7 +80,7 @@ const BulkInquiriesPanel = ({ isAdmin = false, title = 'Bulk order inquiries' })
             <p className="text-sm text-text-muted">
               {isAdmin
                 ? 'Coordinate between buyers and premium sellers until the deal is finalized.'
-                : 'Respond to wholesale requests for your premium listings.'}
+                : 'Open a bulk request to view details, buyer type, and fulfillment timeline.'}
             </p>
           </div>
         </div>
@@ -94,14 +110,14 @@ const BulkInquiriesPanel = ({ isAdmin = false, title = 'Bulk order inquiries' })
         <p className="text-text-muted text-center py-12 border border-dashed border-glass-border rounded-xl">
           No bulk inquiries yet.
         </p>
-      ) : (
+      ) : isAdmin ? (
         <div className="overflow-x-auto rounded-xl border border-glass-border">
           <table className="w-full text-sm text-left min-w-[720px]">
             <thead>
               <tr className="bg-surface/80 text-text-muted border-b border-glass-border">
                 <th className="p-3 font-medium">Date</th>
                 <th className="p-3 font-medium">Product</th>
-                {isAdmin && <th className="p-3 font-medium">Seller</th>}
+                <th className="p-3 font-medium">Seller</th>
                 <th className="p-3 font-medium">Buyer</th>
                 <th className="p-3 font-medium">Contact</th>
                 <th className="p-3 font-medium">Qty</th>
@@ -118,14 +134,12 @@ const BulkInquiriesPanel = ({ isAdmin = false, title = 'Bulk order inquiries' })
                   <td className="p-3 max-w-[180px]">
                     <span className="font-medium line-clamp-2">{row.productTitle || '—'}</span>
                   </td>
-                  {isAdmin && (
-                    <td className="p-3 max-w-[160px]">
-                      <div className="font-medium line-clamp-1">{row.sellerLabel || '—'}</div>
-                      {row.sellerEmail && (
-                        <div className="text-xs text-text-muted truncate">{row.sellerEmail}</div>
-                      )}
-                    </td>
-                  )}
+                  <td className="p-3 max-w-[160px]">
+                    <div className="font-medium line-clamp-1">{row.sellerLabel || '—'}</div>
+                    {row.sellerEmail && (
+                      <div className="text-xs text-text-muted truncate">{row.sellerEmail}</div>
+                    )}
+                  </td>
                   <td className="p-3">
                     <div className="font-medium">{row.buyerName}</div>
                     <div className="text-xs text-text-muted truncate max-w-[140px]">{row.buyerEmail}</div>
@@ -142,12 +156,58 @@ const BulkInquiriesPanel = ({ isAdmin = false, title = 'Bulk order inquiries' })
                       disabled={updatingId === row._id}
                       onChange={(e) => updateStatus(row._id, e.target.value)}
                     >
-                      {STATUSES.map((s) => (
+                      {ADMIN_STATUSES.map((s) => (
                         <option key={s} value={s}>
                           {s}
                         </option>
                       ))}
                     </select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-glass-border">
+          <table className="w-full text-sm text-left min-w-[800px]">
+            <thead>
+              <tr className="bg-surface/80 text-text-muted border-b border-glass-border">
+                <th className="p-3 font-medium">Bulk Request ID</th>
+                <th className="p-3 font-medium">Customer</th>
+                <th className="p-3 font-medium">Product</th>
+                <th className="p-3 font-medium">Estimated Cost</th>
+                <th className="p-3 font-medium">Delivery</th>
+                <th className="p-3 font-medium text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {inquiries.map((row) => (
+                <tr key={row._id} className="border-b border-glass-border/60 hover:bg-surface/40">
+                  <td className="p-3 font-mono text-xs whitespace-nowrap">
+                    {row.displayBulkRequestId || '—'}
+                  </td>
+                  <td className="p-3">
+                    <div className="font-medium">{row.customer?.name || row.buyerName}</div>
+                    <div className="text-xs text-text-muted">{row.customer?.tag}</div>
+                  </td>
+                  <td className="p-3 max-w-[200px]">
+                    <span className="font-medium line-clamp-2">{row.product?.title || '—'}</span>
+                  </td>
+                  <td className="p-3 whitespace-nowrap">
+                    {money(row.estimatedCostFormatted ?? row.estimatedCost)}
+                  </td>
+                  <td className="p-3 whitespace-nowrap text-text-muted">
+                    {row.requestedDeliveryDateFormatted || '—'}
+                  </td>
+                  <td className="p-3 text-right">
+                    <button
+                      type="button"
+                      className="px-4 py-2 rounded-xl bg-[#FFE566] text-black font-semibold border-2 border-gray-900 hover:bg-[#ffe566]/90 transition-colors"
+                      onClick={() => setSelectedId(row._id)}
+                    >
+                      View
+                    </button>
                   </td>
                 </tr>
               ))}

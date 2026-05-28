@@ -34,6 +34,8 @@ import SellerAnalytics from './pages/seller/SellerAnalytics';
 import SellerOrdersEnquiries from './pages/seller/SellerOrdersEnquiries';
 import SellerInvoices from './pages/seller/SellerInvoices';
 import SellerRaiseFunds from './pages/seller/SellerRaiseFunds';
+import SellerReferAndEarn from './pages/seller/SellerReferAndEarn';
+import SellerAboutUs from './pages/seller/SellerAboutUs';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminSellers from './pages/admin/AdminSellers';
@@ -87,6 +89,8 @@ const App = () => {
           <Route path="/seller/invoices" element={<SellerInvoices />} />
           <Route path="/seller/raise-funds" element={<SellerRaiseFunds />} />
           <Route path="/seller/premium" element={<SellerPremium />} />
+          <Route path="/seller/refer-and-earn" element={<SellerReferAndEarn />} />
+          <Route path="/seller/about-us" element={<SellerAboutUs />} />
         </Route>
 
         {/* Admin Routes */}

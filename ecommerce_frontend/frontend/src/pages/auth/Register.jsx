@@ -5,7 +5,9 @@ import api from '../../utils/api';
 import { Mail, Lock, User, UserPlus, Store, Phone, Shield } from 'lucide-react';
 
 const Register = () => {
-  const [role, setRole] = useState(new URLSearchParams(useLocation().search).get('role') || 'customer');
+  const searchParams = new URLSearchParams(useLocation().search);
+  const referralFromUrl = searchParams.get('ref') || searchParams.get('referralCode') || '';
+  const [role, setRole] = useState(searchParams.get('role') || 'customer');
   const [formData, setFormData] = useState({ firstName: '', lastName: '', mobile: '', email: '', password: '', confirmPassword: '', secretKey: '' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -62,6 +64,9 @@ const Register = () => {
               email: formData.email.trim(),
               mobile: formData.mobile.trim(),
               password: formData.password,
+              ...(role === 'seller' && referralFromUrl
+                ? { referralCode: referralFromUrl.trim() }
+                : {}),
             };
 
       const { data } = await api.post(endpoint, payload);
@@ -123,6 +128,12 @@ const Register = () => {
             <Store size={16} /> Seller
           </button>
         </div>
+
+        {role === 'seller' && referralFromUrl && (
+          <div className="bg-primary/10 border border-primary/30 text-primary p-3 rounded-md mb-6 text-sm text-center">
+            Referred by code: <strong>{referralFromUrl.toUpperCase()}</strong>
+          </div>
+        )}
 
         {error && <div className="bg-error/20 border border-error text-error p-3 rounded-md mb-6 text-sm text-center">{error}</div>}
         {success && <div className="bg-success/20 border border-success text-success p-3 rounded-md mb-6 text-sm text-center">{success}</div>}
