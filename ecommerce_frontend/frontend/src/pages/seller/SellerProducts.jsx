@@ -13,6 +13,7 @@ import {
 const defaultProductData = {
   title: '', description: '', price: '', compareAtPrice: '', unitPrice: '', chargeTax: false, category: '', stock: 0,
   locations: [{ address: 'Main Shop Location', stock: 0 }], keywords: '',
+  premiumType: '',
   inventoryTracked: true, sku: '', purchaseType: 'one_time', shipFromStoreAddresses: [],
   barcode: '', continueSellingWhenOutOfStock: false,
   isPhysicalProduct: true, packageType: 'Store default - Sample box - 22 x 13.7 x 4.2 cm, 0 kg',
@@ -114,6 +115,7 @@ const SellerProducts = () => {
             unitPrice: d.unitPrice ?? '',
             chargeTax: Boolean(d.chargeTax),
             category: d.category || '',
+            premiumType: d.premiumType || '',
             stock: d.stock ?? 0,
             locations:
               Array.isArray(d.locations) && d.locations.length > 0
@@ -178,6 +180,7 @@ const SellerProducts = () => {
             unitPrice: d.unitPrice ?? '',
             chargeTax: Boolean(d.chargeTax),
             category: d.category || '',
+            premiumType: d.premiumType || '',
             keywords: Array.isArray(d.keywords) ? d.keywords.join(', ') : '',
             dispatchDeliveryDays: d.dispatchDeliveryDays ?? '',
             minOrderQuantity: d.minOrderQuantity ?? 1,
@@ -258,6 +261,7 @@ const SellerProducts = () => {
           unitPrice: productData.unitPrice ?? '',
           chargeTax: Boolean(productData.chargeTax),
           category: productData.category || '',
+          premiumType: productData.premiumType || '',
           keywords: productData.keywords || '',
           dispatchDeliveryDays: productData.dispatchDeliveryDays ?? '',
           minOrderQuantity: productData.minOrderQuantity ?? 1,
@@ -526,6 +530,7 @@ const SellerProducts = () => {
       unitPrice: product.unitPrice || '',
       chargeTax: product.chargeTax || false,
       category: product.category,
+      premiumType: product.premiumType || '',
       stock: product.stock,
       locations: product.locations && product.locations.length > 0 ? product.locations : [{ address: 'Main Shop Location', stock: product.stock || 0 }],
       inventoryTracked: product.inventoryTracked !== undefined ? product.inventoryTracked : true,

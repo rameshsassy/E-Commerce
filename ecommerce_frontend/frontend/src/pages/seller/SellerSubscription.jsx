@@ -4,9 +4,6 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/api';
 import { CheckCircle, Zap, ShieldCheck } from 'lucide-react';
 
-const RAZORPAY_KEY =
-  import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_12345';
-
 const SellerSubscription = () => {
   const { user, mergeUser } = useAuth();
   const [processing, setProcessing] = useState(false);
@@ -29,88 +26,18 @@ const SellerSubscription = () => {
     setBanner(null);
     setProcessing(true);
     try {
-      const { data: rzpOrder } = await api.post('/seller/subscription/razorpay');
-
-      const options = {
-        key: RAZORPAY_KEY,
-        amount: rzpOrder.amount,
-        currency: rzpOrder.currency,
-        name: 'AASHANSH',
-        description: 'Premium Seller Subscription',
-        order_id: rzpOrder.id,
-        handler: async function (response) {
-          try {
-            const verifyPayload = {
-              razorpayOrderId: response.razorpay_order_id,
-              razorpayPaymentId: response.razorpay_payment_id,
-              razorpaySignature: response.razorpay_signature,
-            };
-
-            const { data } = await api.post(
-              '/seller/subscription/razorpay/verify',
-              verifyPayload
-            );
-            applyPremiumResponse(data);
-            setBannerTone('success');
-            setBanner(
-              data.message || 'Premium Activated Successfully'
-            );
-            setProcessing(false);
-          } catch (err) {
-            console.error('Verification failed', err);
-            setBannerTone('error');
-            setBanner(
-              err.response?.data?.message ||
-                'Payment verification failed. Please contact support.'
-            );
-            setProcessing(false);
-          }
-        },
-        prefill: {
-          name: user?.firstName || 'Seller',
-          email: user?.email,
-          contact: user?.mobile,
-        },
-        theme: {
-          color: '#6366f1',
-        },
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.on('payment.failed', function (response) {
-        setBannerTone('error');
-        setBanner(response.error?.description || 'Payment failed.');
-        setProcessing(false);
-      });
-      rzp.open();
-    } catch (err) {
-      console.error('Payment error', err);
-      setBannerTone('error');
-      setBanner(
-        err.response?.data?.message || 'Failed to initialize payment.'
-      );
-      setProcessing(false);
-    }
-  };
-
-  const handleTestUpgrade = async () => {
-    setBanner(null);
-    setProcessing(true);
-    try {
       const { data } = await api.post('/seller/upgrade');
       applyPremiumResponse(data);
       setBannerTone('success');
       setBanner(data.message || 'Premium Activated Successfully');
     } catch (err) {
-      console.error('Test upgrade failed', err);
+      console.error('Upgrade failed', err);
       setBannerTone('error');
       setBanner(
-        err.response?.data?.message ||
-          'Upgrade unavailable (allowed in development or when ALLOW_TEST_PREMIUM_UPGRADE is set).'
+        err.response?.data?.message || 'Failed to upgrade to premium.'
       );
-    } finally {
-      setProcessing(false);
     }
+    setProcessing(false);
   };
 
   return (
@@ -274,19 +201,8 @@ const SellerSubscription = () => {
               {processing ? 'Processing...' : 'Upgrade to Premium'}
             </button>
 
-            {import.meta.env.DEV && (
-              <button
-                type="button"
-                disabled={processing}
-                onClick={handleTestUpgrade}
-                className="mt-3 w-full py-2 text-xs rounded-xl border border-glass-border text-text-muted hover:bg-surface/80"
-              >
-                Dev: activate premium (no payment)
-              </button>
-            )}
-
             <p className="text-xs text-center text-text-muted mt-4 flex items-center justify-center gap-1">
-              <ShieldCheck size={14} /> Secure Encrypted Payment via Razorpay
+              <ShieldCheck size={14} /> Premium activates instantly
             </p>
           </div>
         </div>

@@ -1,10 +1,254 @@
-import { XCircle } from 'lucide-react';
+import { XCircle, ChevronDown, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import api from '../../utils/api';
 import ProductVariantsFields from './ProductVariantsFields';
 import ProductShippingFields from './ProductShippingFields';
 import { Crown } from 'lucide-react';
+
+const PREMIUM_MAIN_CATEGORIES = [
+  'Fashion',
+  'Beauty & Personal Care',
+  'Health & Wellness',
+  'Electronics',
+  'Home Appliances',
+  'Grocery & Gourmet',
+  'Books & Stationery',
+  'Baby & Kids',
+  'Toys & Games',
+  'Pet Supplies',
+  'Sports & Fitness',
+  'Automotive Accessories',
+  'Gifts & Occasions',
+  'Sustainable / Handmade',
+];
+
+const PREMIUM_SUBCATEGORIES = {
+  Fashion: [
+    "Women’s wear",
+    "Men’s wear",
+    "Kids’ wear",
+    'Ethnic wear',
+    'Western wear',
+    'Innerwear',
+    'Sleepwear',
+    'Footwear',
+    'Fashion accessories',
+    'Jewellery',
+    'Others (Mention)',
+  ],
+  'Beauty & Personal Care': [
+    'Skincare',
+    'Haircare',
+    'Makeup',
+    'Bath & body',
+    'Fragrances',
+    'Grooming tools',
+    'Personal hygiene',
+    'Natural beauty',
+    'Others (Mention)',
+  ],
+  'Health & Wellness': [
+    'Fitness accessories',
+    'Yoga products',
+    'Health devices',
+    'Ayurvedic products',
+    'Sexual wellness',
+    'Immunity support',
+    'Other (Please mention)',
+  ],
+  Electronics: [
+    'Mobiles',
+    'Mobile accessories',
+    'Audio, Wearables',
+    'Smart devices',
+    'Computer accessories',
+    'Cameras',
+    'Power banks',
+    'Small gadgets',
+    'Other (Please mention)',
+  ],
+  'Home Appliances': [
+    'Kitchen appliances',
+    'Cleaning appliances',
+    'Cooling appliances',
+    'Water purifiers',
+    'Personal care appliances',
+  ],
+  'Grocery & Gourmet': [
+    'Staples',
+    'Snacks',
+    'Beverages',
+    'Organic food',
+    'Dry fruits',
+    'Spices',
+    'Ready-to-cook',
+    'Regional foods',
+  ],
+  'Books & Stationery': [
+    'Academic books',
+    'Competitive exam books',
+    'Children’s books',
+    'Fiction',
+    'Non-fiction',
+    'Notebooks',
+    'Art supplies',
+    'Office stationery',
+    'School stationary',
+  ],
+  'Baby & Kids': [
+    'Baby care',
+    'Feeding',
+    'Diapers',
+    'Kids fashion',
+    'Toys',
+    'School essentials',
+    'Nursery products',
+  ],
+  'Toys & Games': [
+    'Educational toys',
+    'Soft toys',
+    'Board games',
+    'Activity kits',
+    'Outdoor toys',
+    'Puzzles',
+  ],
+  'Pet Supplies': [
+    'Pet food',
+    'Grooming',
+    'Toys',
+    'Beds',
+    'Bowls',
+    'Accessories',
+    'Health care',
+  ],
+  'Sports & Fitness': [
+    'Gym equipment',
+    'Yoga mats',
+    'Sportswear',
+    'Outdoor sports gear',
+    'Cycling accessories',
+    'Recovery tools',
+  ],
+  'Automotive Accessories': [
+    'Bike accessories',
+    'Car accessories',
+    'Mobile holders',
+    'Cleaning kits',
+    'Safety products',
+  ],
+  'Gifts & Occasions': [
+    'Birthday gifts',
+    'Wedding gifts',
+    'Festive gifts',
+    'Corporate gifts',
+    'Personalized gifts',
+    'Return gifts',
+  ],
+  'Sustainable / Handmade': [
+    'Handmade decor',
+    'Eco-friendly products',
+    'Recycled goods',
+    'Artisan products',
+    'NGO-made products',
+    'Natural fibre products',
+  ],
+};
+
+const PREMIUM_TYPES_BY_MAIN = {
+  Fashion: [
+    'Saree',
+    'Kurta',
+    'Kurta set',
+    'Dupatta',
+    'Lehenga',
+    'Blouse',
+    'Palazzo',
+    'Salwar suit',
+    'Dress',
+    'Top',
+    'Shirt',
+    'T-shirt',
+    'Jeans',
+    'Trousers',
+    'Skirt',
+    'Co-ord set',
+    'Jacket',
+    'Blazer',
+    'Waistcoat',
+    'Hoodie',
+    'Frock',
+    'Kids kurta set',
+    'Romper',
+    'T-shirt set',
+    'School wear',
+    'Night suit',
+    'Sandals',
+    'Flats',
+    'Heels',
+    'Loafers',
+    'Sneakers',
+    'Slippers',
+    'Mojaris',
+    'Juttis',
+    'Handbag',
+    'Tote bag',
+    'Wallet',
+    'Belt',
+    'Scarf',
+    'Cap',
+    'Sunglasses',
+    'Hair accessory',
+    'Others (Please mention)',
+  ],
+  'Beauty & Personal Care': [
+    'Skincare',
+    'Haircare',
+    'Makeup',
+    'Bath & body',
+    'Fragrances',
+    'Grooming tools',
+    'Personal hygiene',
+    'Natural beauty',
+    'Others (Please mention)',
+  ],
+  'Health & Wellness': [
+    'Fitness accessories',
+    'Yoga products',
+    'Health devices',
+    'Ayurvedic products',
+    'Sexual wellness',
+    'Immunity support',
+    'Others (Please mention)',
+  ],
+  Electronics: [
+    'Mobiles',
+    'Mobile accessories',
+    'Audio, Wearables',
+    'Smart devices',
+    'Computer accessories',
+    'Cameras',
+    'Power banks',
+    'Small gadgets',
+    'Others (Please mention)',
+  ],
+  'Home Appliances': [
+    'Kitchen appliances',
+    'Cleaning appliances',
+    'Cooling appliances',
+    'Water purifiers',
+    'Personal care appliances',
+    'Others (Please mention)',
+  ],
+};
+
+function splitPremiumCategoryString(categoryValue) {
+  const raw = String(categoryValue || '').trim();
+  if (!raw) return { main: '', sub: '' };
+  const parts = raw.split('/').map((p) => p.trim()).filter(Boolean);
+  if (parts.length === 0) return { main: '', sub: '' };
+  return { main: parts[0] || '', sub: parts[1] || '' };
+}
 
 function FieldError({ show, children }) {
   if (!show) return null;
@@ -26,6 +270,15 @@ export default function ProductPricingInventoryFields({
   const [storeAddressDraft, setStoreAddressDraft] = useState('');
   const [storeAddressSaving, setStoreAddressSaving] = useState(false);
   const [storeAddressError, setStoreAddressError] = useState('');
+  const categoryWrapRef = useRef(null);
+  const [mainOpen, setMainOpen] = useState(false);
+  const [subOpen, setSubOpen] = useState(false);
+  const [typeOpen, setTypeOpen] = useState(false);
+  const [mainQuery, setMainQuery] = useState('');
+  const [subQuery, setSubQuery] = useState('');
+  const [typeQuery, setTypeQuery] = useState('');
+  const [otherSubText, setOtherSubText] = useState('');
+  const [otherTypeText, setOtherTypeText] = useState('');
   const maxOrderLimit = inventoryOptions?.maxOrderQuantityLimit ?? 5;
   const minQty = Number(productData.minOrderQuantity);
   const maxQty = Number(productData.maxOrderQuantity);
@@ -47,6 +300,80 @@ export default function ProductPricingInventoryFields({
   const addressesLocked = editingProduct?.approvalStatus === 'approved';
   const hasStoreAddresses = (inventoryOptions?.storeAddresses || []).length > 0;
   const isFreeSeller = inventoryOptions?.isSubscribedSeller === false;
+
+  const { main: selectedMain, sub: selectedSub } = useMemo(() => {
+    return splitPremiumCategoryString(productData.category);
+  }, [productData.category]);
+
+  const mainOptions = useMemo(() => {
+    const q = mainQuery.trim().toLowerCase();
+    const list = PREMIUM_MAIN_CATEGORIES.slice();
+    if (!q) return list;
+    return list.filter((x) => x.toLowerCase().includes(q));
+  }, [mainQuery]);
+
+  const subOptions = useMemo(() => {
+    const list = PREMIUM_SUBCATEGORIES[selectedMain] || [];
+    const q = subQuery.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter((x) => x.toLowerCase().includes(q));
+  }, [selectedMain, subQuery]);
+
+  const typeOptions = useMemo(() => {
+    const list = PREMIUM_TYPES_BY_MAIN[selectedMain] || [];
+    const q = typeQuery.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter((x) => x.toLowerCase().includes(q));
+  }, [selectedMain, typeQuery]);
+
+  const needsOtherText =
+    selectedSub === 'Others (Mention)' || selectedSub === 'Other (Please mention)';
+
+  const selectedType = String(productData.premiumType || '').trim();
+  const needsOtherTypeText = selectedType === 'Others (Please mention)';
+
+  // Keep dropdowns closed if user clicks outside.
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (categoryWrapRef.current && !categoryWrapRef.current.contains(e.target)) {
+        setMainOpen(false);
+        setSubOpen(false);
+        setTypeOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // When the selected subcategory is not an "Other" option, clear the extra text.
+  useEffect(() => {
+    if (!needsOtherText && otherSubText) setOtherSubText('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [needsOtherText]);
+
+  // If we have a category string like "Main / Sub", prefill other text only when it doesn't match known subs.
+  useEffect(() => {
+    if (!selectedMain) return;
+    if (selectedSub && !needsOtherText) return;
+    if (!selectedSub) return;
+    const known = PREMIUM_SUBCATEGORIES[selectedMain] || [];
+    if (!known.includes(selectedSub) && otherSubText === '') {
+      setOtherSubText(selectedSub);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMain, selectedSub]);
+
+  const setPremiumCategory = (main, sub) => {
+    const mainClean = String(main || '').trim();
+    const subClean = String(sub || '').trim();
+    const value = subClean ? `${mainClean} / ${subClean}` : mainClean;
+    setProductData((prev) => ({ ...prev, category: value, premiumType: '' }));
+    setOtherTypeText('');
+  };
+
+  const setPremiumType = (val) => {
+    setProductData((prev) => ({ ...prev, premiumType: val }));
+  };
 
   const saveSingleStoreAddress = async () => {
     if (!isFreeSeller) {
@@ -408,6 +735,268 @@ export default function ProductPricingInventoryFields({
 
             <p className="text-[12px] text-[#6D7175] mt-2">
               Bulk purchase is visible to customers as a B2B option.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Premium-only: Category (Main + Sub) */}
+      {inventoryOptions?.isSubscribedSeller && (
+        <div ref={categoryWrapRef} className="border border-[#E1E3E5] rounded-lg">
+          <div className="px-4 py-3 bg-[#F6F6F7] flex items-center justify-between">
+            <div className="flex items-center gap-2 text-[#202223] font-semibold">
+              <span>Category</span>
+              <Crown size={18} className="text-[#B98900]" />
+            </div>
+          </div>
+
+          <div className="px-4 py-4 bg-white">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+              {/* Main category */}
+              <div className="relative">
+                <label className="block text-[14px] font-semibold text-[#202223] mb-2">
+                  Main Category
+                </label>
+                <button
+                  type="button"
+                  className="w-full flex items-center justify-between border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] bg-white hover:bg-[#F6F6F7]"
+                  onClick={() => {
+                    setMainOpen((v) => !v);
+                    setSubOpen(false);
+                    setTypeOpen(false);
+                    setMainQuery('');
+                  }}
+                >
+                  <span className={selectedMain ? '' : 'text-[#6D7175]'}>
+                    {selectedMain || 'Select main category'}
+                  </span>
+                  <ChevronDown size={18} className="text-[#6D7175]" />
+                </button>
+
+                {mainOpen && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-[#E1E3E5] rounded-md shadow-lg overflow-hidden">
+                    <div className="p-2 border-b border-[#E1E3E5]">
+                      <div className="flex items-center gap-2 border border-[#E1E3E5] rounded-md px-2 py-1.5 bg-white">
+                        <Search size={16} className="text-[#6D7175]" />
+                        <input
+                          type="text"
+                          value={mainQuery}
+                          onChange={(e) => setMainQuery(e.target.value)}
+                          placeholder="Search main category..."
+                          className="w-full outline-none text-[13px] text-[#202223]"
+                          autoFocus
+                        />
+                      </div>
+                    </div>
+                    <ul className="max-h-64 overflow-y-auto">
+                      {mainOptions.length === 0 && (
+                        <li className="px-3 py-2 text-[13px] text-[#6D7175]">
+                          No matches
+                        </li>
+                      )}
+                      {mainOptions.map((name) => (
+                        <li key={name}>
+                          <button
+                            type="button"
+                            className="w-full text-left px-3 py-2 text-[14px] text-[#202223] hover:bg-[#F6F6F7]"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              // Selecting a new main category resets subcategory.
+                              setPremiumCategory(name, '');
+                              setOtherSubText('');
+                              setMainOpen(false);
+                              setSubOpen(false);
+                              setTypeOpen(false);
+                            }}
+                          >
+                            {name}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              {/* Sub category */}
+              <div className="relative">
+                <label className="block text-[14px] font-semibold text-[#202223] mb-2">
+                  Sub-Category
+                </label>
+                <button
+                  type="button"
+                  className={`w-full flex items-center justify-between border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] ${
+                    selectedMain ? 'bg-white hover:bg-[#F6F6F7]' : 'bg-[#F6F6F7] opacity-70 cursor-not-allowed'
+                  }`}
+                  disabled={!selectedMain}
+                  onClick={() => {
+                    if (!selectedMain) return;
+                    setSubOpen((v) => !v);
+                    setMainOpen(false);
+                    setTypeOpen(false);
+                    setSubQuery('');
+                  }}
+                >
+                  <span className={selectedSub ? '' : 'text-[#6D7175]'}>
+                    {selectedSub || 'Select sub-category'}
+                  </span>
+                  <ChevronDown size={18} className="text-[#6D7175]" />
+                </button>
+
+                {subOpen && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-[#E1E3E5] rounded-md shadow-lg overflow-hidden">
+                    <div className="p-2 border-b border-[#E1E3E5]">
+                      <div className="flex items-center gap-2 border border-[#E1E3E5] rounded-md px-2 py-1.5 bg-white">
+                        <Search size={16} className="text-[#6D7175]" />
+                        <input
+                          type="text"
+                          value={subQuery}
+                          onChange={(e) => setSubQuery(e.target.value)}
+                          placeholder="Search sub-category..."
+                          className="w-full outline-none text-[13px] text-[#202223]"
+                          autoFocus
+                        />
+                      </div>
+                    </div>
+                    <ul className="max-h-64 overflow-y-auto">
+                      {subOptions.length === 0 && (
+                        <li className="px-3 py-2 text-[13px] text-[#6D7175]">
+                          No matches
+                        </li>
+                      )}
+                      {subOptions.map((name) => (
+                        <li key={name}>
+                          <button
+                            type="button"
+                            className="w-full text-left px-3 py-2 text-[14px] text-[#202223] hover:bg-[#F6F6F7]"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              setPremiumCategory(selectedMain, name);
+                              setSubOpen(false);
+                              setTypeOpen(false);
+                            }}
+                          >
+                            {name}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              {/* Type */}
+              <div className="relative">
+                <label className="block text-[14px] font-semibold text-[#202223] mb-2">
+                  Type
+                </label>
+                <button
+                  type="button"
+                  className={`w-full flex items-center justify-between border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] ${
+                    selectedMain && selectedSub ? 'bg-white hover:bg-[#F6F6F7]' : 'bg-[#F6F6F7] opacity-70 cursor-not-allowed'
+                  }`}
+                  disabled={!selectedMain || !selectedSub}
+                  onClick={() => {
+                    if (!selectedMain || !selectedSub) return;
+                    setTypeOpen((v) => !v);
+                    setMainOpen(false);
+                    setSubOpen(false);
+                    setTypeQuery('');
+                  }}
+                >
+                  <span className={selectedType ? '' : 'text-[#6D7175]'}>
+                    {selectedType || 'Select type'}
+                  </span>
+                  <ChevronDown size={18} className="text-[#6D7175]" />
+                </button>
+
+                {typeOpen && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-[#E1E3E5] rounded-md shadow-lg overflow-hidden">
+                    <div className="p-2 border-b border-[#E1E3E5]">
+                      <div className="flex items-center gap-2 border border-[#E1E3E5] rounded-md px-2 py-1.5 bg-white">
+                        <Search size={16} className="text-[#6D7175]" />
+                        <input
+                          type="text"
+                          value={typeQuery}
+                          onChange={(e) => setTypeQuery(e.target.value)}
+                          placeholder="Search type..."
+                          className="w-full outline-none text-[13px] text-[#202223]"
+                          autoFocus
+                        />
+                      </div>
+                    </div>
+                    <ul className="max-h-64 overflow-y-auto">
+                      {typeOptions.length === 0 && (
+                        <li className="px-3 py-2 text-[13px] text-[#6D7175]">
+                          No matches
+                        </li>
+                      )}
+                      {typeOptions.map((name) => (
+                        <li key={name}>
+                          <button
+                            type="button"
+                            className="w-full text-left px-3 py-2 text-[14px] text-[#202223] hover:bg-[#F6F6F7]"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              setPremiumType(name);
+                              setTypeOpen(false);
+                              if (name !== 'Others (Please mention)') setOtherTypeText('');
+                            }}
+                          >
+                            {name}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {needsOtherText && (
+              <div className="mt-4">
+                <label className="block text-[13px] text-[#202223] mb-1 font-medium">
+                  Please mention
+                </label>
+                <input
+                  type="text"
+                  value={otherSubText}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setOtherSubText(val);
+                    // Save into category string so it persists.
+                    setPremiumCategory(selectedMain, val.trim() ? val : selectedSub);
+                  }}
+                  placeholder="Type sub-category"
+                  className="w-full border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] outline-none focus:ring-2 focus:ring-[#005bd3] focus:border-[#005bd3] bg-white"
+                />
+              </div>
+            )}
+
+            {needsOtherTypeText && (
+              <div className="mt-4">
+                <label className="block text-[13px] text-[#202223] mb-1 font-medium">
+                  Please mention type
+                </label>
+                <input
+                  type="text"
+                  value={otherTypeText}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setOtherTypeText(val);
+                    setPremiumType(val.trim() ? val : 'Others (Please mention)');
+                  }}
+                  placeholder="Type"
+                  className="w-full border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] outline-none focus:ring-2 focus:ring-[#005bd3] focus:border-[#005bd3] bg-white"
+                />
+              </div>
+            )}
+
+            <p className="text-[12px] text-[#6D7175] mt-3">
+              Selected category will be saved as <span className="font-medium">{productData.category || '—'}</span>
+            </p>
+            <p className="text-[12px] text-[#6D7175] mt-1">
+              Selected type will be saved as <span className="font-medium">{productData.premiumType || '—'}</span>
             </p>
           </div>
         </div>
