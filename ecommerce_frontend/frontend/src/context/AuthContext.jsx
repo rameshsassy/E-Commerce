@@ -45,12 +45,19 @@ export const AuthProvider = ({ children }) => {
     initializeAuth();
   }, []);
 
-  const login = async (email, password) => {
-    const response = await api.post(AUTH_LOGIN, {
-      email,
-      password,
-      portal: isSellerPortal() ? 'seller' : 'customer',
-    });
+  const login = async (email, password, portalOverride) => {
+    const portal =
+      portalOverride === 'seller' || portalOverride === 'customer'
+        ? portalOverride
+        : isSellerPortal()
+          ? 'seller'
+          : 'customer';
+
+    const response = await api.post(
+      AUTH_LOGIN,
+      { email, password, portal },
+      { headers: { 'X-Portal': portal } }
+    );
     const { token, user: userData } = response.data;
 
     localStorage.setItem('token', token);

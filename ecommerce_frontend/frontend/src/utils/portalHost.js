@@ -169,10 +169,26 @@ export function redirectToOtherPortalLogin() {
 
 export { isLocalHostname };
 
+function sanitizePortalRedirect(url) {
+  if (!url || typeof window === 'undefined') return url;
+  if (!/seller\.aashansh\.org/i.test(url)) return url;
+  try {
+    const parsed = new URL(url);
+    const target = new URL(parsed.pathname || '/login', window.location.origin);
+    if (parsed.search) target.search = parsed.search;
+    if (!target.searchParams.has('portal') && /seller/i.test(parsed.hostname)) {
+      target.searchParams.set('portal', 'seller');
+    }
+    return target.toString();
+  } catch {
+    return `${window.location.origin}/login?portal=seller`;
+  }
+}
+
 export function handleWrongPortalError(err) {
   const data = err?.response?.data;
   if (data?.code === 'WRONG_PORTAL' && data.redirectUrl) {
-    window.location.href = data.redirectUrl;
+    window.location.href = sanitizePortalRedirect(data.redirectUrl);
     return true;
   }
   return false;

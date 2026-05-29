@@ -8,6 +8,10 @@ export function isNetworkError(error) {
   const message = String(error.message || '');
   if (code === 'ERR_NETWORK' || code === 'ECONNABORTED') return true;
   if (/network error/i.test(message)) return true;
+  const contentType = error.response?.headers?.['content-type'] || '';
+  if (contentType.includes('text/html') && error.config?.url?.includes('/api')) {
+    return true;
+  }
   return !error.response && Boolean(error.request);
 }
 

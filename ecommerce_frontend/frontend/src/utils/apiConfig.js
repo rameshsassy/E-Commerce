@@ -21,11 +21,21 @@ function isLocalhostUrl(url) {
   return /localhost|127\.0\.0\.1/i.test(String(url || ''));
 }
 
+function isVercelHost(hostname = '') {
+  return String(hostname).toLowerCase().endsWith('.vercel.app');
+}
+
 /** Backend origin for REST calls and uploaded files (no /api suffix). */
 export function resolveApiBaseUrl() {
   const baked = bakedApiBase();
   const inBrowser = typeof window !== 'undefined';
-  const onLocal = inBrowser && isLocalDevHost(window.location.hostname);
+  const host = inBrowser ? window.location.hostname : '';
+  const onLocal = inBrowser && isLocalDevHost(host);
+
+  // Vercel: always same-origin so /api can proxy to BACKEND_URL (avoids CORS + wrong VITE_API_URL)
+  if (inBrowser && isVercelHost(host)) {
+    return window.location.origin;
+  }
 
   if (baked && (!isLocalhostUrl(baked) || onLocal)) {
     return baked;

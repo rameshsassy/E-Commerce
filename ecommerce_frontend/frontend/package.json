@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "node scripts/prepare-vercel-build.mjs && vite build",
+    "verify-deploy": "node scripts/verify-deploy.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },
