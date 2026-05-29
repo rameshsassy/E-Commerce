@@ -142,11 +142,14 @@ function CustomerPortalRoutes() {
 }
 
 function AppRoutes() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const host = window.location.hostname;
+  const portalParam = new URLSearchParams(search).get('portal');
   const sellerMode =
     isSellerPortal(host, pathname) ||
-    (isLocalHostname(host) && pathname.startsWith('/seller'));
+    portalParam === 'seller' ||
+    (isLocalHostname(host) && pathname.startsWith('/seller')) ||
+    (host.endsWith('.vercel.app') && pathname.startsWith('/seller'));
 
   return sellerMode ? <SellerPortalRoutes /> : <CustomerPortalRoutes />;
 }

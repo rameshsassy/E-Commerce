@@ -19,11 +19,21 @@ export default function PortalRouteGuard({ children }) {
     if (!location.pathname.startsWith('/seller')) return;
     if (onLocal) return;
 
-    const target = `${getSellerPortalOrigin()}${location.pathname}${location.search}`;
+    const origin = getSellerPortalOrigin();
+    if (/seller\.aashansh\.org/i.test(origin)) return;
+    if (origin === window.location.origin) return;
+
+    const target = `${origin}${location.pathname}${location.search}`;
     window.location.replace(target);
   }, [location.pathname, location.search, onLocal]);
 
-  if (isCustomerPortal() && location.pathname.startsWith('/seller') && !onLocal) {
+  if (
+    isCustomerPortal() &&
+    location.pathname.startsWith('/seller') &&
+    !onLocal &&
+    /seller\.aashansh\.org/i.test(getSellerPortalOrigin()) &&
+    getSellerPortalOrigin() !== window.location.origin
+  ) {
     return (
       <div className="min-h-[40vh] flex items-center justify-center text-text-muted text-sm">
         Redirecting to seller portal…

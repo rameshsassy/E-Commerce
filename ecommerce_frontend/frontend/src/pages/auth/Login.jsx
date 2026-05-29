@@ -12,7 +12,6 @@ import {
   isSellerPortal,
 } from '../../utils/portalHost';
 import { getApiErrorMessage, isNetworkError } from '../../utils/apiErrors';
-import { resolveApiUrl } from '../../utils/apiConfig';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -66,7 +65,7 @@ const Login = () => {
     } catch (err) {
       if (handleWrongPortalError(err)) return;
       const msg = isNetworkError(err)
-        ? `Cannot reach the API (${resolveApiUrl()}). Deploy the backend and set BACKEND_URL on Vercel, then redeploy.`
+        ? 'Cannot reach the server. Check that the API is deployed and BACKEND_URL is set on Vercel.'
         : getApiErrorMessage(err, 'Login failed');
       setError(msg);
     } finally {

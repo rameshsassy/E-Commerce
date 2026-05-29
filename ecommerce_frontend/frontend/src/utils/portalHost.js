@@ -31,19 +31,31 @@ export function isSellerPortal(
   if (force === 'seller') return true;
   if (force === 'customer') return false;
 
+  if (typeof window !== 'undefined') {
+    const q = new URLSearchParams(window.location.search).get('portal');
+    if (q === 'seller') return true;
+    if (q === 'customer') return false;
+  }
+
   const h = String(hostname).toLowerCase();
   if (isLocalHostname(h) && pathname.startsWith('/seller')) return true;
+  if (h.endsWith('.vercel.app') && pathname.startsWith('/seller')) return true;
 
   const sellers = sellerHostnames();
   if (sellers.includes(h)) return true;
-  return h.startsWith('seller.');
+  if (h === 'seller.aashansh.org') return true;
+  return h.startsWith('seller.') && h !== 'seller.aashansh.org';
 }
 
-/** Seller portal base URL — local dev never points at .org until DNS is ready. */
+function isPendingSellerDomain(url) {
+  return /seller\.aashansh\.org/i.test(String(url || ''));
+}
+
+/** Seller portal base URL — uses same host on Vercel until seller.aashansh.org DNS exists. */
 export function resolveSellerPortalOrigin() {
   if (typeof window !== 'undefined') {
     const h = window.location.hostname.toLowerCase();
-    if (h.endsWith('.vercel.app')) {
+    if (h.endsWith('.vercel.app') || isLocalHostname(h)) {
       return window.location.origin;
     }
   }
@@ -53,14 +65,9 @@ export function resolveSellerPortalOrigin() {
     ''
   );
 
-  if (/seller\.aashansh\.org/i.test(configured)) {
-    if (typeof window !== 'undefined' && isLocalHostname(window.location.hostname)) {
-      return DEFAULT_SELLER_ORIGIN;
-    }
-    if (typeof window !== 'undefined') {
-      return window.location.origin;
-    }
-    return DEFAULT_SELLER_ORIGIN;
+  if (isPendingSellerDomain(configured)) {
+    if (typeof window !== 'undefined') return window.location.origin;
+    return getCustomerPortalOrigin();
   }
 
   if (
@@ -117,25 +124,37 @@ export function getPortalLoginUrl() {
   return `${isSellerPortal() ? getSellerPortalOrigin() : getCustomerPortalOrigin()}/login`;
 }
 
+function sameOriginPortals() {
+  return getSellerPortalOrigin() === getCustomerPortalOrigin();
+}
+
 export function getPortalRegisterUrl(options = {}) {
   const base = isSellerPortal() ? getSellerPortalOrigin() : getCustomerPortalOrigin();
-  const path = isSellerPortal() || options.seller ? '/register' : '/register';
+  const path = '/register';
   const url = new URL(path, base);
+  if (isSellerPortal() || options.seller) url.searchParams.set('portal', 'seller');
   if (options.ref) url.searchParams.set('ref', options.ref);
   return url.toString();
 }
 
 /** Full URL on the other portal (cross-domain redirect). */
 export function getOtherPortalLoginUrl() {
-  return isSellerPortal()
-    ? `${getCustomerPortalOrigin()}/login`
-    : `${getSellerPortalOrigin()}/login`;
+  if (isSellerPortal()) {
+    const url = new URL('/login', getCustomerPortalOrigin());
+    return url.toString();
+  }
+  const url = new URL('/login', getSellerPortalOrigin());
+  if (sameOriginPortals()) url.searchParams.set('portal', 'seller');
+  return url.toString();
 }
 
 export function getOtherPortalRegisterUrl() {
-  return isSellerPortal()
-    ? `${getCustomerPortalOrigin()}/register`
-    : `${getSellerPortalOrigin()}/register`;
+  if (isSellerPortal()) {
+    return `${getCustomerPortalOrigin()}/register`;
+  }
+  const url = new URL('/register', getSellerPortalOrigin());
+  if (sameOriginPortals()) url.searchParams.set('portal', 'seller');
+  return url.toString();
 }
 
 export function portalApiHeaders() {
