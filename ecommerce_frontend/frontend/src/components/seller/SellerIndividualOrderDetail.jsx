@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import api, { BASE_URL } from '../../utils/api';
+import LoadErrorMessage from '../common/LoadErrorMessage';
+import { getApiErrorMessage, isNetworkError } from '../../utils/apiErrors';
 import OrderStatusTimeline from './OrderStatusTimeline';
 
 const STATUS_OPTIONS = [
@@ -32,17 +34,20 @@ export default function SellerIndividualOrderDetail({ shipmentId, onClose }) {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isNetworkErrorState, setIsNetworkErrorState] = useState(false);
   const [updating, setUpdating] = useState(false);
 
   const load = useCallback(async () => {
     if (!shipmentId) return;
     setError('');
+    setIsNetworkErrorState(false);
     setLoading(true);
     try {
       const { data } = await api.get(`/shipments/seller/${shipmentId}`);
       setOrder(data.data);
     } catch (e) {
-      setError(e.response?.data?.message || 'Could not load order');
+      setIsNetworkErrorState(isNetworkError(e));
+      setError(getApiErrorMessage(e, 'Could not load order'));
       setOrder(null);
     } finally {
       setLoading(false);
@@ -74,7 +79,12 @@ export default function SellerIndividualOrderDetail({ shipmentId, onClose }) {
   if (error || !order) {
     return (
       <div className="space-y-4">
-        <div className="p-4 rounded-xl bg-error/10 border border-error/30 text-error">{error || 'Order not found'}</div>
+        <LoadErrorMessage
+          error={error || 'Order not found'}
+          isNetwork={isNetworkErrorState}
+          onRetry={isNetworkErrorState ? load : undefined}
+          retrying={loading}
+        />
         {onClose && (
           <button type="button" className="btn btn-secondary" onClick={onClose}>
             Back to list

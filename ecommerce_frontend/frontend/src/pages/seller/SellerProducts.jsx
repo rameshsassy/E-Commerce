@@ -1,7 +1,29 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api, { BASE_URL } from '../../utils/api';
-import { Upload, FileSpreadsheet, Image as ImageIcon, List, CheckCircle, Clock, XCircle, Edit2, Trash2, X, Store } from 'lucide-react';
+import {
+  Upload,
+  FileSpreadsheet,
+  Image as ImageIcon,
+  List,
+  CheckCircle,
+  Clock,
+  XCircle,
+  Edit2,
+  Trash2,
+  X,
+  Store,
+  MessageCircle,
+  Zap,
+} from 'lucide-react';
 import StoreFormFields, { isStoreFormValid } from '../../components/seller/StoreFormFields';
+import UpgradePremiumModal from '../../components/seller/UpgradePremiumModal';
+import ApprovedProductLockBanner from '../../components/seller/ApprovedProductLockBanner';
+import {
+  isProductLocked,
+  getProductLockMessage,
+  getApiLockPayload,
+} from '../../utils/productLock';
+import { getApprovedProductWhatsAppUrl } from '../../utils/supportContact';
 import ProductBasicFields from '../../components/seller/ProductBasicFields';
 import ProductPremiumCategoryKeywordsFields from '../../components/seller/ProductPremiumCategoryKeywordsFields';
 import {
@@ -59,6 +81,14 @@ const SellerProducts = () => {
   const skipNextAutosaveRef = useRef(false);
   const hydratedDraftRef = useRef(false);
   const lastAutosaveSignatureRef = useRef('');
+
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [upgradeFeature, setUpgradeFeature] = useState('premium');
+
+  const openUpgradeModal = (feature = 'premium') => {
+    setUpgradeFeature(feature);
+    setUpgradeModalOpen(true);
+  };
 
   const fetchMyProducts = async () => {
     setLoadingProducts(true);
@@ -346,9 +376,11 @@ const SellerProducts = () => {
         setAutoSaveMsg(data?.message || 'Auto-saved');
         lastAutosaveSignatureRef.current = currentSignature;
       } catch (err) {
-        setAutoSaveMsg(
-          err?.response?.data?.message || 'Autosave failed'
-        );
+        const payload = err?.response?.data;
+        if (payload?.code === 'PREMIUM_REQUIRED') {
+          openUpgradeModal(payload.upgradeFeature || 'premium');
+        }
+        setAutoSaveMsg(payload?.message || 'Autosave failed');
       } finally {
         setAutoSaving(false);
       }
@@ -392,6 +424,8 @@ const SellerProducts = () => {
     allowMultipleAddresses: false,
     storeAddressHint: '',
   });
+  const [canCreateMoreStores, setCanCreateMoreStores] = useState(false);
+  const [isSubscribedSeller, setIsSubscribedSeller] = useState(false);
   const defaultStoreForm = {
     storeName: '',
     keywordsInput: '',
@@ -405,6 +439,13 @@ const SellerProducts = () => {
   const [storeForm, setStoreForm] = useState(defaultStoreForm);
   const [storeLogoFile, setStoreLogoFile] = useState(null);
   const [storeLogoPreview, setStoreLogoPreview] = useState(null);
+  const [storeFaviconFile, setStoreFaviconFile] = useState(null);
+  const [storeFaviconPreview, setStoreFaviconPreview] = useState(null);
+  const [sellerMeta, setSellerMeta] = useState({
+    officialName: '',
+    businessName: '',
+    elevatorPitch: '',
+  });
 
   const fetchMyStore = async () => {
     try {
@@ -412,10 +453,13 @@ const SellerProducts = () => {
       setMyStore(data.store);
       setHasStore(data.hasStore);
       if (data.platformHost) setPlatformHost(data.platformHost);
+      if (data.sellerMeta) setSellerMeta(data.sellerMeta);
       setStoreAddressOptions({
         allowMultipleAddresses: Boolean(data.allowMultipleAddresses),
         storeAddressHint: data.storeAddressHint || '',
       });
+      setCanCreateMoreStores(Boolean(data.canCreateMoreStores));
+      setIsSubscribedSeller(Boolean(data.isSubscribedSeller));
       if (data.store) {
         setStoreForm({
           storeName: data.store.storeName || '',
@@ -431,6 +475,8 @@ const SellerProducts = () => {
         });
         setStoreLogoPreview(null);
         setStoreLogoFile(null);
+        setStoreFaviconPreview(null);
+        setStoreFaviconFile(null);
       }
     } catch (err) {
       console.error('Fetch store:', err);
@@ -448,8 +494,18 @@ const SellerProducts = () => {
     setStoreForm({ ...defaultStoreForm });
     setStoreLogoFile(null);
     setStoreLogoPreview(null);
+    setStoreFaviconFile(null);
+    setStoreFaviconPreview(null);
     setStoreMsg('');
     setStoreView('create');
+  };
+
+  const handleCreateStoreClick = () => {
+    if (hasStore && !canCreateMoreStores) {
+      openUpgradeModal('multiple_stores');
+      return;
+    }
+    openCreateStore();
   };
 
   const openEditStore = () => {
@@ -463,8 +519,19 @@ const SellerProducts = () => {
 
   const handleStoreSubmit = async (e) => {
     e.preventDefault();
-    if (!isStoreFormValid(storeForm, storeAddressOptions)) {
-      setStoreMsg('Please fix validation errors before saving.');
+    const hasLogo = Boolean(storeLogoFile || myStore?.logo);
+    if (
+      !isStoreFormValid(storeForm, {
+        ...storeAddressOptions,
+        requireLogo: storeView === 'create',
+        hasLogo,
+      })
+    ) {
+      setStoreMsg(
+        storeView === 'create' && !hasLogo
+          ? 'Please upload a store logo before creating your store.'
+          : 'Please fix validation errors before saving.'
+      );
       return;
     }
     setStoreLoading(true);
@@ -483,6 +550,9 @@ const SellerProducts = () => {
     if (storeLogoFile) {
       formData.append('logo', storeLogoFile);
     }
+    if (storeFaviconFile) {
+      formData.append('favicon', storeFaviconFile);
+    }
 
     try {
       if (storeView === 'create') {
@@ -499,25 +569,43 @@ const SellerProducts = () => {
       }
       setStoreLogoFile(null);
       setStoreLogoPreview(null);
+      setStoreFaviconFile(null);
+      setStoreFaviconPreview(null);
       await fetchMyStore();
     } catch (err) {
-      setStoreMsg(err.response?.data?.message || 'Failed to save store');
+      const payload = err.response?.data;
+      if (payload?.code === 'PREMIUM_REQUIRED') {
+        openUpgradeModal(payload.upgradeFeature || 'premium');
+      }
+      setStoreMsg(payload?.message || 'Failed to save store');
     } finally {
       setStoreLoading(false);
     }
   };
 
-  const handleDeleteProduct = async (id) => {
+  const handleDeleteProduct = async (product) => {
+    if (isProductLocked(product)) {
+      alert(getProductLockMessage(product.title));
+      return;
+    }
     if (!window.confirm('Are you sure you want to delete this product?')) return;
     try {
-      await api.delete(`/products/${id}`);
+      await api.delete(`/products/${product._id}`);
       fetchMyProducts();
     } catch (err) {
+      const lock = getApiLockPayload(err);
+      if (lock?.whatsappUrl) {
+        alert(lock.message);
+        return;
+      }
       alert(err.response?.data?.message || 'Failed to delete product');
     }
   };
 
   const handleEditInit = (product) => {
+    if (isProductLocked(product)) {
+      return;
+    }
     setEditingProduct(product);
     setProductData({
       title: product.title,
@@ -573,6 +661,10 @@ const SellerProducts = () => {
 
   const handleSingleSubmit = async (e) => {
     e.preventDefault();
+    if (isProductLocked(editingProduct)) {
+      setSingleMsg(getProductLockMessage(editingProduct?.title));
+      return;
+    }
     const policiesForSave = normalizePoliciesForSave(productData.policies);
     const payload = { ...productData, policies: policiesForSave };
 
@@ -628,9 +720,24 @@ const SellerProducts = () => {
       setAutoSaveMsg('');
       setProductData({ ...defaultProductData });
       setProductImages([]);
-      fetchMyProducts(); // Refresh list just in case
+      fetchMyProducts();
+      try {
+        const { data: opts } = await api.get('/seller/products/inventory-options');
+        setInventoryOptions(opts);
+      } catch {
+        /* ignore */
+      }
     } catch (err) {
-      setSingleMsg(err.response?.data?.message || (editingProduct ? 'Failed to update product' : 'Failed to add product'));
+      const lock = getApiLockPayload(err);
+      const payload = err.response?.data;
+      if (payload?.code === 'PREMIUM_REQUIRED') {
+        openUpgradeModal(payload.upgradeFeature || 'premium');
+      }
+      setSingleMsg(
+        lock?.message ||
+          payload?.message ||
+          (editingProduct ? 'Failed to update product' : 'Failed to add product')
+      );
     } finally {
       setSingleLoading(false);
     }
@@ -650,7 +757,11 @@ const SellerProducts = () => {
       setBulkMsg('Bulk upload successful! Products pending approval.');
       setCsvFile(null);
     } catch (err) {
-      setBulkMsg(err.response?.data?.message || 'Bulk upload failed');
+      const payload = err.response?.data;
+      if (payload?.code === 'PREMIUM_REQUIRED') {
+        openUpgradeModal(payload.upgradeFeature || 'premium');
+      }
+      setBulkMsg(payload?.message || 'Bulk upload failed');
     } finally {
       setBulkLoading(false);
     }
@@ -659,6 +770,12 @@ const SellerProducts = () => {
   return (
     <div className="animate-fade-in max-w-4xl">
       <h1 className="text-3xl font-bold mb-8">Manage Products</h1>
+
+      <UpgradePremiumModal
+        open={upgradeModalOpen}
+        onClose={() => setUpgradeModalOpen(false)}
+        feature={upgradeFeature}
+      />
 
       <div className="flex flex-wrap gap-4 mb-8 border-b border-glass-border pb-2">
         <button
@@ -727,6 +844,23 @@ const SellerProducts = () => {
                     </a>
                   </div>
                 )}
+                {myStore?.seo && (
+                  <div className="mb-6 p-4 rounded-xl border border-[#E1E3E5] bg-white text-sm">
+                    <p className="font-semibold text-[#202223] mb-2">Store SEO</p>
+                    <p className="text-[#6D7175]">
+                      <span className="font-medium text-[#202223]">Title:</span>{' '}
+                      {myStore.seo.metaTitle}
+                    </p>
+                    <p className="text-[#6D7175] mt-1">
+                      <span className="font-medium text-[#202223]">Description:</span>{' '}
+                      {myStore.seo.metaDescription || '—'}
+                    </p>
+                    <p className="text-[#6D7175] mt-1">
+                      <span className="font-medium text-[#202223]">Keywords:</span>{' '}
+                      {myStore.seo.metaKeywords || '—'}
+                    </p>
+                  </div>
+                )}
                 {storeMsg && (
                   <p className={`mb-4 text-sm ${storeMsg.includes('success') || storeMsg.includes('created') || storeMsg.includes('updated') ? 'text-[#008060]' : 'text-[#B98900]'}`}>
                     {storeMsg}
@@ -735,12 +869,17 @@ const SellerProducts = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl">
                   <button
                     type="button"
-                    onClick={openCreateStore}
-                    disabled={hasStore}
-                    className="min-h-[120px] rounded-2xl font-bold text-lg text-[#202223] transition-transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-md"
+                    onClick={handleCreateStoreClick}
+                    disabled={hasStore && isSubscribedSeller && !canCreateMoreStores}
+                    className="min-h-[120px] rounded-2xl font-bold text-lg text-[#202223] transition-transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-md flex flex-col items-center justify-center gap-2"
                     style={{ backgroundColor: '#FFD700' }}
                   >
-                    Create Store
+                    <span className="flex items-center gap-2">
+                      {hasStore ? 'Add another store' : 'Create Store'}
+                      {hasStore && !isSubscribedSeller && (
+                        <Zap size={20} className="text-[#B98900]" fill="currentColor" />
+                      )}
+                    </span>
                   </button>
                   <button
                     type="button"
@@ -752,9 +891,19 @@ const SellerProducts = () => {
                     Edit Store
                   </button>
                 </div>
-                {hasStore && (
+                {hasStore && !isSubscribedSeller && (
                   <p className="mt-6 text-sm text-[#6D7175]">
-                    You already have a store. Use <strong className="text-[#202223]">Edit Store</strong> to change your domain or details.
+                    Free plan includes <strong className="text-[#202223]">one store</strong>. Use{' '}
+                    <strong className="text-[#202223]">Edit Store</strong> to update it, or upgrade to add
+                    more storefronts.
+                  </p>
+                )}
+                {hasStore && isSubscribedSeller && (
+                  <p className="mt-6 text-sm text-[#6D7175]">
+                    {canCreateMoreStores
+                      ? 'You can create additional storefronts with Premium.'
+                      : 'You have reached the maximum number of stores on your plan.'}{' '}
+                    Use <strong className="text-[#202223]">Edit Store</strong> to update your primary store.
                   </p>
                 )}
               </div>
@@ -772,6 +921,8 @@ const SellerProducts = () => {
                       setStoreMsg('');
                       setStoreLogoFile(null);
                       setStoreLogoPreview(null);
+                      setStoreFaviconFile(null);
+                      setStoreFaviconPreview(null);
                     }}
                   >
                     ← Back
@@ -788,8 +939,14 @@ const SellerProducts = () => {
                     setLogoPreview={setStoreLogoPreview}
                     setLogoFile={setStoreLogoFile}
                     existingLogoPath={myStore?.logo}
+                    faviconPreview={storeFaviconPreview}
+                    setFaviconPreview={setStoreFaviconPreview}
+                    setFaviconFile={setStoreFaviconFile}
+                    existingFaviconPath={myStore?.favicon}
+                    sellerMeta={sellerMeta}
                     allowMultipleAddresses={storeAddressOptions.allowMultipleAddresses}
                     storeAddressHint={storeAddressOptions.storeAddressHint}
+                    onRequestUpgrade={openUpgradeModal}
                   />
                 </div>
 
@@ -801,7 +958,14 @@ const SellerProducts = () => {
 
                 <button
                   type="submit"
-                  disabled={storeLoading || !isStoreFormValid(storeForm, storeAddressOptions)}
+                  disabled={
+                    storeLoading ||
+                    !isStoreFormValid(storeForm, {
+                      ...storeAddressOptions,
+                      requireLogo: storeView === 'create',
+                      hasLogo: Boolean(storeLogoFile || myStore?.logo),
+                    })
+                  }
                   className="mt-6 w-full sm:w-auto disabled:opacity-50 bg-[#008060] hover:bg-[#006e52] text-white font-medium py-2 px-6 rounded-md text-[14px]"
                 >
                   {storeLoading ? 'Saving...' : storeView === 'create' ? 'Create Store' : 'Save Changes'}
@@ -858,20 +1022,37 @@ const SellerProducts = () => {
                         </td>
                         <td className="p-4 text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <button 
-                              onClick={() => handleEditInit(product)}
-                              className="p-2 bg-surface hover:bg-primary/20 text-primary transition-colors rounded-lg"
-                              title="Edit"
-                            >
-                              <Edit2 size={16} />
-                            </button>
-                            <button 
-                              onClick={() => handleDeleteProduct(product._id)}
-                              className="p-2 bg-surface hover:bg-error/20 text-error transition-colors rounded-lg"
-                              title="Delete"
-                            >
-                              <Trash2 size={16} />
-                            </button>
+                            {isProductLocked(product) ? (
+                              <a
+                                href={getApprovedProductWhatsAppUrl(product.title)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#25D366]/15 text-[#128C7E] hover:bg-[#25D366]/25 text-xs font-semibold transition-colors"
+                                title="Contact WhatsApp to edit"
+                              >
+                                <MessageCircle size={14} />
+                                WhatsApp
+                              </a>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleEditInit(product)}
+                                  className="p-2 bg-surface hover:bg-primary/20 text-primary transition-colors rounded-lg"
+                                  title="Edit"
+                                >
+                                  <Edit2 size={16} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteProduct(product)}
+                                  className="p-2 bg-surface hover:bg-error/20 text-error transition-colors rounded-lg"
+                                  title="Delete"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -893,9 +1074,16 @@ const SellerProducts = () => {
                 </button>
               )}
             </div>
+
+            {isProductLocked(editingProduct) && (
+              <ApprovedProductLockBanner product={editingProduct} className="mb-4" />
+            )}
             
+            <fieldset
+              disabled={isProductLocked(editingProduct)}
+              className={`border-0 p-0 m-0 min-w-0 ${isProductLocked(editingProduct) ? 'opacity-60 pointer-events-none' : ''}`}
+            >
             <div className="space-y-6">
-                
                 {/* 1. TITLE, DESCRIPTION, IMAGES */}
                 <div className="bg-white border border-[#E1E3E5] rounded-lg shadow-sm p-5">
                   <ProductBasicFields
@@ -906,6 +1094,7 @@ const SellerProducts = () => {
                     inventoryOptions={inventoryOptions}
                     editingProduct={editingProduct}
                     onToggleStoreAddress={toggleShipFromStoreAddress}
+                    onRequestUpgrade={openUpgradeModal}
                   />
                 </div>
 
@@ -920,10 +1109,11 @@ const SellerProducts = () => {
                 )}
 
             </div>
+            </fieldset>
 
             {/* FORM FOOTER ACTION */}
             <div className="flex justify-end items-center gap-3 mt-8 pt-6 border-t border-[#E1E3E5]">
-              {autoSaveMsg && (
+              {autoSaveMsg && !isProductLocked(editingProduct) && (
                 <span className="text-[13px] font-medium px-3 py-2 rounded-md bg-[#F6F6F7] text-[#6D7175] border border-[#E1E3E5]">
                   {autoSaving ? 'Auto-saving...' : autoSaveMsg}
                 </span>
@@ -938,11 +1128,13 @@ const SellerProducts = () => {
                   setActiveTab('list');
                 }}
               >
-                Discard
+                {isProductLocked(editingProduct) ? 'Back to list' : 'Discard'}
               </button>
-              <button type="submit" className="bg-[#008060] hover:bg-[#006e52] text-white font-medium py-2 px-6 rounded-md shadow-sm transition-all text-[14px]" disabled={singleLoading}>
-                {singleLoading ? 'Saving...' : 'Save'}
-              </button>
+              {!isProductLocked(editingProduct) && (
+                <button type="submit" className="bg-[#008060] hover:bg-[#006e52] text-white font-medium py-2 px-6 rounded-md shadow-sm transition-all text-[14px]" disabled={singleLoading}>
+                  {singleLoading ? 'Saving...' : 'Save'}
+                </button>
+              )}
             </div>
           </form>
         ) : (

@@ -19,22 +19,20 @@ const AdminRegister = () => {
     e.preventDefault();
     setError('');
     setSuccess('');
+    setLoading(true);
     try {
       if (formData.mobile.replace(/\D/g, '').length !== 10) {
-        setLoading(false);
-        setError("If I need to contact you, you need to give your correct mobile number right? Give me the mobile number correctly!");
+        setError("If I need to contact you, you need to give your correct mobile number right? Give me the correct mobile number!");
         return;
       }
 
       if (formData.password !== formData.confirmPassword) {
-        setLoading(false);
         setError("Passwords do not match!");
         return;
       }
 
       const isStrong = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/.test(formData.password);
       if (!isStrong) {
-        setLoading(false);
         setError("Is that a password or your pet's name? Toughen it up! We need at least 8 characters, 1 uppercase, 1 number, and 1 special character.");
         return;
       }

@@ -1,6 +1,7 @@
 import { useRef } from 'react';
-import { Plus, XCircle } from 'lucide-react';
+import { Plus, XCircle, Zap } from 'lucide-react';
 import { BASE_URL } from '../../utils/api';
+import StoreSeoPreview from './StoreSeoPreview';
 
 export const STORE_NAME_MAX = 1500;
 export const STORE_ADDRESS_MAX = 500;
@@ -69,10 +70,17 @@ export default function StoreFormFields({
   setLogoPreview,
   setLogoFile,
   existingLogoPath,
+  faviconPreview,
+  setFaviconPreview,
+  setFaviconFile,
+  existingFaviconPath,
+  sellerMeta = {},
   allowMultipleAddresses = false,
   storeAddressHint = '',
+  onRequestUpgrade,
 }) {
   const logoInputRef = useRef(null);
+  const faviconInputRef = useRef(null);
   const nameValidation = getTextFieldValidation(storeForm.storeName, STORE_NAME_MAX);
   const addressValidation = getTextFieldValidation(storeForm.detailedAddress, STORE_ADDRESS_MAX);
   const keywordList = parseKeywordsInput(storeForm.keywordsInput);
@@ -80,19 +88,32 @@ export default function StoreFormFields({
   const keywordsHaveLinks = keywordList.some((k) => hasExternalLinks(k));
   const storeSlug = slugFromStoreName(storeForm.storeName);
 
+  const validateStoreImage = (file, label) => {
+    if (!['image/jpeg', 'image/png', 'image/jpg', 'image/webp'].includes(file.type)) {
+      alert(`${label} must be JPG, PNG, or WebP.`);
+      return false;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      alert(`${label} is too large. Please use an image under 10MB.`);
+      return false;
+    }
+    return true;
+  };
+
   const handleLogoChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
-      alert('Logo must be JPG or PNG only.');
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      alert('File is too large. Please use an image under 10MB.');
-      return;
-    }
+    if (!validateStoreImage(file, 'Logo')) return;
     setLogoFile(file);
     setLogoPreview(URL.createObjectURL(file));
+  };
+
+  const handleFaviconChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!validateStoreImage(file, 'Favicon')) return;
+    setFaviconFile(file);
+    setFaviconPreview(URL.createObjectURL(file));
   };
 
   const updateAdditionalAddress = (index, value) => {
@@ -102,7 +123,10 @@ export default function StoreFormFields({
   };
 
   const addAdditionalAddress = () => {
-    if (!allowMultipleAddresses) return;
+    if (!allowMultipleAddresses) {
+      onRequestUpgrade?.('multiple_addresses');
+      return;
+    }
     setStoreForm({
       ...storeForm,
       additionalAddresses: [...(storeForm.additionalAddresses || []), ''],
@@ -117,6 +141,10 @@ export default function StoreFormFields({
   const displayLogo =
     logoPreview ||
     (existingLogoPath ? `${BASE_URL}/${existingLogoPath.replace(/\\/g, '/')}` : null);
+
+  const displayFavicon =
+    faviconPreview ||
+    (existingFaviconPath ? `${BASE_URL}/${existingFaviconPath.replace(/\\/g, '/')}` : null);
 
   return (
     <div className="space-y-6 max-w-lg text-[#202223]">
@@ -162,37 +190,70 @@ export default function StoreFormFields({
         <ValidationHints validation={nameValidation} maxLen={STORE_NAME_MAX} />
       </div>
 
-      {/* Logo */}
-      <div>
-        <div className="flex gap-4 items-start">
-          <button
-            type="button"
-            onClick={() => logoInputRef.current?.click()}
-            className="w-24 h-24 shrink-0 border-2 border-dashed border-[#8C9196] rounded-lg flex items-center justify-center bg-[#F6F6F7] hover:bg-[#F1F2F3] overflow-hidden"
-          >
-            {displayLogo ? (
-              <img src={displayLogo} alt="Store logo" className="w-full h-full object-cover" />
-            ) : (
-              <Plus size={28} className="text-[#6D7175]" />
-            )}
-          </button>
-          <input
-            ref={logoInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/jpg"
-            className="hidden"
-            onChange={handleLogoChange}
-          />
-          <div className="text-[13px] text-[#202223]">
-            <p className="font-medium mb-2">Upload logo</p>
+      {/* Logo & favicon */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div>
+          <p className="text-[14px] font-medium mb-2">
+            Store logo <span className="text-[#D82C0D]">*</span>
+          </p>
+          <div className="flex gap-4 items-start">
+            <button
+              type="button"
+              onClick={() => logoInputRef.current?.click()}
+              className="w-24 h-24 shrink-0 border-2 border-dashed border-[#8C9196] rounded-lg flex items-center justify-center bg-[#F6F6F7] hover:bg-[#F1F2F3] overflow-hidden"
+            >
+              {displayLogo ? (
+                <img src={displayLogo} alt="Store logo" className="w-full h-full object-cover" />
+              ) : (
+                <Plus size={28} className="text-[#6D7175]" />
+              )}
+            </button>
+            <input
+              ref={logoInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/jpg,image/webp"
+              className="hidden"
+              onChange={handleLogoChange}
+            />
             <ul className="list-disc list-inside text-[#6D7175] space-y-0.5 text-[12px]">
               <li>Square images</li>
-              <li>Less than 100 KB in file size</li>
-              <li>JPG or PNG format only</li>
+              <li>Optimized to ≤100 KB on upload</li>
+              <li>JPG, PNG, or WebP</li>
+            </ul>
+          </div>
+        </div>
+
+        <div>
+          <p className="text-[14px] font-medium mb-2">Favicon</p>
+          <div className="flex gap-4 items-start">
+            <button
+              type="button"
+              onClick={() => faviconInputRef.current?.click()}
+              className="w-16 h-16 shrink-0 border-2 border-dashed border-[#8C9196] rounded-lg flex items-center justify-center bg-[#F6F6F7] hover:bg-[#F1F2F3] overflow-hidden"
+            >
+              {displayFavicon ? (
+                <img src={displayFavicon} alt="Favicon" className="w-full h-full object-cover" />
+              ) : (
+                <Plus size={22} className="text-[#6D7175]" />
+              )}
+            </button>
+            <input
+              ref={faviconInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/jpg,image/webp"
+              className="hidden"
+              onChange={handleFaviconChange}
+            />
+            <ul className="list-disc list-inside text-[#6D7175] space-y-0.5 text-[12px]">
+              <li>Shown in browser tab</li>
+              <li>Square, 32×32 or larger</li>
+              <li>Falls back to logo if empty</li>
             </ul>
           </div>
         </div>
       </div>
+
+      <StoreSeoPreview storeForm={storeForm} sellerMeta={sellerMeta} />
 
       {/* Detailed address */}
       <div>
@@ -216,44 +277,46 @@ export default function StoreFormFields({
         )}
       </div>
 
-      {/* Additional addresses — premium sellers only */}
-      {allowMultipleAddresses && (
-        <>
-          {(storeForm.additionalAddresses || []).map((addr, index) => (
-            <div key={index}>
-              <label className="block text-[13px] text-[#6D7175] mb-1">
-                Additional address {index + 1}
-              </label>
-              <div className="flex gap-2">
-                <textarea
-                  rows={2}
-                  className="flex-1 border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] bg-white outline-none focus:ring-2 focus:ring-[#005bd3]"
-                  value={addr}
-                  onChange={(e) => updateAdditionalAddress(index, e.target.value)}
-                  placeholder="Extra pickup / warehouse address"
-                  maxLength={STORE_ADDRESS_MAX}
-                />
-                <button
-                  type="button"
-                  onClick={() => removeAdditionalAddress(index)}
-                  className="text-[#D82C0D] text-sm px-2 shrink-0"
-                >
-                  Remove
-                </button>
-              </div>
+      {/* Additional addresses — premium; free sellers see upgrade prompt */}
+      {allowMultipleAddresses &&
+        (storeForm.additionalAddresses || []).map((addr, index) => (
+          <div key={index}>
+            <label className="block text-[13px] text-[#6D7175] mb-1">
+              Additional address {index + 1}
+            </label>
+            <div className="flex gap-2">
+              <textarea
+                rows={2}
+                className="flex-1 border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] bg-white outline-none focus:ring-2 focus:ring-[#005bd3]"
+                value={addr}
+                onChange={(e) => updateAdditionalAddress(index, e.target.value)}
+                placeholder="Extra pickup / warehouse address"
+                maxLength={STORE_ADDRESS_MAX}
+              />
+              <button
+                type="button"
+                onClick={() => removeAdditionalAddress(index)}
+                className="text-[#D82C0D] text-sm px-2 shrink-0"
+              >
+                Remove
+              </button>
             </div>
-          ))}
+          </div>
+        ))}
 
-          <button
-            type="button"
-            onClick={addAdditionalAddress}
-            className="w-full flex items-center justify-between px-4 py-3 rounded-md bg-[#E4E5E7] hover:bg-[#D2D5D8] text-[#202223] text-[14px] font-medium transition-colors"
-          >
-            <span>Add Store address</span>
-            <Plus size={18} />
-          </button>
-        </>
-      )}
+      <button
+        type="button"
+        onClick={addAdditionalAddress}
+        className="w-full flex items-center justify-between px-4 py-3 rounded-md bg-[#E4E5E7] hover:bg-[#D2D5D8] text-[#202223] text-[14px] font-medium transition-colors"
+      >
+        <span className="flex items-center gap-2">
+          Add Store address
+          {!allowMultipleAddresses && (
+            <Zap size={16} className="text-[#B98900]" fill="currentColor" aria-hidden />
+          )}
+        </span>
+        {allowMultipleAddresses ? <Plus size={18} /> : <Zap size={18} className="text-[#B98900]" />}
+      </button>
 
       {storeView === 'edit' && (
         <label className="flex items-center gap-2 text-[14px] text-[#202223]">
@@ -289,7 +352,10 @@ export default function StoreFormFields({
   );
 }
 
-export function isStoreFormValid(storeForm, { allowMultipleAddresses = false } = {}) {
+export function isStoreFormValid(
+  storeForm,
+  { allowMultipleAddresses = false, requireLogo = false, hasLogo = false } = {}
+) {
   const nameOk = getTextFieldValidation(storeForm.storeName, STORE_NAME_MAX).looksGood;
   const addrOk = getTextFieldValidation(storeForm.detailedAddress, STORE_ADDRESS_MAX).looksGood;
   const keywords = parseKeywordsInput(storeForm.keywordsInput);
@@ -301,5 +367,6 @@ export function isStoreFormValid(storeForm, { allowMultipleAddresses = false } =
         (a) => !a.trim() || (!hasExternalLinks(a) && a.length <= STORE_ADDRESS_MAX)
       )
     : !extras.some((a) => a.trim());
-  return nameOk && addrOk && keywordsOk && extraOk;
+  const logoOk = !requireLogo || hasLogo;
+  return nameOk && addrOk && keywordsOk && extraOk && logoOk;
 }

@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import api, { BASE_URL } from '../../utils/api';
+import LoadErrorMessage from '../common/LoadErrorMessage';
+import { getApiErrorMessage, isNetworkError } from '../../utils/apiErrors';
 import SellerIndividualOrderDetail from './SellerIndividualOrderDetail';
 
 const money = (n) => `₹ ${Number(n || 0).toLocaleString('en-IN')}/-`;
@@ -15,16 +17,19 @@ export default function SellerShipmentsPanel() {
   const [shipments, setShipments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isNetworkErrorState, setIsNetworkErrorState] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
 
   const load = useCallback(async () => {
     setError('');
+    setIsNetworkErrorState(false);
     setLoading(true);
     try {
       const { data } = await api.get('/shipments/seller');
       setShipments(data.shipments || []);
     } catch (e) {
-      setError(e.response?.data?.message || 'Could not load orders');
+      setIsNetworkErrorState(isNetworkError(e));
+      setError(getApiErrorMessage(e, 'Could not load orders'));
       setShipments([]);
     } finally {
       setLoading(false);
@@ -60,13 +65,16 @@ export default function SellerShipmentsPanel() {
           </button>
         </div>
 
-        {error && (
-          <div className="mb-4 p-3 rounded-xl bg-error/10 border border-error/30 text-error text-sm">{error}</div>
-        )}
+        <LoadErrorMessage
+          error={error}
+          isNetwork={isNetworkErrorState}
+          onRetry={load}
+          retrying={loading}
+        />
 
-        {loading ? (
+        {loading && !error ? (
           <div className="py-10 text-center text-text-muted">Loading…</div>
-        ) : shipments.length === 0 ? (
+        ) : error ? null : shipments.length === 0 ? (
           <div className="py-10 text-center text-text-muted">No orders yet.</div>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-glass-border">

@@ -4,6 +4,7 @@ import { ArrowRight, ShoppingBag, ShieldCheck, HeartHandshake, Truck, Star, Hear
 import api, { BASE_URL } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import AuthModal from '../../components/auth/AuthModal';
+import { buildCategoryBrowsePath } from '../../utils/categoryPageSeo';
 
 const Home = () => {
   const [featuredProducts, setFeaturedProducts] = useState([]);
@@ -40,6 +41,12 @@ const Home = () => {
   }, []);
 
   const categories = [
+    {
+      name: 'Fashion',
+      icon: '👔',
+      color: 'bg-violet-500/10 text-violet-500',
+      browse: { main: 'Fashion', sub: 'Shirt', type: 'Men' },
+    },
     { name: 'Bags', icon: '👜', color: 'bg-orange-500/10 text-orange-500' },
     { name: 'Jewellery', icon: '✨', color: 'bg-yellow-500/10 text-yellow-500' },
     { name: 'Snacks', icon: '🍪', color: 'bg-green-500/10 text-green-500' },
@@ -118,8 +125,12 @@ const Home = () => {
         
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
           {categories.map((cat, idx) => (
-            <Link 
-              to={`/products?category=${cat.name}`} 
+            <Link
+              to={
+                cat.browse
+                  ? buildCategoryBrowsePath(cat.browse)
+                  : `/products/category/${encodeURIComponent(cat.name.toLowerCase().replace(/\s+/g, '-'))}`
+              }
               key={idx}
               className="glass-panel p-8 flex flex-col items-center justify-center text-center gap-4 hover:-translate-y-2 transition-transform duration-300 hover:shadow-glow group cursor-pointer"
             >

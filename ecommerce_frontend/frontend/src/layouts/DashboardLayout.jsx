@@ -67,6 +67,19 @@ function canSeeAdminSection(user, sectionKey) {
   return allowed.includes(sectionKey);
 }
 
+const ADMIN_NAV_LINK =
+  'flex items-center gap-3 p-3 rounded-xl border border-white/25 font-medium text-sm transition-colors hover:bg-surface-hover hover:border-white/40';
+
+function adminNavLinkClass(pathname, currentHash, to, { exact } = {}) {
+  const [path, linkHash] = to.split('#');
+  const hashMatch = linkHash ? currentHash === `#${linkHash}` : !currentHash || currentHash === '';
+  const pathMatch = exact
+    ? pathname === path
+    : pathname === path || (path !== '/admin/dashboard' && pathname.startsWith(path));
+  const active = pathMatch && hashMatch;
+  return [ADMIN_NAV_LINK, active ? 'bg-surface-hover border-white/50' : ''].filter(Boolean).join(' ');
+}
+
 const DashboardLayout = ({ variant }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -130,35 +143,136 @@ const DashboardLayout = ({ variant }) => {
           </h2>
         </div>
 
-        <nav className={`flex-1 p-4 flex flex-col ${isSeller ? 'gap-2.5' : 'gap-2'}`}>
-          {isAdmin && showAdminLink('dashboard') && (
-            <Link
-              to="/admin/dashboard"
-              className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-hover transition-colors"
-              style={{ transition: 'background-color 0.2s' }}
-            >
-              <LayoutDashboard size={20} /> Dashboard
-            </Link>
-          )}
+        <nav className={`flex-1 p-4 flex flex-col ${isSeller ? 'gap-2.5' : 'gap-2.5'}`}>
+          {isAdmin && (
+            <div className="flex flex-col gap-2.5">
+              {showAdminLink('dashboard') && (
+                <Link
+                  to="/admin/dashboard"
+                  className={adminNavLinkClass(location.pathname, location.hash, '/admin/dashboard', { exact: true })}
+                >
+                  <LayoutDashboard size={20} /> Dashboard
+                </Link>
+              )}
 
-          {isAdmin && showAdminLink('dashboard') && (
-            <Link
-              to="/admin/dashboard#bulk-inquiries"
-              className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-hover transition-colors border border-glass-border/60"
-              style={{ transition: 'background-color 0.2s' }}
-            >
-              <Boxes size={20} className="text-warning" /> Bulk inquiries
-            </Link>
-          )}
+              {showAdminLink('dashboard') && (
+                <Link
+                  to="/admin/dashboard#bulk-inquiries"
+                  className={adminNavLinkClass(location.pathname, location.hash, '/admin/dashboard#bulk-inquiries')}
+                >
+                  <Boxes size={20} className="text-warning" /> Bulk inquiries
+                </Link>
+              )}
 
-          {isAdmin && showAdminLink('dashboard') && (
-            <Link
-              to="/admin/email-logs"
-              className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-hover transition-colors border border-glass-border/60"
-              style={{ transition: 'background-color 0.2s' }}
-            >
-              <Mail size={20} className="text-primary" /> Email logs
-            </Link>
+              {showAdminLink('dashboard') && (
+                <Link
+                  to="/admin/email-logs"
+                  className={adminNavLinkClass(location.pathname, location.hash, '/admin/email-logs')}
+                >
+                  <Mail size={20} className="text-primary" /> Email logs
+                </Link>
+              )}
+
+              {showAdminLink('sellers') && (
+                <Link
+                  to="/admin/sellers"
+                  className={adminNavLinkClass(location.pathname, location.hash, '/admin/sellers')}
+                >
+                  <Users size={20} className="text-text-muted" />
+                  Manage Sellers
+                </Link>
+              )}
+
+              {showAdminLink('kyc') && (
+                <Link
+                  to="/admin/kyc"
+                  className={adminNavLinkClass(location.pathname, location.hash, '/admin/kyc')}
+                >
+                  <FileCheck size={20} className="text-text-muted" />
+                  KYC Approvals
+                </Link>
+              )}
+
+              {showAdminLink('products') && (
+                <Link
+                  to="/admin/products"
+                  className={adminNavLinkClass(location.pathname, location.hash, '/admin/products')}
+                >
+                  <Package size={20} className="text-text-muted" />
+                  Product Approvals
+                </Link>
+              )}
+
+              {showAdminLink('orders') && (
+                <Link
+                  to="/admin/orders"
+                  className={adminNavLinkClass(location.pathname, location.hash, '/admin/orders')}
+                >
+                  <ShoppingCart size={20} className="text-text-muted" />
+                  Orders
+                </Link>
+              )}
+
+              {showAdminLink('returns') && (
+                <Link
+                  to="/admin/returns"
+                  className={adminNavLinkClass(location.pathname, location.hash, '/admin/returns')}
+                >
+                  <ArrowLeftRight size={20} className="text-text-muted" />
+                  Returns & Refunds
+                </Link>
+              )}
+
+              {showAdminLink('coupons') && (
+                <Link
+                  to="/admin/coupons"
+                  className={adminNavLinkClass(location.pathname, location.hash, '/admin/coupons')}
+                >
+                  <Tag size={20} className="text-text-muted" />
+                  Promo Codes
+                </Link>
+              )}
+
+              {showAdminLink('categories') && (
+                <Link
+                  to="/admin/categories"
+                  className={adminNavLinkClass(location.pathname, location.hash, '/admin/categories')}
+                >
+                  <LayoutDashboard size={20} className="text-primary" />
+                  Category Engine
+                </Link>
+              )}
+
+              {showAdminLink('sellers') && (
+                <Link
+                  to="/admin/premium-sellers"
+                  className={adminNavLinkClass(location.pathname, location.hash, '/admin/premium-sellers')}
+                >
+                  <Star size={20} className="text-warning" />
+                  Premium Sellers
+                </Link>
+              )}
+
+              {showAdminLink('dashboard') && (
+                <Link
+                  to="/admin/premium-seller-dashboard"
+                  className={adminNavLinkClass(location.pathname, location.hash, '/admin/premium-seller-dashboard')}
+                >
+                  <Star size={20} className="text-text-muted" />
+                  Premium Overview
+                </Link>
+              )}
+
+              {user.role === 'admin' && (
+                <Link
+                  to="/admin/roles"
+                  className={adminNavLinkClass(location.pathname, location.hash, '/admin/roles')}
+                >
+                  <Shield size={20} className="text-primary" />
+                  Roles
+                </Link>
+              )}
+            </div>
           )}
 
           {isSeller &&
@@ -189,73 +303,11 @@ const DashboardLayout = ({ variant }) => {
               );
             })}
 
-          {isAdmin && (
-            <div className="space-y-1">
-              {showAdminLink('sellers') && (
-                <Link to="/admin/sellers" className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-all hover:translate-x-1 group">
-                  <Users size={18} className="text-text-muted group-hover:text-primary transition-colors" />
-                  <span className="font-medium text-sm">Manage Sellers</span>
-                </Link>
-              )}
-              {showAdminLink('kyc') && (
-                <Link to="/admin/kyc" className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-all hover:translate-x-1 group">
-                  <FileCheck size={18} className="text-text-muted group-hover:text-primary transition-colors" />
-                  <span className="font-medium text-sm">KYC Approvals</span>
-                </Link>
-              )}
-              {showAdminLink('products') && (
-                <Link to="/admin/products" className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-all hover:translate-x-1 group">
-                  <Package size={18} className="text-text-muted group-hover:text-primary transition-colors" />
-                  <span className="font-medium text-sm">Product Approvals</span>
-                </Link>
-              )}
-              {showAdminLink('orders') && (
-                <Link to="/admin/orders" className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-all hover:translate-x-1 group">
-                  <ShoppingCart size={18} className="text-text-muted group-hover:text-primary transition-colors" />
-                  <span className="font-medium text-sm">Orders</span>
-                </Link>
-              )}
-              {showAdminLink('returns') && (
-                <Link to="/admin/returns" className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-all hover:translate-x-1 group">
-                  <ArrowLeftRight size={18} className="text-text-muted group-hover:text-primary transition-colors" />
-                  <span className="font-medium text-sm">Returns & Refunds</span>
-                </Link>
-              )}
-              {showAdminLink('coupons') && (
-                <Link to="/admin/coupons" className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-all hover:translate-x-1 group">
-                  <Tag size={18} className="text-text-muted group-hover:text-primary transition-colors" />
-                  <span className="font-medium text-sm">Promo Codes</span>
-                </Link>
-              )}
-              {showAdminLink('categories') && (
-                <Link to="/admin/categories" className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-all hover:translate-x-1 group">
-                  <LayoutDashboard size={18} className="text-primary" />
-                  <span className="font-medium text-sm">Category Engine</span>
-                </Link>
-              )}
-              {showAdminLink('sellers') && (
-                <Link to="/admin/premium-sellers" className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-all hover:translate-x-1 group">
-                  <Star size={18} className="text-warning group-hover:text-primary transition-colors" />
-                  <span className="font-medium text-sm">Premium Sellers</span>
-                </Link>
-              )}
-              {showAdminLink('dashboard') && (
-                <Link to="/admin/premium-seller-dashboard" className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-all hover:translate-x-1 group">
-                  <Star size={18} className="text-text-muted group-hover:text-primary transition-colors" />
-                  <span className="font-medium text-sm">Premium Overview</span>
-                </Link>
-              )}
-              {user.role === 'admin' && (
-                <Link to="/admin/roles" className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-all hover:translate-x-1 group border border-primary/20 mt-2">
-                  <Shield size={18} className="text-primary" />
-                  <span className="font-medium text-sm">Roles</span>
-                </Link>
-              )}
-            </div>
-          )}
-
           <div className="mt-auto border-t border-glass-border pt-4">
-            <Link to="/products" className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-hover transition-colors text-text-muted">
+            <Link
+              to="/products"
+              className={`${ADMIN_NAV_LINK} text-text-muted`}
+            >
               <LayoutDashboard size={20} /> Back to Website
             </Link>
           </div>

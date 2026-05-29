@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../utils/api';
 import { Boxes, Loader2, RefreshCw } from 'lucide-react';
 import SellerBulkOrderDetail from '../seller/SellerBulkOrderDetail';
+import LoadErrorMessage from '../common/LoadErrorMessage';
+import { getApiErrorMessage, isNetworkError } from '../../utils/apiErrors';
 
 const ADMIN_STATUSES = [
   'Negotiation Pending',
@@ -21,6 +23,7 @@ const BulkInquiriesPanel = ({ isAdmin = false, title = 'Bulk order inquiries' })
   const [inquiries, setInquiries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isNetworkErrorState, setIsNetworkErrorState] = useState(false);
   const [updatingId, setUpdatingId] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
 
@@ -28,11 +31,13 @@ const BulkInquiriesPanel = ({ isAdmin = false, title = 'Bulk order inquiries' })
 
   const load = useCallback(async () => {
     setError('');
+    setIsNetworkErrorState(false);
     try {
       const { data } = await api.get(listUrl);
       setInquiries(data.inquiries || []);
     } catch (e) {
-      setError(e.response?.data?.message || 'Could not load inquiries');
+      setIsNetworkErrorState(isNetworkError(e));
+      setError(getApiErrorMessage(e, 'Could not load inquiries'));
       setInquiries([]);
     } finally {
       setLoading(false);
@@ -98,15 +103,21 @@ const BulkInquiriesPanel = ({ isAdmin = false, title = 'Bulk order inquiries' })
         </button>
       </div>
 
-      {error && (
-        <div className="mb-4 p-3 rounded-xl bg-error/10 border border-error/30 text-error text-sm">{error}</div>
-      )}
+      <LoadErrorMessage
+        error={error}
+        isNetwork={isNetworkErrorState}
+        onRetry={() => {
+          setLoading(true);
+          load();
+        }}
+        retrying={loading}
+      />
 
-      {loading && inquiries.length === 0 ? (
+      {loading && inquiries.length === 0 && !error ? (
         <div className="flex justify-center py-16">
           <Loader2 className="animate-spin text-primary" size={36} />
         </div>
-      ) : inquiries.length === 0 ? (
+      ) : error ? null : inquiries.length === 0 ? (
         <p className="text-text-muted text-center py-12 border border-dashed border-glass-border rounded-xl">
           No bulk inquiries yet.
         </p>

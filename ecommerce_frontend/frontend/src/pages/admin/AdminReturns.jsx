@@ -23,7 +23,7 @@ const AdminReturns = () => {
   const handleAction = async (id, status) => {
     if(!window.confirm(`Are you sure you want to mark this as ${status}?`)) return;
     try {
-      await api.put(`/returns/${id}/status`, { status });
+      await api.put(`/returns/seller/${id}/status`, { status });
       setReturns(returns.map(r => r._id === id ? { ...r, status } : r));
     } catch (_err) {
       alert("Failed to update status");

@@ -8,6 +8,19 @@ import ReviewCard from '../../components/reviews/ReviewCard';
 import AuthModal from '../../components/auth/AuthModal';
 import BulkOrderModal from '../../components/bulk/BulkOrderModal';
 import { useAuth } from '../../context/AuthContext';
+import PageMeta from '../../components/common/PageMeta';
+
+const stripHtml = (s) => {
+  if (!s) return '';
+  return String(s).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+};
+
+const pickUsp = (product) => {
+  const raw = String(product?.keyHighlights || '').trim();
+  if (!raw) return '';
+  const first = raw.split('\n')[0].trim();
+  return first.length > 80 ? `${first.slice(0, 77)}…` : first;
+};
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -126,8 +139,24 @@ const ProductDetail = () => {
     }
   };
 
+  const brandName = String(product?.sellerId?.businessName || '').trim();
+  const usp = pickUsp(product);
+  const seoTitleParts = [brandName, product.title, usp, 'Aashansh'].filter(Boolean);
+  const seoTitle = seoTitleParts.join(' | ');
+  const seoDescription =
+    String(product.metaDescription || '').trim() ||
+    stripHtml(product.description || '').slice(0, 160);
+  const seoKeywords = Array.isArray(product.keywords) ? product.keywords.join(', ') : '';
+  const firstImagePath = product.images?.[0] || '';
+
   return (
     <div className="p-4 md:p-8 animate-fade-in max-w-6xl mx-auto w-full">
+      <PageMeta
+        title={seoTitle}
+        description={seoDescription}
+        keywords={seoKeywords}
+        faviconPath={firstImagePath}
+      />
       <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
       <BulkOrderModal
         open={bulkOrderOpen}

@@ -1,9 +1,12 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { isSellerPortal } from './utils/portalHost';
+import PortalRouteGuard from './components/routing/PortalRouteGuard';
+import SellerPortalHome from './components/routing/SellerPortalHome';
 
-// Layouts
 import PublicLayout from './layouts/PublicLayout';
 import DashboardLayout from './layouts/DashboardLayout';
+import SellerAuthLayout from './layouts/SellerAuthLayout';
 
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
@@ -24,6 +27,8 @@ import PaymentFailed from './pages/public/PaymentFailed';
 import Notifications from './pages/public/Notifications';
 import Support from './pages/public/Support';
 import FAQ from './pages/public/FAQ';
+import TermsAndConditions from './pages/public/TermsAndConditions';
+import PublicStorePage from './pages/public/PublicStorePage';
 
 import SellerDashboard from './pages/seller/SellerDashboard';
 import SellerProfile from './pages/seller/SellerProfile';
@@ -36,29 +41,65 @@ import SellerInvoices from './pages/seller/SellerInvoices';
 import SellerRaiseFunds from './pages/seller/SellerRaiseFunds';
 import SellerReferAndEarn from './pages/seller/SellerReferAndEarn';
 import SellerAboutUs from './pages/seller/SellerAboutUs';
+import SellerPremium from './pages/seller/SellerPremium';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminSellers from './pages/admin/AdminSellers';
 import AdminKYC from './pages/admin/AdminKYC';
+import AdminKycEntityTypes from './pages/admin/AdminKycEntityTypes';
 import AdminProducts from './pages/admin/AdminProducts';
 import AdminOrders from './pages/admin/AdminOrders';
 import AdminReturns from './pages/admin/AdminReturns';
 import AdminCoupons from './pages/admin/AdminCoupons';
 import AdminCategories from './pages/admin/AdminCategories';
-import SellerPremium from './pages/seller/SellerPremium';
 import AdminPremiumSellers from './pages/admin/AdminPremiumSellers';
 import AdminPremiumSellerDashboard from './pages/admin/AdminPremiumSellerDashboard';
 import AdminRoles from './pages/admin/AdminRoles';
 import AdminEmailLogs from './pages/admin/AdminEmailLogs';
 
-const App = () => {
+function SellerPortalRoutes() {
   return (
-    <Router>
+    <Routes>
+      <Route element={<SellerAuthLayout />}>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
+      </Route>
+
+      <Route element={<DashboardLayout variant="seller" />}>
+        <Route path="/seller/dashboard" element={<SellerDashboard />} />
+        <Route path="/seller/orders-enquiries" element={<SellerOrdersEnquiries />} />
+        <Route path="/seller/analytics" element={<SellerAnalytics />} />
+        <Route path="/seller/profile" element={<SellerProfile />} />
+        <Route path="/seller/products" element={<SellerProducts />} />
+        <Route path="/seller/kyc" element={<SellerKYC />} />
+        <Route path="/seller/subscription" element={<SellerSubscription />} />
+        <Route path="/seller/invoices" element={<SellerInvoices />} />
+        <Route path="/seller/raise-funds" element={<SellerRaiseFunds />} />
+        <Route path="/seller/premium" element={<SellerPremium />} />
+        <Route path="/seller/refer-and-earn" element={<SellerReferAndEarn />} />
+        <Route path="/seller/about-us" element={<SellerAboutUs />} />
+        <Route path="/terms" element={<TermsAndConditions />} />
+      </Route>
+
+      <Route path="/" element={<SellerPortalHome />} />
+      <Route path="*" element={<Navigate to="/login" replace />} />
+    </Routes>
+  );
+}
+
+function CustomerPortalRoutes() {
+  return (
+    <PortalRouteGuard>
       <Routes>
-        {/* Public Routes */}
         <Route element={<PublicLayout />}>
           <Route path="/" element={<Home />} />
+          <Route path="/products/category/:main/:sub/:type" element={<Products />} />
+          <Route path="/products/category/:main/:sub" element={<Products />} />
+          <Route path="/products/category/:main" element={<Products />} />
           <Route path="/products" element={<Products />} />
+          <Route path="/store/:subdomain" element={<PublicStorePage />} />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/wishlist" element={<Wishlist />} />
@@ -70,6 +111,7 @@ const App = () => {
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/support" element={<Support />} />
           <Route path="/faq" element={<FAQ />} />
+          <Route path="/terms" element={<TermsAndConditions />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/admin-setup" element={<AdminRegister />} />
@@ -77,28 +119,12 @@ const App = () => {
           <Route path="/reset-password/:token" element={<ResetPassword />} />
         </Route>
 
-        {/* Seller Routes */}
-        <Route element={<DashboardLayout variant="seller" />}>
-          <Route path="/seller/dashboard" element={<SellerDashboard />} />
-          <Route path="/seller/orders-enquiries" element={<SellerOrdersEnquiries />} />
-          <Route path="/seller/analytics" element={<SellerAnalytics />} />
-          <Route path="/seller/profile" element={<SellerProfile />} />
-          <Route path="/seller/products" element={<SellerProducts />} />
-          <Route path="/seller/kyc" element={<SellerKYC />} />
-          <Route path="/seller/subscription" element={<SellerSubscription />} />
-          <Route path="/seller/invoices" element={<SellerInvoices />} />
-          <Route path="/seller/raise-funds" element={<SellerRaiseFunds />} />
-          <Route path="/seller/premium" element={<SellerPremium />} />
-          <Route path="/seller/refer-and-earn" element={<SellerReferAndEarn />} />
-          <Route path="/seller/about-us" element={<SellerAboutUs />} />
-        </Route>
-
-        {/* Admin Routes */}
         <Route element={<DashboardLayout variant="admin" />}>
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/roles" element={<AdminRoles />} />
           <Route path="/admin/sellers" element={<AdminSellers />} />
           <Route path="/admin/kyc" element={<AdminKYC />} />
+          <Route path="/admin/kyc-entity-types" element={<AdminKycEntityTypes />} />
           <Route path="/admin/products" element={<AdminProducts />} />
           <Route path="/admin/orders" element={<AdminOrders />} />
           <Route path="/admin/returns" element={<AdminReturns />} />
@@ -109,9 +135,16 @@ const App = () => {
           <Route path="/admin/email-logs" element={<AdminEmailLogs />} />
         </Route>
 
-        {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+    </PortalRouteGuard>
+  );
+}
+
+const App = () => {
+  return (
+    <Router>
+      {isSellerPortal() ? <SellerPortalRoutes /> : <CustomerPortalRoutes />}
     </Router>
   );
 };

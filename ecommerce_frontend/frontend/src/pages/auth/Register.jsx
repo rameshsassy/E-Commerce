@@ -1,13 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/api';
-import { Mail, Lock, User, UserPlus, Store, Phone, Shield } from 'lucide-react';
+import { Mail, Lock, User, UserPlus, Phone } from 'lucide-react';
+import {
+  getOtherPortalRegisterUrl,
+  getSellerPortalOrigin,
+  handleWrongPortalError,
+  isCustomerPortal,
+  isSellerPortal,
+} from '../../utils/portalHost';
 
 const Register = () => {
   const searchParams = new URLSearchParams(useLocation().search);
   const referralFromUrl = searchParams.get('ref') || searchParams.get('referralCode') || '';
-  const [role, setRole] = useState(searchParams.get('role') || 'customer');
+  const sellerPortal = isSellerPortal();
+  const role = sellerPortal ? 'seller' : 'customer';
   const [formData, setFormData] = useState({ firstName: '', lastName: '', mobile: '', email: '', password: '', confirmPassword: '', secretKey: '' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -17,6 +25,14 @@ const Register = () => {
   const location = useLocation();
   const from = location.state?.from?.pathname || null;
   const { setSession } = useAuth();
+
+  useEffect(() => {
+    if (isCustomerPortal() && searchParams.get('role') === 'seller') {
+      const url = new URL('/register', getSellerPortalOrigin());
+      if (referralFromUrl) url.searchParams.set('ref', referralFromUrl);
+      window.location.replace(url.toString());
+    }
+  }, [searchParams, referralFromUrl]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -94,9 +110,10 @@ const Register = () => {
         else navigate('/products');
       }, 2000);
     } catch (err) {
-      console.error("Registration error:", err);
+      console.error('Registration error:', err);
+      if (handleWrongPortalError(err)) return;
       const raw = err.response?.data?.message;
-      const msg = Array.isArray(raw) ? raw.join(" ") : raw || err.message || "Registration failed";
+      const msg = Array.isArray(raw) ? raw.join(' ') : raw || err.message || 'Registration failed';
       setError(msg);
     } finally {
       setLoading(false);
@@ -105,28 +122,16 @@ const Register = () => {
 
   return (
     <div className="flex-1 flex items-center justify-center p-4 py-12">
-      <div className={`glass-panel w-full max-w-md p-8 animate-fade-in ${role === 'admin' ? 'border-t-4 border-error' : ''}`}>
+      <div className="glass-panel w-full max-w-md p-8 animate-fade-in">
         <div className="text-center mb-8">
-          <h1 className={`text-3xl font-bold mb-2 ${role === 'admin' ? 'text-error' : 'text-primary'}`}>Create Account</h1>
-          <p className="text-text-muted">Join E-commerce website today</p>
-        </div>
-
-        {/* Role Toggle */}
-        <div className="flex bg-surface/50 p-1 rounded-xl border border-glass-border mb-8">
-          <button 
-            type="button"
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-bold transition-all ${role === 'customer' ? 'bg-primary text-white shadow-glow' : 'text-text-muted hover:text-text'}`}
-            onClick={() => setRole('customer')}
-          >
-            <User size={16} /> Customer
-          </button>
-          <button 
-            type="button"
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-bold transition-all ${role === 'seller' ? 'bg-secondary text-white shadow-glow' : 'text-text-muted hover:text-text'}`}
-            onClick={() => setRole('seller')}
-          >
-            <Store size={16} /> Seller
-          </button>
+          <h1 className="text-3xl font-bold mb-2 text-primary">
+            {sellerPortal ? 'Create seller account' : 'Create account'}
+          </h1>
+          <p className="text-text-muted">
+            {sellerPortal
+              ? 'Register to sell on Aashansh at seller.aashansh.org'
+              : 'Join Aashansh to shop online'}
+          </p>
         </div>
 
         {role === 'seller' && referralFromUrl && (
@@ -199,11 +204,11 @@ const Register = () => {
 
           {/* Admin secret key removed */}
 
-          <button type="submit" className={`btn mt-4 w-full ${role === 'admin' ? 'bg-error hover:bg-error/90 text-white border-none' : 'btn-primary'}`} disabled={loading}>
+          <button type="submit" className="btn btn-primary mt-4 w-full" disabled={loading}>
             {loading ? 'Creating Account...' : (
               <>
-                {role === 'admin' ? <Shield size={18} className="mr-2 inline" /> : <UserPlus size={18} className="mr-2 inline" />} 
-                Sign Up as <span className="capitalize">{role}</span>
+                <UserPlus size={18} className="mr-2 inline" />
+                {sellerPortal ? 'Create seller account' : 'Create account'}
               </>
             )}
           </button>
@@ -211,6 +216,23 @@ const Register = () => {
 
         <p className="text-center mt-6 text-sm text-text-muted">
           Already have an account? <Link to="/login" className="text-primary font-medium hover:underline">Sign in</Link>
+        </p>
+        <p className="text-center mt-3 text-xs text-text-muted">
+          {sellerPortal ? (
+            <>
+              Shopping as a customer?{' '}
+              <a href={getOtherPortalRegisterUrl()} className="text-primary hover:underline">
+                Register at aashansh.org
+              </a>
+            </>
+          ) : (
+            <>
+              Want to sell?{' '}
+              <a href={getOtherPortalRegisterUrl()} className="text-primary hover:underline">
+                Seller registration at seller.aashansh.org
+              </a>
+            </>
+          )}
         </p>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { portalApiHeaders } from './portalHost';
 
 export const BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
 const API_URL = `${BASE_URL}/api`;
@@ -18,6 +19,7 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    Object.assign(config.headers, portalApiHeaders());
     if (config.data instanceof FormData) {
       delete config.headers['Content-Type'];
     }

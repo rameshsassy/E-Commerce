@@ -4,6 +4,7 @@ import { ShoppingBag, Heart, User, Store } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import SearchBar from '../components/search/SearchBar';
 import NotificationBell from '../components/notifications/NotificationBell';
+import { getSellerPortalOrigin } from '../utils/portalHost';
 
 const PublicLayout = () => {
   const { user } = useAuth();
@@ -16,8 +17,12 @@ const PublicLayout = () => {
         {/* Main Navbar */}
         <div className="flex justify-between items-center gap-8">
           {/* Logo */}
-          <Link to="/" className="font-black text-2xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary shrink-0">
-            AASHANSH
+          <Link to="/" className="shrink-0 flex items-center gap-3">
+            <img
+              src="/brand/aashansh-logo.png"
+              alt="Aashansh"
+              className="h-10 w-auto object-contain"
+            />
           </Link>
 
           {/* Search Bar */}
@@ -105,9 +110,12 @@ const PublicLayout = () => {
               <li><Link to="/track" className="hover:text-primary">Track Order</Link></li>
               <li><Link to="/faq" className="hover:text-primary">FAQs</Link></li>
               <li className="pt-2 border-t border-glass-border mt-2">
-                <Link to="/register?role=seller" className="text-secondary font-bold hover:text-primary flex items-center gap-2">
+                <a
+                  href={`${getSellerPortalOrigin()}/register`}
+                  className="text-secondary font-bold hover:text-primary flex items-center gap-2"
+                >
                   <Store size={14} /> Sell on Aashansh
-                </Link>
+                </a>
               </li>
             </ul>
           </div>

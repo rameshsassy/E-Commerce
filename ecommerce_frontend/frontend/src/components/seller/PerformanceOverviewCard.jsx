@@ -58,7 +58,7 @@ export default function PerformanceOverviewCard({
           >
             {expanded ? 'Collapse' : 'Expand'} <span className="text-[16px] leading-none">+</span>
           </button>
-          {onViewAll && (
+          {onViewAll ? (
             <button
               type="button"
               onClick={onViewAll}
@@ -66,7 +66,7 @@ export default function PerformanceOverviewCard({
             >
               {viewAllLabel}
             </button>
-          )}
+          ) : null}
         </div>
       </div>
 

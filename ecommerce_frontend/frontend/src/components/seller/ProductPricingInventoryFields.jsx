@@ -1,10 +1,11 @@
-import { XCircle, ChevronDown, Search } from 'lucide-react';
+import { XCircle, ChevronDown, Search, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import api from '../../utils/api';
 import ProductVariantsFields from './ProductVariantsFields';
 import ProductShippingFields from './ProductShippingFields';
 import { Crown } from 'lucide-react';
+import { SELLER_MAIN_CATEGORIES } from '../../constants/sellerMainCategories';
 
 const PREMIUM_MAIN_CATEGORIES = [
   'Fashion',
@@ -265,6 +266,7 @@ export default function ProductPricingInventoryFields({
   inventoryOptions,
   editingProduct,
   onToggleStoreAddress,
+  onRequestUpgrade,
 }) {
   const navigate = useNavigate();
   const [storeAddressDraft, setStoreAddressDraft] = useState('');
@@ -279,7 +281,17 @@ export default function ProductPricingInventoryFields({
   const [typeQuery, setTypeQuery] = useState('');
   const [otherSubText, setOtherSubText] = useState('');
   const [otherTypeText, setOtherTypeText] = useState('');
+  const [freeMainOpen, setFreeMainOpen] = useState(false);
+  const [freeMainQuery, setFreeMainQuery] = useState('');
   const maxOrderLimit = inventoryOptions?.maxOrderQuantityLimit ?? 5;
+  const categoryLimits = inventoryOptions?.categoryLimits;
+  const lockedMainCategory = categoryLimits?.lockedMainCategory || null;
+  const freeMainOptions = useMemo(() => {
+    const list = categoryLimits?.mainCategoryOptions || SELLER_MAIN_CATEGORIES;
+    const q = freeMainQuery.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter((x) => x.toLowerCase().includes(q));
+  }, [categoryLimits?.mainCategoryOptions, freeMainQuery]);
   const minQty = Number(productData.minOrderQuantity);
   const maxQty = Number(productData.maxOrderQuantity);
   const minInvalid = productData.minOrderQuantity !== '' && productData.minOrderQuantity !== undefined && (minQty < 1 || !Number.isFinite(minQty));
@@ -370,6 +382,26 @@ export default function ProductPricingInventoryFields({
     setProductData((prev) => ({ ...prev, category: value, premiumType: '' }));
     setOtherTypeText('');
   };
+
+  const selectFreeMainCategory = (name) => {
+    if (lockedMainCategory && name !== lockedMainCategory) {
+      onRequestUpgrade?.('multiple_categories');
+      return;
+    }
+    setProductData((prev) => ({
+      ...prev,
+      category: name,
+      premiumType: '',
+    }));
+    setFreeMainOpen(false);
+    setFreeMainQuery('');
+  };
+
+  const freeSelectedMain =
+    splitPremiumCategoryString(productData.category).main ||
+    (productData.category && !String(productData.category).includes('/')
+      ? String(productData.category).trim()
+      : '');
 
   const setPremiumType = (val) => {
     setProductData((prev) => ({ ...prev, premiumType: val }));
@@ -736,6 +768,98 @@ export default function ProductPricingInventoryFields({
             <p className="text-[12px] text-[#6D7175] mt-2">
               Bulk purchase is visible to customers as a B2B option.
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Free plan: one main category */}
+      {!inventoryOptions?.isSubscribedSeller && (
+        <div className="border border-[#E1E3E5] rounded-lg">
+          <div className="px-4 py-3 bg-[#F6F6F7] flex items-center justify-between">
+            <div className="flex items-center gap-2 text-[#202223] font-semibold">
+              <span>Category</span>
+              <Zap size={16} className="text-[#B98900]" fill="currentColor" aria-hidden />
+            </div>
+          </div>
+          <div className="px-4 py-4 bg-white space-y-3">
+            <p className="text-[12px] text-[#6D7175]">
+              {categoryLimits?.categoryHint ||
+                'Free plan: one main category for your entire catalog.'}
+            </p>
+            {lockedMainCategory ? (
+              <p className="text-[13px] text-[#202223]">
+                Your catalog category:{' '}
+                <span className="font-semibold">{lockedMainCategory}</span>
+              </p>
+            ) : null}
+            <div className="relative max-w-md">
+              <label className="block text-[14px] font-semibold text-[#202223] mb-2">
+                Main category
+              </label>
+              <button
+                type="button"
+                className={`w-full flex items-center justify-between border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] ${
+                  lockedMainCategory
+                    ? 'bg-[#F6F6F7] cursor-default'
+                    : 'bg-white hover:bg-[#F6F6F7]'
+                }`}
+                disabled={Boolean(lockedMainCategory)}
+                onClick={() => {
+                  if (lockedMainCategory) return;
+                  setFreeMainOpen((v) => !v);
+                  setFreeMainQuery('');
+                }}
+              >
+                <span className={freeSelectedMain ? '' : 'text-[#6D7175]'}>
+                  {lockedMainCategory || freeSelectedMain || 'Select main category'}
+                </span>
+                {!lockedMainCategory && <ChevronDown size={18} className="text-[#6D7175]" />}
+              </button>
+              {freeMainOpen && !lockedMainCategory && (
+                <div className="absolute z-50 w-full mt-1 bg-white border border-[#E1E3E5] rounded-md shadow-lg overflow-hidden">
+                  <div className="p-2 border-b border-[#E1E3E5]">
+                    <div className="flex items-center gap-2 border border-[#E1E3E5] rounded-md px-2 py-1.5 bg-white">
+                      <Search size={16} className="text-[#6D7175]" />
+                      <input
+                        type="text"
+                        value={freeMainQuery}
+                        onChange={(e) => setFreeMainQuery(e.target.value)}
+                        placeholder="Search category..."
+                        className="w-full outline-none text-[13px] text-[#202223]"
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+                  <ul className="max-h-64 overflow-y-auto">
+                    {freeMainOptions.map((name) => (
+                      <li key={name}>
+                        <button
+                          type="button"
+                          className="w-full text-left px-3 py-2 text-[14px] text-[#202223] hover:bg-[#F6F6F7]"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            selectFreeMainCategory(name);
+                          }}
+                        >
+                          {name}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => onRequestUpgrade?.('multiple_categories')}
+              className="w-full flex items-center justify-between px-4 py-3 rounded-md bg-[#E4E5E7] hover:bg-[#D2D5D8] text-[#202223] text-[14px] font-medium transition-colors"
+            >
+              <span className="flex items-center gap-2">
+                Add another category
+                <Zap size={16} className="text-[#B98900]" fill="currentColor" />
+              </span>
+              <Zap size={18} className="text-[#B98900]" />
+            </button>
           </div>
         </div>
       )}

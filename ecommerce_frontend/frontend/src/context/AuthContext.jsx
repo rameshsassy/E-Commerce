@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../utils/api';
+import { getPortalLoginUrl, isSellerPortal } from '../utils/portalHost';
 
 const AuthContext = createContext(null);
 
@@ -44,24 +45,24 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
-    try {
-      const response = await api.post('/auth/login', { email, password });
-      const { token, user: userData } = response.data;
-      
-      localStorage.setItem('token', token);
-      
-      const userObj = { 
-        ...userData, 
-        role: userData.role,
-        name: userData.firstName
-      };
-      localStorage.setItem('user', JSON.stringify(userObj));
-      setUser(userObj);
-      
-      return userObj;
-    } catch (error) {
-      throw error.response?.data?.message || 'Login failed';
-    }
+    const response = await api.post('/auth/login', {
+      email,
+      password,
+      portal: isSellerPortal() ? 'seller' : 'customer',
+    });
+    const { token, user: userData } = response.data;
+
+    localStorage.setItem('token', token);
+
+    const userObj = {
+      ...userData,
+      role: userData.role,
+      name: userData.firstName,
+    };
+    localStorage.setItem('user', JSON.stringify(userObj));
+    setUser(userObj);
+
+    return userObj;
   };
 
   const logout = async () => {
@@ -75,7 +76,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       setUser(null);
-      window.location.href = '/login';
+      window.location.href = getPortalLoginUrl();
     }
   };
 

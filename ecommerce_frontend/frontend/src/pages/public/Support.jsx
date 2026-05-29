@@ -3,6 +3,7 @@ import { Mail, MessageCircle, FileText, ChevronDown, CheckCircle, HelpCircle, Se
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import api from '../../utils/api';
+import { getSupportWhatsAppUrl } from '../../utils/supportContact';
 
 const Support = () => {
   const { user } = useAuth();
@@ -84,7 +85,7 @@ const Support = () => {
 
       {/* Contact Methods Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <a href="https://wa.me/919876543210" target="_blank" rel="noreferrer" className="glass-panel p-6 rounded-2xl flex flex-col items-center text-center hover:-translate-y-1 transition-transform group cursor-pointer border border-glass-border hover:border-success/50">
+        <a href={getSupportWhatsAppUrl()} target="_blank" rel="noreferrer" className="glass-panel p-6 rounded-2xl flex flex-col items-center text-center hover:-translate-y-1 transition-transform group cursor-pointer border border-glass-border hover:border-success/50">
           <div className="w-16 h-16 rounded-full bg-success/10 text-success flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
             <MessageCircle size={32} />
           </div>

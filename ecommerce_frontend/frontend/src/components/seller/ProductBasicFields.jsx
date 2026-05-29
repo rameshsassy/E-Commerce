@@ -37,6 +37,7 @@ export default function ProductBasicFields({
   inventoryOptions,
   editingProduct,
   onToggleStoreAddress,
+  onRequestUpgrade,
 }) {
   const titleValidation = getProductTitleValidation(productData.title);
   const descValidation = getProductDescriptionValidation(productData.description);
@@ -145,6 +146,7 @@ export default function ProductBasicFields({
         inventoryOptions={inventoryOptions}
         editingProduct={editingProduct}
         onToggleStoreAddress={onToggleStoreAddress}
+        onRequestUpgrade={onRequestUpgrade}
       />
     </div>
   );

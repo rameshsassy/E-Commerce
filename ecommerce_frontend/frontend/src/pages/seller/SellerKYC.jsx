@@ -1,75 +1,35 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { CheckCircle, ArrowRight, ArrowLeft } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { CheckCircle } from 'lucide-react';
 import getCroppedImg from '../../utils/cropImage';
-import api from '../../utils/api';
+import api, { BASE_URL } from '../../utils/api';
+import BusinessDocumentsFields from '../../components/seller/BusinessDocumentsFields';
+
+const LOGO_ACCEPT = 'image/jpeg,image/png,image/jpg';
+
+const labelStyle = {
+  display: 'block',
+  marginBottom: '0.5rem',
+  color: 'var(--color-text-muted)',
+  fontWeight: 'bold',
+};
 
 const SellerKYC = () => {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  
-  // Step 1 Data
-  const [step1Data, setStep1Data] = useState({
+  const [submitted, setSubmitted] = useState(false);
+
+  const [entityTypes, setEntityTypes] = useState([]);
+  const [entityTypesLoading, setEntityTypesLoading] = useState(true);
+  const [existingLogoPath, setExistingLogoPath] = useState('');
+
+  const [form, setForm] = useState({
     elevatorPitch: '',
     officialName: '',
-    entityType: 'entity 1',
+    entityType: '',
+    entityTypeOther: '',
     storeAddresses: '',
-  });
-  const [logo, setLogo] = useState(null);
-
-  const [zoom, setZoom] = useState(1);
-  const [showCropper, setShowCropper] = useState(false);
-  const [logoSrc, setLogoSrc] = useState(null);
-  const [logoPreview, setLogoPreview] = useState(null);
-
-  const readFile = (file) => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.addEventListener('load', () => resolve(reader.result), false);
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const onFileChange = async (e) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      let imageDataUrl = await readFile(file);
-      setLogoSrc(imageDataUrl);
-      setShowCropper(true);
-    }
-    e.target.value = ''; // reset input so they can re-select the same file if needed
-  };
-
-  const showCroppedImage = async () => {
-    try {
-      // Create a dummy pixel crop based on center zoom since we are using the native fallback
-      const img = new Image();
-      img.src = logoSrc;
-      await new Promise(r => img.onload = r);
-      
-      const width = img.width / zoom;
-      const height = img.height / zoom;
-      const x = (img.width - width) / 2;
-      const y = (img.height - height) / 2;
-      
-      const pseudoCroppedAreaPixels = { x, y, width, height };
-
-      const croppedImageBlob = await getCroppedImg(logoSrc, pseudoCroppedAreaPixels, 0);
-      const croppedFile = new File([croppedImageBlob], "logo.jpg", { type: "image/jpeg" });
-      
-      setLogo(croppedFile);
-      setLogoPreview(URL.createObjectURL(croppedImageBlob));
-      setShowCropper(false);
-    } catch (e) {
-      console.error(e);
-      setShowCropper(false);
-    }
-  };
-
-  // Step 2 Data
-  const [step2Data, setStep2Data] = useState({
     dateOfRegistration: '',
     adminCostPercentage: '',
     registrationNumber: '',
@@ -77,321 +37,590 @@ const SellerKYC = () => {
     gstNumber: '',
     agreedToTerms: false,
   });
+
+  const [logo, setLogo] = useState(null);
+  const [zoom, setZoom] = useState(1);
+  const [showCropper, setShowCropper] = useState(false);
+  const [logoSrc, setLogoSrc] = useState(null);
+  const [logoPreview, setLogoPreview] = useState(null);
+
   const [documents, setDocuments] = useState({
     registrationCertificate: null,
     orgPanImage: null,
-    cancelledCheckImage: null,
     gstImage: null,
   });
 
-  const handleStep1Change = (e) => {
-    setStep1Data({ ...step1Data, [e.target.name]: e.target.value });
+  const [existingDocs, setExistingDocs] = useState({
+    registrationCertificate: false,
+    orgPanImage: false,
+    gstImage: false,
+  });
+
+  const selectedEntityType = useMemo(
+    () => entityTypes.find((t) => t.code === form.entityType),
+    [entityTypes, form.entityType]
+  );
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [typesRes, profileRes] = await Promise.all([
+          api.get('/seller/kyc/entity-types'),
+          api.get('/seller/profile').catch(() => null),
+        ]);
+        const types = typesRes.data.entityTypes || [];
+        setEntityTypes(types);
+        const validCodes = new Set(types.map((t) => t.code));
+
+        const profile = profileRes?.data;
+        if (profile) {
+          let entityType = profile.entityType || '';
+          if (entityType && !validCodes.has(entityType)) {
+            entityType = types[0]?.code ?? '';
+          }
+          if (!entityType) {
+            entityType = types[0]?.code ?? '';
+          }
+
+          const dateStr = profile.dateOfRegistration
+            ? new Date(profile.dateOfRegistration).toISOString().slice(0, 10)
+            : '';
+
+          setForm((prev) => ({
+            ...prev,
+            elevatorPitch: profile.elevatorPitch || prev.elevatorPitch,
+            officialName: profile.officialName || prev.officialName,
+            entityType,
+            entityTypeOther: profile.entityTypeOther || '',
+            storeAddresses: Array.isArray(profile.storeAddresses)
+              ? profile.storeAddresses.join('\n')
+              : prev.storeAddresses,
+            dateOfRegistration: dateStr,
+            adminCostPercentage: String(
+              profile.adminCostPercentage ?? profile.defaultPlatformFeePercent ?? ''
+            ),
+            registrationNumber: profile.registrationNumber || '',
+            orgPanNumber: profile.orgPanNumber || '',
+            gstNumber: profile.gstNumber || '',
+            agreedToTerms: Boolean(profile.agreedToTerms),
+          }));
+
+          if (profile.organizationLogo) {
+            setExistingLogoPath(profile.organizationLogo);
+            setLogoPreview(`${BASE_URL}/${profile.organizationLogo.replace(/\\/g, '/')}`);
+          }
+
+          setExistingDocs({
+            registrationCertificate: Boolean(profile.registrationCertificate),
+            orgPanImage: Boolean(profile.orgPanImage),
+            gstImage: Boolean(profile.gstImage),
+          });
+
+          if (profile.kycStatus === 'pending' || profile.status === 'kyc_submitted') {
+            setSubmitted(true);
+          }
+        } else if (types.length) {
+          setForm((prev) => ({
+            ...prev,
+            entityType: types[0].code,
+            adminCostPercentage: prev.adminCostPercentage || '12.39',
+          }));
+        }
+      } catch {
+        setError('Could not load KYC form. Please refresh the page.');
+      } finally {
+        setEntityTypesLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const readFile = (file) =>
+    new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.addEventListener('load', () => resolve(reader.result), false);
+      reader.readAsDataURL(file);
+    });
+
+  const onLogoChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const ok = ['image/jpeg', 'image/png', 'image/jpg'].includes(file.type);
+    if (!ok) {
+      setError('Organization logo must be PNG or JPG format.');
+      e.target.value = '';
+      return;
+    }
+    const imageDataUrl = await readFile(file);
+    setLogoSrc(imageDataUrl);
+    setShowCropper(true);
+    e.target.value = '';
   };
 
-  const handleStep2Change = (e) => {
-    const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
-    setStep2Data({ ...step2Data, [e.target.name]: value });
+  const showCroppedImage = async () => {
+    try {
+      const img = new Image();
+      img.src = logoSrc;
+      await new Promise((r) => {
+        img.onload = r;
+      });
+      const width = img.width / zoom;
+      const height = img.height / zoom;
+      const x = (img.width - width) / 2;
+      const y = (img.height - height) / 2;
+      const croppedImageBlob = await getCroppedImg(logoSrc, { x, y, width, height }, 0);
+      const croppedFile = new File([croppedImageBlob], 'logo.jpg', { type: 'image/jpeg' });
+      setLogo(croppedFile);
+      setLogoPreview(URL.createObjectURL(croppedImageBlob));
+      setShowCropper(false);
+      setError(null);
+    } catch (e) {
+      console.error(e);
+      setShowCropper(false);
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
   };
 
   const handleDocumentChange = (e) => {
-    setDocuments({ ...documents, [e.target.name]: e.target.files[0] });
+    const file = e.target.files?.[0];
+    const name = e.target.name;
+    if (!file) return;
+
+    const imageTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+    const certTypes = [...imageTypes, 'application/pdf'];
+
+    if (name === 'registrationCertificate') {
+      if (!certTypes.includes(file.type)) {
+        setError('Registration Certificate must be a PDF or image (JPG, PNG, or WebP).');
+        e.target.value = '';
+        return;
+      }
+    } else if (name === 'orgPanImage' || name === 'gstImage') {
+      if (!imageTypes.includes(file.type)) {
+        setError(`${name === 'orgPanImage' ? 'PAN Image' : 'GST Image'} must be an image (JPG, PNG, or WebP).`);
+        e.target.value = '';
+        return;
+      }
+    }
+
+    setDocuments((prev) => ({ ...prev, [name]: file }));
+    setError(null);
   };
 
-  const submitStep1 = async () => {
+  const hasLogo = Boolean(logo || existingLogoPath);
+  const hasDoc = (key) => Boolean(documents[key] || existingDocs[key]);
+
+  const canSubmit = useMemo(() => {
+    if (!form.officialName.trim()) return false;
+    if (!form.entityType) return false;
+    if (selectedEntityType?.requiresOtherText && !form.entityTypeOther.trim()) return false;
+    if (!form.elevatorPitch.trim()) return false;
+    if (!form.storeAddresses.trim()) return false;
+    if (!hasLogo) return false;
+    if (!form.dateOfRegistration) return false;
+    if (!form.registrationNumber.trim()) return false;
+    if (!hasDoc('registrationCertificate')) return false;
+    if (!form.orgPanNumber.trim()) return false;
+    if (!hasDoc('orgPanImage')) return false;
+    if (!form.gstNumber.trim()) return false;
+    if (!hasDoc('gstImage')) return false;
+    if (form.adminCostPercentage === '' || form.adminCostPercentage == null) return false;
+    if (!form.agreedToTerms) return false;
+    return true;
+  }, [form, selectedEntityType, hasLogo, documents, existingDocs]);
+
+  const submitKyc = async () => {
+    if (!canSubmit) {
+      setError('Please complete all required fields and agree to the Terms and Conditions.');
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
+
       const formData = new FormData();
-      formData.append('elevatorPitch', step1Data.elevatorPitch);
-      formData.append('officialName', step1Data.officialName);
-      formData.append('entityType', step1Data.entityType);
-      
-      const addressesArray = step1Data.storeAddresses.split('\n').filter(a => a.trim() !== '');
-      // Send multiple addresses under the same key; backend will normalize.
-      addressesArray.forEach((addr) => formData.append('storeAddresses', addr));
-      
+      formData.append('officialName', form.officialName.trim());
+      formData.append('entityType', form.entityType);
+      if (selectedEntityType?.requiresOtherText) {
+        formData.append('entityTypeOther', form.entityTypeOther.trim());
+      }
+      formData.append('elevatorPitch', form.elevatorPitch.trim());
+      formData.append('dateOfRegistration', form.dateOfRegistration);
+      formData.append('adminCostPercentage', String(form.adminCostPercentage));
+      formData.append('registrationNumber', form.registrationNumber.trim());
+      formData.append('orgPanNumber', form.orgPanNumber.trim());
+      formData.append('gstNumber', form.gstNumber.trim());
+      formData.append('agreedToTerms', 'true');
+
+      form.storeAddresses
+        .split('\n')
+        .map((a) => a.trim())
+        .filter(Boolean)
+        .forEach((addr) => formData.append('storeAddresses', addr));
+
       if (logo) formData.append('logo', logo);
-
-      await api.post('/seller/kyc/step1', formData);
-      setStep(2);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to submit step 1');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const submitStep2 = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const formData = new FormData();
-      Object.keys(step2Data).forEach(key => {
-        formData.append(key, step2Data[key]);
-      });
-      
-      Object.keys(documents).forEach(key => {
-        if (documents[key]) formData.append(key, documents[key]);
+      Object.entries(documents).forEach(([key, file]) => {
+        if (file) formData.append(key, file);
       });
 
-      await api.post('/seller/kyc/step2', formData);
-      setStep(3);
+      await api.post('/seller/kyc/complete', formData);
+      setSubmitted(true);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to submit step 2');
+      setError(err.response?.data?.message || 'Failed to submit KYC');
     } finally {
       setLoading(false);
     }
   };
 
-  const finalizeKYC = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      await api.post('/seller/kyc/submit');
-      navigate('/seller/profile');
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to finalize KYC');
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (submitted) {
+    return (
+      <div
+        className="glass-panel animate-fade-in"
+        style={{ padding: '2rem', maxWidth: '640px', margin: '2rem auto', textAlign: 'center' }}
+      >
+        <CheckCircle size={48} color="var(--color-success)" style={{ margin: '0 auto 1rem' }} />
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+          KYC submitted
+        </h2>
+        <p style={{ color: 'var(--color-text-muted)', marginBottom: '1.5rem' }}>
+          Your verification is under review. We will notify you once approved.
+        </p>
+        <button type="button" className="btn btn-primary" onClick={() => navigate('/seller/profile')}>
+          Go to profile
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className="glass-panel animate-fade-in" style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto', marginTop: '2rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '1rem' }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Complete Your KYC</h2>
-        <div style={{ display: 'flex', gap: '1rem' }}>
-          <span className={`badge ${step >= 1 ? 'badge-success' : 'badge-warning'}`}>Step 1</span>
-          <span className={`badge ${step >= 2 ? 'badge-success' : 'badge-warning'}`}>Step 2</span>
-          <span className={`badge ${step >= 3 ? 'badge-success' : 'badge-warning'}`}>Review</span>
-        </div>
-      </div>
+    <div
+      className="glass-panel animate-fade-in"
+      style={{ padding: '2rem', maxWidth: '900px', margin: '2rem auto' }}
+    >
+      <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+        Complete Your KYC
+      </h2>
+      <p style={{ color: 'var(--color-text-muted)', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
+        Fill in your organisation details and upload documents on this page. All fields marked with *
+        are required.
+      </p>
 
       {error && (
-        <div className="badge-error" style={{ padding: '1rem', marginBottom: '1rem', borderRadius: 'var(--radius-md)' }}>
+        <div
+          className="badge-error"
+          style={{ padding: '1rem', marginBottom: '1rem', borderRadius: 'var(--radius-md)' }}
+        >
           {error}
         </div>
       )}
 
-      {step === 1 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <h3>Organization Details</h3>
-          
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>Official Name <span style={{ color: 'red' }}>*</span></label>
-            <input type="text" name="officialName" className="input-field" value={step1Data.officialName} onChange={handleStep1Change} placeholder="Company Legal Name" />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>Entity Type <span style={{ color: 'red' }}>*</span></label>
-            <select name="entityType" className="input-field" value={step1Data.entityType} onChange={handleStep1Change}>
-              <option value="entity 1">Entity 1</option>
-              <option value="entity 2">Entity 2</option>
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>Elevator Pitch <span style={{ color: 'red' }}>*</span></label>
-            <textarea name="elevatorPitch" className="input-field" value={step1Data.elevatorPitch} onChange={handleStep1Change} rows={3} placeholder="Brief description of your business..." />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>Store Addresses (One per line) <span style={{ color: 'red' }}>*</span></label>
-            <textarea name="storeAddresses" className="input-field" value={step1Data.storeAddresses} onChange={handleStep1Change} rows={3} placeholder="123 Main St, City, Country" />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>Organization Logo <span style={{ color: 'red' }}>*</span></label>
-            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', background: 'var(--color-surface)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--glass-border)' }}>
-              <input type="file" onChange={onFileChange} accept="image/*" />
-              {logoPreview && <img src={logoPreview} alt="Cropped preview" style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: 'var(--radius-md)' }} />}
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
-            <button className="btn btn-primary" onClick={submitStep1} disabled={loading}>
-              {loading ? 'Saving...' : 'Next Step'} <ArrowRight size={18} />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {step === 2 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <h3>Business Documents</h3>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <section>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '1rem' }}>
+            Organization details
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>Date of registration <span style={{ color: 'red' }}>*</span></label>
-              <input type="date" name="dateOfRegistration" className="input-field" value={step2Data.dateOfRegistration} onChange={handleStep2Change} />
+              <label style={labelStyle}>
+                Official Name <span style={{ color: 'red' }}>*</span>
+              </label>
+              <input
+                type="text"
+                name="officialName"
+                className="input-field"
+                value={form.officialName}
+                onChange={handleChange}
+                placeholder="Company legal name"
+              />
             </div>
+
             <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>Admin cost (percentage) <span style={{ color: 'red' }}>*</span></label>
-              <div style={{ position: 'relative' }}>
-                <input type="number" step="0.1" name="adminCostPercentage" className="input-field" value={step2Data.adminCostPercentage} onChange={handleStep2Change} style={{ paddingRight: '2rem' }} />
-                <span style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#999' }}>%</span>
+              <label style={labelStyle}>
+                Entity Type <span style={{ color: 'red' }}>*</span>
+              </label>
+              <select
+                name="entityType"
+                className="input-field"
+                value={form.entityType}
+                onChange={handleChange}
+                disabled={entityTypesLoading || entityTypes.length === 0}
+              >
+                {entityTypesLoading && <option value="">Loading…</option>}
+                {!entityTypesLoading &&
+                  entityTypes.map((t) => (
+                    <option key={t.code} value={t.code}>
+                      {t.label}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            {selectedEntityType?.requiresOtherText && (
+              <div>
+                <label style={labelStyle}>
+                  Please specify <span style={{ color: 'red' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  name="entityTypeOther"
+                  className="input-field"
+                  value={form.entityTypeOther}
+                  onChange={handleChange}
+                  placeholder="Describe your entity type"
+                />
+              </div>
+            )}
+
+            <div>
+              <label style={labelStyle}>
+                Elevator Pitch <span style={{ color: 'red' }}>*</span>
+              </label>
+              <textarea
+                name="elevatorPitch"
+                className="input-field"
+                value={form.elevatorPitch}
+                onChange={handleChange}
+                rows={3}
+                placeholder="Brief description of your business…"
+              />
+            </div>
+
+            <div>
+              <label style={labelStyle}>
+                Store Address <span style={{ color: 'red' }}>*</span>
+              </label>
+              <textarea
+                name="storeAddresses"
+                className="input-field"
+                value={form.storeAddresses}
+                onChange={handleChange}
+                rows={3}
+                placeholder="123 Main St, City, Country"
+              />
+              <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.35rem' }}>
+                One address per line. Free sellers: one address only.
+              </p>
+            </div>
+
+            <div>
+              <label style={labelStyle}>
+                Organization Logo (PNG or JPG) <span style={{ color: 'red' }}>*</span>
+              </label>
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '1rem',
+                  alignItems: 'center',
+                  background: 'var(--color-surface)',
+                  padding: '1rem',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--glass-border)',
+                }}
+              >
+                <input type="file" onChange={onLogoChange} accept={LOGO_ACCEPT} />
+                {logoPreview && (
+                  <img
+                    src={logoPreview}
+                    alt="Logo preview"
+                    style={{
+                      width: '56px',
+                      height: '56px',
+                      objectFit: 'cover',
+                      borderRadius: 'var(--radius-md)',
+                    }}
+                  />
+                )}
               </div>
             </div>
-
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>Registration Number <span style={{ color: 'red' }}>*</span></label>
-              <input type="text" name="registrationNumber" className="input-field" value={step2Data.registrationNumber} onChange={handleStep2Change} />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>Registration Certificate <span style={{ color: 'red' }}>*</span></label>
-              <input type="file" name="registrationCertificate" className="input-field" onChange={handleDocumentChange} accept=".pdf,image/*" />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>Organization PAN Number <span style={{ color: 'red' }}>*</span></label>
-              <input type="text" name="orgPanNumber" className="input-field" value={step2Data.orgPanNumber} onChange={handleStep2Change} />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>PAN Image <span style={{ color: 'red' }}>*</span></label>
-              <input type="file" name="orgPanImage" className="input-field" onChange={handleDocumentChange} accept=".pdf,image/*" />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>GST Number <span style={{ color: 'red' }}>*</span></label>
-              <input type="text" name="gstNumber" className="input-field" value={step2Data.gstNumber} onChange={handleStep2Change} />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>GST Image <span style={{ color: 'red' }}>*</span></label>
-              <input type="file" name="gstImage" className="input-field" onChange={handleDocumentChange} accept=".pdf,image/*" />
-            </div>
           </div>
+        </section>
 
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>Cancelled Check Image <span style={{ color: 'red' }}>*</span></label>
-            <input type="file" name="cancelledCheckImage" className="input-field" onChange={handleDocumentChange} accept=".pdf,image/*" />
-          </div>
+        <BusinessDocumentsFields
+          form={form}
+          documents={documents}
+          existingDocs={existingDocs}
+          onChange={handleChange}
+          onDocumentChange={handleDocumentChange}
+        />
 
-          <div style={{ marginTop: '2rem', padding: '1.5rem', background: 'var(--color-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--glass-border)' }}>
-            <h4 style={{ marginBottom: '1rem', fontWeight: 'bold' }}>Agreement</h4>
-            <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
-              <li>I am authorised to represent the organisation listed above</li>
-              <li>The information provided is accurate and true and approved by the founder/CEO</li>
-              <li>The organisation agrees to use the funds raised from FundCorps platform for its intended purpose only</li>
-              <li>The organisation will comply with all applicable laws and regulations</li>
-              <li>The organisation will keep its login credentials and account information secure</li>
-              <li>The platform can store and use the organisation's information for its operations</li>
-              <li>The organisation understands that the platform may verify the information provided</li>
-            </ul>
-          </div>
+        <section
+          style={{
+            padding: '1.5rem',
+            background: 'var(--color-surface)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--glass-border)',
+          }}
+        >
+          <h4 style={{ marginBottom: '1rem', fontWeight: 'bold' }}>Agreement</h4>
+          <ul
+            style={{
+              listStyleType: 'disc',
+              paddingLeft: '1.5rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.5rem',
+              color: 'var(--color-text-muted)',
+              fontSize: '0.9rem',
+            }}
+          >
+            <li>I am authorised to represent the organisation listed</li>
+            <li>The information provided is accurate and true</li>
+            <li>We will comply to all applicable laws and regulations</li>
+            <li>The platform can store and use the information for its operations</li>
+          </ul>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1rem' }}>
-            <input type="checkbox" name="agreedToTerms" checked={step2Data.agreedToTerms} onChange={handleStep2Change} id="terms" style={{ width: '1.2rem', height: '1.2rem' }} />
-            <label htmlFor="terms" style={{ fontWeight: 'bold' }}>I agree to the Terms and Conditions</label>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginTop: '1.25rem' }}>
+            <input
+              type="checkbox"
+              name="agreedToTerms"
+              checked={form.agreedToTerms}
+              onChange={handleChange}
+              id="kyc-terms"
+              style={{ width: '1.2rem', height: '1.2rem', marginTop: '0.15rem' }}
+            />
+            <label htmlFor="kyc-terms" style={{ fontWeight: 'bold', fontSize: '0.95rem' }}>
+              I agree to the{' '}
+              <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                Terms and Conditions
+              </Link>
+            </label>
           </div>
+        </section>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem' }}>
-            <button className="btn btn-secondary" onClick={() => setStep(1)} disabled={loading}>
-              <ArrowLeft size={18} /> Back
-            </button>
-            <button className="btn btn-primary" onClick={submitStep2} disabled={loading}>
-              {loading ? 'Saving...' : 'Review Details'} <ArrowRight size={18} />
-            </button>
-          </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={submitKyc}
+            disabled={loading || !canSubmit}
+            style={{ opacity: !canSubmit && !loading ? 0.55 : 1 }}
+          >
+            {loading ? 'Submitting…' : 'Submit for verification'}
+          </button>
         </div>
-      )}
-
-      {step === 3 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '1rem 0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-            <CheckCircle size={32} color="var(--color-success)" />
-            <h3>Review Your Details</h3>
-          </div>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-            <div style={{ padding: '1.5rem', background: 'var(--color-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--glass-border)' }}>
-              <h4 style={{ marginBottom: '1rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.5rem' }}>Organization Details</h4>
-              <ul style={{ listStyleType: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '0.8rem', color: 'var(--color-text-muted)' }}>
-                <li><strong style={{ color: 'var(--color-text)' }}>Official Name:</strong> {step1Data.officialName || 'N/A'}</li>
-                <li><strong style={{ color: 'var(--color-text)' }}>Entity Type:</strong> {step1Data.entityType || 'N/A'}</li>
-                <li><strong style={{ color: 'var(--color-text)' }}>Elevator Pitch:</strong> {step1Data.elevatorPitch || 'N/A'}</li>
-                <li><strong style={{ color: 'var(--color-text)' }}>Store Addresses:</strong> {step1Data.storeAddresses || 'N/A'}</li>
-                <li><strong style={{ color: 'var(--color-text)' }}>Logo:</strong> {logo ? logo.name : 'Not provided'}</li>
-              </ul>
-            </div>
-            
-            <div style={{ padding: '1.5rem', background: 'var(--color-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--glass-border)' }}>
-              <h4 style={{ marginBottom: '1rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.5rem' }}>Business Documents</h4>
-              <ul style={{ listStyleType: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '0.8rem', color: 'var(--color-text-muted)' }}>
-                <li><strong style={{ color: 'var(--color-text)' }}>Date of Registration:</strong> {step2Data.dateOfRegistration || 'N/A'}</li>
-                <li><strong style={{ color: 'var(--color-text)' }}>Admin Cost:</strong> {step2Data.adminCostPercentage ? step2Data.adminCostPercentage + '%' : 'N/A'}</li>
-                <li><strong style={{ color: 'var(--color-text)' }}>Registration Number:</strong> {step2Data.registrationNumber || 'N/A'}</li>
-                <li><strong style={{ color: 'var(--color-text)' }}>PAN Number:</strong> {step2Data.orgPanNumber || 'N/A'}</li>
-                <li><strong style={{ color: 'var(--color-text)' }}>GST Number:</strong> {step2Data.gstNumber || 'N/A'}</li>
-                <li><strong style={{ color: 'var(--color-text)' }}>Agreed to Terms:</strong> {step2Data.agreedToTerms ? 'Yes' : 'No'}</li>
-                <li><strong style={{ color: 'var(--color-text)' }}>Documents Attached:</strong> {Object.values(documents).filter(d => d).length} files</li>
-              </ul>
-            </div>
-          </div>
-          
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1.5rem' }}>
-            <button className="btn btn-secondary" onClick={() => setStep(2)} disabled={loading}>
-              <ArrowLeft size={18} /> Edit Details
-            </button>
-            <button className="btn btn-primary" onClick={finalizeKYC} disabled={loading}>
-              {loading ? 'Submitting...' : 'Submit Verification'}
-            </button>
-          </div>
-        </div>
-      )}
+      </div>
 
       {showCropper && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ background: 'white', borderRadius: '1rem', overflow: 'hidden', width: '100%', maxWidth: '500px', display: 'flex', flexDirection: 'column' }}>
-            
-            <div style={{ position: 'relative', width: '100%', height: '300px', backgroundColor: '#333', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {/* Native Zoomable Image Fallback since npm install failed */}
-              <img 
-                src={logoSrc} 
-                alt="Logo" 
-                style={{ 
-                  transform: `scale(${zoom})`, 
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1000,
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+          }}
+        >
+          <div
+            style={{
+              background: 'white',
+              borderRadius: '1rem',
+              overflow: 'hidden',
+              width: '100%',
+              maxWidth: '500px',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <div
+              style={{
+                position: 'relative',
+                width: '100%',
+                height: '300px',
+                backgroundColor: '#333',
+                overflow: 'hidden',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <img
+                src={logoSrc}
+                alt="Logo"
+                style={{
+                  transform: `scale(${zoom})`,
                   transformOrigin: 'center center',
                   maxWidth: '100%',
                   maxHeight: '100%',
-                  objectFit: 'contain' 
-                }} 
+                  objectFit: 'contain',
+                }}
               />
-              <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ width: '200px', height: '200px', border: '2px solid white', boxShadow: '0 0 0 2000px rgba(0,0,0,0.5)' }}></div>
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  pointerEvents: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <div
+                  style={{
+                    width: '200px',
+                    height: '200px',
+                    border: '2px solid white',
+                    boxShadow: '0 0 0 2000px rgba(0,0,0,0.5)',
+                  }}
+                />
               </div>
             </div>
-            
+
             <div style={{ padding: '1.5rem', background: 'white', color: '#333' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#999', letterSpacing: '1px' }}>ZOOM</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#999' }}>ZOOM</span>
                 <input
                   type="range"
                   value={zoom}
                   min={1}
                   max={3}
                   step={0.1}
-                  aria-labelledby="Zoom"
                   onChange={(e) => setZoom(e.target.value)}
                   style={{ flex: 1, accentColor: '#ff7a3d' }}
                 />
               </div>
-
-              <div style={{ display: 'flex', justifyItems: 'stretch', justifyContent: 'space-between', alignItems: 'center' }}>
-                <button 
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <button
+                  type="button"
                   onClick={() => setShowCropper(false)}
-                  style={{ fontWeight: 'bold', fontSize: '0.9rem', color: '#333', background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem' }}
+                  style={{
+                    fontWeight: 'bold',
+                    fontSize: '0.9rem',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
                 >
-                  CANCEL
+                  Cancel
                 </button>
-                <button 
+                <button
+                  type="button"
                   onClick={showCroppedImage}
-                  style={{ fontWeight: 'bold', fontSize: '0.9rem', color: 'white', background: '#0a192f', border: 'none', borderRadius: '2rem', padding: '0.8rem 1.5rem', cursor: 'pointer' }}
+                  style={{
+                    fontWeight: 'bold',
+                    fontSize: '0.9rem',
+                    color: 'white',
+                    background: '#0a192f',
+                    border: 'none',
+                    borderRadius: '2rem',
+                    padding: '0.8rem 1.5rem',
+                    cursor: 'pointer',
+                  }}
                 >
-                  PERFECT! SAVE IT.
+                  Save logo
                 </button>
               </div>
             </div>
-
           </div>
         </div>
       )}

@@ -1,11 +1,47 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import api from '../../utils/api';
 import AnalyticsCard from '../../components/seller/AnalyticsCard';
 import SalesChart from '../../components/seller/SalesChart';
 import TopProducts from '../../components/seller/TopProducts';
 import { IndianRupee, ShoppingBag, Package, Clock, MapPin } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import PerformanceOverviewCard from '../../components/seller/PerformanceOverviewCard';
+import AnalyticsViewAllModal from '../../components/seller/AnalyticsViewAllModal';
+
+const formatRs = (n) => `₹ ${Number(n || 0).toLocaleString()}/-`;
+
+const SALE_COLUMNS = [
+  { key: 'title', label: 'Product title' },
+  { key: 'unitPrice', label: 'Cost per unit', align: 'right', render: (r) => formatRs(r.unitPrice) },
+  { key: 'unitsSold', label: 'Units Sold', align: 'right' },
+  { key: 'totalCost', label: 'Total Cost', align: 'right', render: (r) => formatRs(r.totalCost) },
+];
+
+const ORDER_COLUMNS = [
+  { key: 'title', label: 'Product title' },
+  { key: 'unitPrice', label: 'Cost per unit', align: 'right', render: (r) => formatRs(r.unitPrice) },
+  { key: 'unitsPurchased', label: 'Units purchased', align: 'right' },
+  { key: 'customerName', label: 'Customer name' },
+  { key: 'status', label: 'Status', align: 'right' },
+];
+
+const PRODUCT_INVENTORY_COLUMNS = [
+  { key: 'title', label: 'Product title' },
+  { key: 'pricePerUnit', label: 'Price per unit', align: 'right', render: (r) => formatRs(r.pricePerUnit) },
+  { key: 'skuUnits', label: 'SKU/Units', align: 'right' },
+  { key: 'totalCost', label: 'Total Cost', align: 'right', render: (r) => formatRs(r.totalCost) },
+];
+
+const VIEW_ALL_FOOTER = {
+  productsListed: { to: '/seller/products', label: 'Go to Products' },
+  activeProducts: { to: '/seller/products', label: 'Go to Products' },
+  inactiveProducts: { to: '/seller/products', label: 'Go to Products' },
+  lowStockProducts: { to: '/seller/products', label: 'Go to Products' },
+  individualOrders: { to: '/seller/orders-enquiries', label: 'Go to Orders' },
+  bulkOrders: { to: '/seller/orders-enquiries', label: 'Go to Orders' },
+  totalSales: { to: '/seller/orders-enquiries', label: 'Go to Orders' },
+  totalCustomersTable: { to: '/seller/orders-enquiries', label: 'Go to Orders' },
+};
 
 const PRESETS = [
   { value: 'last7', label: 'Last 7 Days' },
@@ -23,7 +59,6 @@ const formatDdMmYyyy = (ymd) => {
 };
 
 const SellerAnalytics = () => {
-  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -31,9 +66,60 @@ const SellerAnalytics = () => {
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [rangeError, setRangeError] = useState('');
+  const [viewAllModal, setViewAllModal] = useState(null);
 
   const cacheRef = useRef(new Map());
   const inFlightRef = useRef(null);
+
+  const getRangeParams = useCallback(() => {
+    if (rangePreset === 'custom' && customFrom && customTo) {
+      return { preset: 'custom', from: customFrom, to: customTo };
+    }
+    return { preset: rangePreset };
+  }, [rangePreset, customFrom, customTo]);
+
+  const openViewAll = useCallback(
+    async (sectionKey, title, columns, total) => {
+      const footer = VIEW_ALL_FOOTER[sectionKey];
+      setViewAllModal({
+        open: true,
+        title,
+        columns,
+        total,
+        rows: [],
+        loading: true,
+        error: false,
+        footerLink: footer ? (
+          <Link
+            to={footer.to}
+            className="text-sm font-semibold text-[#202223] hover:underline"
+            onClick={() => setViewAllModal(null)}
+          >
+            {footer.label} →
+          </Link>
+        ) : null,
+      });
+      try {
+        const res = await api.get('/seller/analytics', {
+          params: { ...getRangeParams(), rowLimit: 100 },
+        });
+        const section = res.data.data?.performanceOverview?.[sectionKey];
+        setViewAllModal((prev) =>
+          prev
+            ? {
+                ...prev,
+                rows: section?.rows || [],
+                total: section?.total ?? total,
+                loading: false,
+              }
+            : null
+        );
+      } catch {
+        setViewAllModal((prev) => (prev ? { ...prev, loading: false, error: true } : null));
+      }
+    },
+    [getRangeParams]
+  );
 
   const makeCacheKey = (params) => JSON.stringify(params || {});
 
@@ -70,16 +156,11 @@ const SellerAnalytics = () => {
     }
   };
 
-  // Initial fetch
-  useEffect(() => {
-    fetchAnalytics({ preset: 'last7' }, { initial: true });
-  }, []);
-
-  // Auto-fetch on preset change (except custom)
+  // Fetch on mount and when date preset changes (except custom — user clicks Apply)
   useEffect(() => {
     setRangeError('');
     if (rangePreset === 'custom') return;
-    fetchAnalytics({ preset: rangePreset }, { initial: false });
+    fetchAnalytics({ preset: rangePreset }, { initial: !data });
   }, [rangePreset]);
 
   const onApplyCustom = () => {
@@ -245,49 +326,65 @@ const SellerAnalytics = () => {
               { key: 'inventory', label: 'Inventory/SKUs', align: 'right' },
             ]}
             rows={data.performanceOverview?.productsListed?.rows || []}
-            onViewAll={() => navigate('/seller/products')}
+            onViewAll={() =>
+              openViewAll(
+                'productsListed',
+                'Total Products Listed',
+                [
+                  { key: 'title', label: 'Product title' },
+                  { key: 'inventory', label: 'Inventory/SKUs', align: 'right' },
+                ],
+                data.performanceOverview?.productsListed?.total ?? 0
+              )
+            }
           />
 
           <PerformanceOverviewCard
             icon={<IndianRupee size={18} />}
             title="Total Sale"
-            total={`₹ ${(data.performanceOverview?.totalSales?.total ?? 0).toLocaleString()}/-`}
-            columns={[
-              { key: 'title', label: 'Product title' },
-              { key: 'unitPrice', label: 'Cost per unit', align: 'right', render: (r) => `₹ ${Number(r.unitPrice || 0).toLocaleString()}/-` },
-              { key: 'unitsSold', label: 'Units Sold', align: 'right' },
-              { key: 'totalCost', label: 'Total Cost', align: 'right', render: (r) => `₹ ${Number(r.totalCost || 0).toLocaleString()}/-` },
-            ]}
+            total={formatRs(data.performanceOverview?.totalSales?.total ?? 0)}
+            columns={SALE_COLUMNS}
             rows={data.performanceOverview?.totalSales?.rows || []}
+            onViewAll={() =>
+              openViewAll(
+                'totalSales',
+                'Total Sale',
+                SALE_COLUMNS,
+                formatRs(data.performanceOverview?.totalSales?.total ?? 0)
+              )
+            }
           />
 
           <PerformanceOverviewCard
             icon={<ShoppingBag size={18} />}
             title="Total individual orders"
             total={data.performanceOverview?.individualOrders?.total ?? 0}
-            columns={[
-              { key: 'title', label: 'Product title' },
-              { key: 'unitPrice', label: 'Cost per unit', align: 'right', render: (r) => `₹ ${Number(r.unitPrice || 0).toLocaleString()}/-` },
-              { key: 'unitsPurchased', label: 'Units purchased', align: 'right' },
-              { key: 'customerName', label: 'Customer name' },
-              { key: 'status', label: 'Status', align: 'right' },
-            ]}
+            columns={ORDER_COLUMNS}
             rows={data.performanceOverview?.individualOrders?.rows || []}
+            onViewAll={() =>
+              openViewAll(
+                'individualOrders',
+                'Total individual orders',
+                ORDER_COLUMNS,
+                data.performanceOverview?.individualOrders?.total ?? 0
+              )
+            }
           />
 
           <PerformanceOverviewCard
             icon={<ShoppingBag size={18} />}
             title="Total bulk orders"
             total={data.performanceOverview?.bulkOrders?.total ?? 0}
-            columns={[
-              { key: 'title', label: 'Product title' },
-              { key: 'unitPrice', label: 'Cost per unit', align: 'right', render: (r) => `₹ ${Number(r.unitPrice || 0).toLocaleString()}/-` },
-              { key: 'unitsPurchased', label: 'Units purchased', align: 'right' },
-              { key: 'customerName', label: 'Customer name' },
-              { key: 'status', label: 'Status', align: 'right' },
-            ]}
+            columns={ORDER_COLUMNS}
             rows={data.performanceOverview?.bulkOrders?.rows || []}
-            onViewAll={() => navigate('/seller/orders-enquiries')}
+            onViewAll={() =>
+              openViewAll(
+                'bulkOrders',
+                'Total bulk orders',
+                ORDER_COLUMNS,
+                data.performanceOverview?.bulkOrders?.total ?? 0
+              )
+            }
           />
 
           <PerformanceOverviewCard
@@ -299,6 +396,17 @@ const SellerAnalytics = () => {
               { key: 'views', label: 'Views/sessions', align: 'right' },
             ]}
             rows={data.performanceOverview?.storeViews?.rows || []}
+            onViewAll={() =>
+              openViewAll(
+                'storeViews',
+                'Store views',
+                [
+                  { key: 'title', label: 'Product title' },
+                  { key: 'views', label: 'Views/sessions', align: 'right' },
+                ],
+                data.performanceOverview?.storeViews?.total ?? 0
+              )
+            }
           />
 
           <PerformanceOverviewCard
@@ -310,6 +418,17 @@ const SellerAnalytics = () => {
               { key: 'customers', label: '# Customers', align: 'right' },
             ]}
             rows={data.performanceOverview?.addedToCart?.rows || []}
+            onViewAll={() =>
+              openViewAll(
+                'addedToCart',
+                'Products added to cart',
+                [
+                  { key: 'title', label: 'Product title' },
+                  { key: 'customers', label: '# Customers', align: 'right' },
+                ],
+                data.performanceOverview?.addedToCart?.total ?? 0
+              )
+            }
           />
 
           <PerformanceOverviewCard
@@ -322,6 +441,18 @@ const SellerAnalytics = () => {
               { key: 'status', label: 'Status', align: 'right' },
             ]}
             rows={data.performanceOverview?.returns?.rows || []}
+            onViewAll={() =>
+              openViewAll(
+                'returns',
+                'Total Returns',
+                [
+                  { key: 'title', label: 'Product title' },
+                  { key: 'customersCount', label: '# Customers', align: 'right' },
+                  { key: 'status', label: 'Status', align: 'right' },
+                ],
+                data.performanceOverview?.returns?.total ?? 0
+              )
+            }
           />
 
           <PerformanceOverviewCard
@@ -334,6 +465,18 @@ const SellerAnalytics = () => {
               { key: 'refundStatus', label: 'Status', align: 'right' },
             ]}
             rows={data.performanceOverview?.refunds?.rows || []}
+            onViewAll={() =>
+              openViewAll(
+                'refunds',
+                'Total Refunds',
+                [
+                  { key: 'title', label: 'Product title' },
+                  { key: 'customersCount', label: '# Customers', align: 'right' },
+                  { key: 'refundStatus', label: 'Status', align: 'right' },
+                ],
+                data.performanceOverview?.refunds?.total ?? 0
+              )
+            }
           />
 
           <PerformanceOverviewCard
@@ -345,6 +488,17 @@ const SellerAnalytics = () => {
               { key: 'customersCount', label: '# Customers', align: 'right' },
             ]}
             rows={data.performanceOverview?.replacements?.rows || []}
+            onViewAll={() =>
+              openViewAll(
+                'replacements',
+                'Total Replacements',
+                [
+                  { key: 'title', label: 'Product title' },
+                  { key: 'customersCount', label: '# Customers', align: 'right' },
+                ],
+                data.performanceOverview?.replacements?.total ?? 0
+              )
+            }
           />
 
           <PerformanceOverviewCard
@@ -353,22 +507,46 @@ const SellerAnalytics = () => {
             total={data.performanceOverview?.reviews?.total ?? 0}
             columns={[
               { key: 'title', label: 'Product title' },
-              { key: 'averageReviews', label: 'Average Reviews', align: 'right', render: (r) => `${r.averageReviews} • ${r.customersCount} Customers` },
+              {
+                key: 'averageReviews',
+                label: 'Average Reviews',
+                align: 'right',
+                render: (r) => `${r.averageReviews} • ${r.customersCount} Customers`,
+              },
             ]}
             rows={data.performanceOverview?.reviews?.rows || []}
+            onViewAll={() =>
+              openViewAll(
+                'reviews',
+                'Total Reviews',
+                [
+                  { key: 'title', label: 'Product title' },
+                  {
+                    key: 'averageReviews',
+                    label: 'Average Reviews',
+                    align: 'right',
+                    render: (r) => `${r.averageReviews} • ${r.customersCount} Customers`,
+                  },
+                ],
+                data.performanceOverview?.reviews?.total ?? 0
+              )
+            }
           />
 
           <PerformanceOverviewCard
             icon={<IndianRupee size={18} />}
             title="Average Sale Value (Individual)"
-            total={`₹ ${Number(data.performanceOverview?.averageSaleValueIndividual?.total ?? 0).toLocaleString()}/-`}
-            columns={[
-              { key: 'title', label: 'Product title' },
-              { key: 'unitPrice', label: 'Price per unit', align: 'right', render: (r) => `₹ ${Number(r.unitPrice || 0).toLocaleString()}/-` },
-              { key: 'unitsSold', label: 'Unit sold', align: 'right' },
-              { key: 'totalCost', label: 'Total Cost', align: 'right', render: (r) => `₹ ${Number(r.totalCost || 0).toLocaleString()}/-` },
-            ]}
+            total={formatRs(data.performanceOverview?.averageSaleValueIndividual?.total ?? 0)}
+            columns={SALE_COLUMNS}
             rows={data.performanceOverview?.averageSaleValueIndividual?.rows || []}
+            onViewAll={() =>
+              openViewAll(
+                'averageSaleValueIndividual',
+                'Average Sale Value (Individual)',
+                SALE_COLUMNS,
+                formatRs(data.performanceOverview?.averageSaleValueIndividual?.total ?? 0)
+              )
+            }
           />
 
           <PerformanceOverviewCard
@@ -382,13 +560,16 @@ const SellerAnalytics = () => {
                 </span>
               </span>
             }
-            columns={[
-              { key: 'title', label: 'Product title' },
-              { key: 'pricePerUnit', label: 'Price per unit', align: 'right', render: (r) => `₹ ${Number(r.pricePerUnit || 0).toLocaleString()}/-` },
-              { key: 'skuUnits', label: 'SKU/Units', align: 'right' },
-              { key: 'totalCost', label: 'Total Cost', align: 'right', render: (r) => `₹ ${Number(r.totalCost || 0).toLocaleString()}/-` },
-            ]}
+            columns={PRODUCT_INVENTORY_COLUMNS}
             rows={data.performanceOverview?.activeProducts?.rows || []}
+            onViewAll={() =>
+              openViewAll(
+                'activeProducts',
+                'Active Products',
+                PRODUCT_INVENTORY_COLUMNS,
+                data.performanceOverview?.activeProducts?.total ?? 0
+              )
+            }
           />
 
           <PerformanceOverviewCard
@@ -403,12 +584,21 @@ const SellerAnalytics = () => {
               </span>
             }
             columns={[
-              { key: 'title', label: 'Product title' },
-              { key: 'pricePerUnit', label: 'Price per unit', align: 'right', render: (r) => `₹ ${Number(r.pricePerUnit || 0).toLocaleString()}/-` },
-              { key: 'skuUnits', label: 'SKU/Units', align: 'right' },
+              ...PRODUCT_INVENTORY_COLUMNS,
               { key: 'status', label: 'Status', align: 'right' },
             ]}
             rows={data.performanceOverview?.inactiveProducts?.rows || []}
+            onViewAll={() =>
+              openViewAll(
+                'inactiveProducts',
+                'Inactive / Under Approval Products',
+                [
+                  ...PRODUCT_INVENTORY_COLUMNS,
+                  { key: 'status', label: 'Status', align: 'right' },
+                ],
+                data.performanceOverview?.inactiveProducts?.total ?? 0
+              )
+            }
           />
 
           <PerformanceOverviewCard
@@ -420,20 +610,33 @@ const SellerAnalytics = () => {
               { key: 'sku', label: 'SKU', align: 'right' },
             ]}
             rows={data.performanceOverview?.lowStockProducts?.rows || []}
-            onViewAll={() => navigate('/seller/products')}
+            onViewAll={() =>
+              openViewAll(
+                'lowStockProducts',
+                'Low Stock products',
+                [
+                  { key: 'title', label: 'Product title' },
+                  { key: 'sku', label: 'SKU', align: 'right' },
+                ],
+                data.performanceOverview?.lowStockProducts?.total ?? 0
+              )
+            }
           />
 
           <PerformanceOverviewCard
             icon={<ShoppingBag size={18} />}
             title="Total Customers"
             total={data.performanceOverview?.totalCustomersTable?.total ?? 0}
-            columns={[
-              { key: 'title', label: 'Product title' },
-              { key: 'unitPrice', label: 'Price per unit', align: 'right', render: (r) => `₹ ${Number(r.unitPrice || 0).toLocaleString()}/-` },
-              { key: 'unitsSold', label: 'Unit sold', align: 'right' },
-              { key: 'totalCost', label: 'Total Cost', align: 'right', render: (r) => `₹ ${Number(r.totalCost || 0).toLocaleString()}/-` },
-            ]}
+            columns={SALE_COLUMNS}
             rows={data.performanceOverview?.totalCustomersTable?.rows || []}
+            onViewAll={() =>
+              openViewAll(
+                'totalCustomersTable',
+                'Total Customers',
+                SALE_COLUMNS,
+                data.performanceOverview?.totalCustomersTable?.total ?? 0
+              )
+            }
           />
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -486,6 +689,18 @@ const SellerAnalytics = () => {
           </div>
         </div>
       </div>
+
+      <AnalyticsViewAllModal
+        open={Boolean(viewAllModal?.open)}
+        title={viewAllModal?.title}
+        total={viewAllModal?.total}
+        columns={viewAllModal?.columns || []}
+        rows={viewAllModal?.rows || []}
+        loading={viewAllModal?.loading}
+        error={viewAllModal?.error}
+        footerLink={viewAllModal?.footerLink}
+        onClose={() => setViewAllModal(null)}
+      />
     </div>
   );
 };

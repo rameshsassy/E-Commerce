@@ -2,6 +2,12 @@ import React, { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Mail, Lock, LogIn } from 'lucide-react';
+import {
+  getOtherPortalLoginUrl,
+  getOtherPortalRegisterUrl,
+  handleWrongPortalError,
+  isSellerPortal,
+} from '../../utils/portalHost';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -14,6 +20,7 @@ const Login = () => {
   const location = useLocation();
 
   const from = location.state?.from?.pathname || null;
+  const sellerPortal = isSellerPortal();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -50,7 +57,9 @@ const Login = () => {
         navigate('/products');
       }
     } catch (err) {
-      setError(err);
+      if (handleWrongPortalError(err)) return;
+      const msg = err.response?.data?.message || err.message || 'Login failed';
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -60,8 +69,14 @@ const Login = () => {
     <div className="flex-1 flex items-center justify-center p-4">
       <div className="glass-panel w-full max-w-md p-8 animate-fade-in">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary mb-2" style={{ color: 'var(--color-primary)' }}>Welcome Back</h1>
-          <p className="text-text-muted" style={{ color: 'var(--color-text-muted)' }}>Sign in to continue to E-commerce website</p>
+          <h1 className="text-3xl font-bold text-primary mb-2" style={{ color: 'var(--color-primary)' }}>
+            {sellerPortal ? 'Seller sign in' : 'Welcome back'}
+          </h1>
+          <p className="text-text-muted" style={{ color: 'var(--color-text-muted)' }}>
+            {sellerPortal
+              ? 'Sign in to your seller account at seller.aashansh.org'
+              : 'Sign in to shop on aashansh.org'}
+          </p>
         </div>
 
         {error && (
@@ -111,8 +126,27 @@ const Login = () => {
         </form>
 
         <p className="text-center mt-6 text-sm text-text-muted" style={{ color: 'var(--color-text-muted)' }}>
-          Don't have an account?{' '}
-          <Link to="/register" className="text-primary font-medium hover:underline" style={{ color: 'var(--color-primary)' }}>Sign up</Link>
+          Don&apos;t have an account?{' '}
+          <Link to="/register" className="text-primary font-medium hover:underline" style={{ color: 'var(--color-primary)' }}>
+            {sellerPortal ? 'Create seller account' : 'Sign up'}
+          </Link>
+        </p>
+        <p className="text-center mt-3 text-xs text-text-muted">
+          {sellerPortal ? (
+            <>
+              Shopping as a customer?{' '}
+              <a href={getOtherPortalLoginUrl()} className="text-primary hover:underline">
+                Sign in at aashansh.org
+              </a>
+            </>
+          ) : (
+            <>
+              Selling on Aashansh?{' '}
+              <a href={getOtherPortalRegisterUrl()} className="text-primary hover:underline">
+                Seller sign up at seller.aashansh.org
+              </a>
+            </>
+          )}
         </p>
       </div>
     </div>

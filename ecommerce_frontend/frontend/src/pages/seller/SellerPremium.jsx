@@ -43,6 +43,15 @@ const SellerPremium = () => {
               <li className="flex items-center gap-2">
                 <CheckCircle className="text-success" size={16} /> Dedicated account manager
               </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle className="text-success" size={16} /> Multiple storefronts
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle className="text-success" size={16} /> Multiple store pickup addresses
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle className="text-success" size={16} /> Multiple categories, sub-categories & product types
+              </li>
             </ul>
           </div>
 

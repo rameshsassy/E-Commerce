@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import api, { BASE_URL } from '../../utils/api';
+import LoadErrorMessage from '../common/LoadErrorMessage';
+import { getApiErrorMessage, isNetworkError } from '../../utils/apiErrors';
 import OrderStatusTimeline from './OrderStatusTimeline';
 
 const SELLER_STATUS_OPTIONS = [
@@ -32,17 +34,20 @@ export default function SellerBulkOrderDetail({ inquiryId, onClose }) {
   const [bulk, setBulk] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isNetworkErrorState, setIsNetworkErrorState] = useState(false);
   const [updating, setUpdating] = useState(false);
 
   const load = useCallback(async () => {
     if (!inquiryId) return;
     setError('');
+    setIsNetworkErrorState(false);
     setLoading(true);
     try {
       const { data } = await api.get(`/seller/bulk-inquiries/${inquiryId}`);
       setBulk(data.data);
     } catch (e) {
-      setError(e.response?.data?.message || 'Could not load bulk order');
+      setIsNetworkErrorState(isNetworkError(e));
+      setError(getApiErrorMessage(e, 'Could not load bulk order'));
       setBulk(null);
     } finally {
       setLoading(false);
@@ -72,7 +77,12 @@ export default function SellerBulkOrderDetail({ inquiryId, onClose }) {
   if (error || !bulk) {
     return (
       <div className="space-y-4">
-        <div className="p-4 rounded-xl bg-error/10 border border-error/30 text-error">{error || 'Not found'}</div>
+        <LoadErrorMessage
+          error={error || 'Not found'}
+          isNetwork={isNetworkErrorState}
+          onRetry={isNetworkErrorState ? load : undefined}
+          retrying={loading}
+        />
         {onClose && (
           <button type="button" className="btn btn-secondary" onClick={onClose}>
             Back to list
