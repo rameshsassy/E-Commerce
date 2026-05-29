@@ -94,8 +94,11 @@ export function getPortalFromRequest(req) {
 
 export function getSellerPortalOrigin() {
   const list = parseOriginList(process.env.SELLER_FRONTEND_URL);
-  if (list[0]) return list[0];
-  return "https://seller.aashansh.org";
+  const configured = list[0];
+  if (configured && !/seller\.aashansh\.org/i.test(configured)) return configured;
+  const customer = parseOriginList(process.env.FRONTEND_URL)[0];
+  if (customer) return customer;
+  return "http://localhost:5173";
 }
 
 export function getCustomerPortalOrigin() {
@@ -104,11 +107,89 @@ export function getCustomerPortalOrigin() {
   return "https://aashansh.org";
 }
 
-export function portalMismatchResponse(res, expectedPortal, userRole) {
-  const redirectUrl =
+function originFromRequest(req) {
+  const raw = req?.headers?.origin || req?.headers?.referer;
+  if (!raw) return null;
+  try {
+    return new URL(raw).origin;
+  } catch {
+    return null;
+  }
+}
+
+function isDevOnlyHostname(hostname) {
+  const h = String(hostname || "").toLowerCase();
+  return (
+    h === "localhost" ||
+    h === "127.0.0.1" ||
+    h === "seller.localhost" ||
+    h.endsWith(".localhost")
+  );
+}
+
+/** Login redirect — same origin on Vercel; never seller.aashansh.org until DNS exists. */
+export function portalLoginRedirectUrl(expectedPortal, req) {
+  const requestOrigin = originFromRequest(req);
+
+  if (requestOrigin) {
+    try {
+      const host = new URL(requestOrigin).hostname.toLowerCase();
+      const useSameOrigin =
+        host.endsWith(".vercel.app") ||
+        isDevOnlyHostname(host) ||
+        !host.startsWith("seller.");
+      if (useSameOrigin) {
+        if (expectedPortal === "seller") {
+          return `${requestOrigin}/login?portal=seller`;
+        }
+        return `${requestOrigin}/login`;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const configured =
     expectedPortal === "seller"
-      ? `${getSellerPortalOrigin()}/login`
-      : `${getCustomerPortalOrigin()}/login`;
+      ? getSellerPortalOrigin()
+      : getCustomerPortalOrigin();
+
+  if (requestOrigin && /seller\.aashansh\.org/i.test(configured)) {
+    if (expectedPortal === "seller") {
+      return `${requestOrigin}/login?portal=seller`;
+    }
+    return `${requestOrigin}/login`;
+  }
+
+  if (requestOrigin) {
+    try {
+      const cfgHost = new URL(configured).hostname;
+      const reqHost = new URL(requestOrigin).hostname;
+      if (isDevOnlyHostname(cfgHost) && !isDevOnlyHostname(reqHost)) {
+        if (expectedPortal === "seller") {
+          return `${requestOrigin}/login?portal=seller`;
+        }
+        return `${requestOrigin}/login`;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  if (expectedPortal === "seller" && /seller\.aashansh\.org/i.test(configured)) {
+    return `${getCustomerPortalOrigin()}/login?portal=seller`;
+  }
+
+  return `${configured}/login`;
+}
+
+export function portalRegisterRedirectUrl(expectedPortal, req) {
+  const login = portalLoginRedirectUrl(expectedPortal, req);
+  return login.replace(/\/login(\?.*)?$/, "/register$1");
+}
+
+export function portalMismatchResponse(res, expectedPortal, userRole) {
+  const redirectUrl = portalLoginRedirectUrl(expectedPortal, res?.req);
 
   return res.status(403).json({
     message:
@@ -122,7 +203,7 @@ export function portalMismatchResponse(res, expectedPortal, userRole) {
   });
 }
 
-export function assertPortalForRole(role, portal) {
+export function assertPortalForRole(role, portal, req) {
   const sellerRoles = new Set(["seller"]);
   const customerRoles = new Set(["customer"]);
   const staffRoles = new Set(["admin", "admin_staff"]);
@@ -133,7 +214,7 @@ export function assertPortalForRole(role, portal) {
       err.statusCode = 403;
       err.code = "WRONG_PORTAL";
       err.expectedPortal = "customer";
-      err.redirectUrl = `${getCustomerPortalOrigin()}/login`;
+      err.redirectUrl = portalLoginRedirectUrl("customer", req);
       throw err;
     }
     if (staffRoles.has(role)) {
@@ -141,7 +222,7 @@ export function assertPortalForRole(role, portal) {
       err.statusCode = 403;
       err.code = "WRONG_PORTAL";
       err.expectedPortal = "customer";
-      err.redirectUrl = `${getCustomerPortalOrigin()}/login`;
+      err.redirectUrl = portalLoginRedirectUrl("customer", req);
       throw err;
     }
     return;
@@ -153,12 +234,12 @@ export function assertPortalForRole(role, portal) {
     err.statusCode = 403;
     err.code = "WRONG_PORTAL";
     err.expectedPortal = "seller";
-    err.redirectUrl = `${getSellerPortalOrigin()}/login`;
+    err.redirectUrl = portalLoginRedirectUrl("seller", req);
     throw err;
   }
 }
 
-export function assertPortalAllowsRegistration(portal, role) {
+export function assertPortalAllowsRegistration(portal, role, req) {
   if (portal === "seller" && role !== "seller") {
     const err = new Error("Registration is only available for sellers on this site.");
     err.statusCode = 403;
@@ -168,7 +249,7 @@ export function assertPortalAllowsRegistration(portal, role) {
     const err = new Error("Seller registration is at seller.aashansh.org.");
     err.statusCode = 403;
     err.expectedPortal = "seller";
-    err.redirectUrl = `${getSellerPortalOrigin()}/register`;
+    err.redirectUrl = portalRegisterRedirectUrl("seller", req);
     throw err;
   }
 }

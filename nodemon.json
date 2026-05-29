@@ -1,0 +1,23 @@
+{
+  "watch": [
+    "server.js",
+    "app.js",
+    "routes",
+    "controllers",
+    "middleware",
+    "models",
+    "utils",
+    "config",
+    "cron",
+    "data"
+  ],
+  "ext": "js,json",
+  "delay": 1000,
+  "signal": "SIGTERM",
+  "ignore": [
+    "node_modules/**",
+    "ecommerce_frontend/**",
+    "uploads/**",
+    ".git/**"
+  ]
+}

@@ -1,5 +1,5 @@
+import "dotenv/config";
 import express from "express";
-import dotenv from "dotenv";
 import cors from "cors";
 // import helmet from "helmet";
 // import rateLimit from "express-rate-limit";
@@ -22,7 +22,6 @@ import publicStoreRoutes from "./routes/publicStore.routes.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 import { getUploadsRoot, ensureUploadsRoot } from "./utils/uploadPaths.js";
 
-dotenv.config();
 ensureUploadsRoot();
 
 /** Split comma-separated env URLs (e.g. prod + preview frontends). */
@@ -155,6 +154,10 @@ app.use("/uploads", express.static(getUploadsRoot()));
 // ===============================
 // ✅ ROUTES
 // ===============================
+app.get("/api/health", (_req, res) => {
+  res.json({ ok: true, service: "aashansh-api" });
+});
+
 app.use("/api/auth", authRoutes);
 app.use("/api/seller", sellerRoutes);
 app.use("/api/admin", adminRoutes);

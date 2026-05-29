@@ -7,19 +7,25 @@ const connectDB = async () => {
     process.env.MONGO_FALLBACK_URI?.trim() ||
     "mongodb://127.0.0.1:27017/aashansh";
 
+  const fail = (msg) => {
+    console.error(msg);
+    if (process.env.VERCEL) throw new Error(msg);
+    process.exit(1);
+  };
+
   if (!uri) {
-    console.error(
+    fail(
       "Database connection failed: MONGO_URI is missing. Set it in .env (see .env.example)."
     );
-    process.exit(1);
   }
 
   if (!uri.startsWith("mongodb://") && !uri.startsWith("mongodb+srv://")) {
-    console.error(
+    fail(
       "Database connection failed: MONGO_URI must start with mongodb:// or mongodb+srv://"
     );
-    process.exit(1);
   }
+
+  if (mongoose.connection.readyState === 1) return;
 
   try {
     const conn = await mongoose.connect(uri);
@@ -64,6 +70,7 @@ const connectDB = async () => {
       );
     }
 
+    if (process.env.VERCEL) throw new Error(msg);
     process.exit(1);
   }
 };

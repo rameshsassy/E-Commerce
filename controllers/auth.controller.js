@@ -69,13 +69,26 @@ const issueTokensAndSetCookie = async (user, res, req) => {
     deviceInfo: req?.headers['user-agent'] || 'Unknown'
   });
 
-  // Set HTTP-only cookie
+  const isProd = process.env.NODE_ENV === 'production';
+  let sameSite = isProd ? 'strict' : 'lax';
+  if (isProd && req?.headers?.origin) {
+    try {
+      const apiHost = new URL(
+        `${req.protocol || 'https'}://${req.get('host')}`
+      ).hostname;
+      const originHost = new URL(req.headers.origin).hostname;
+      if (apiHost !== originHost) sameSite = 'none';
+    } catch {
+      /* keep strict */
+    }
+  }
+
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+    secure: isProd,
+    sameSite,
     path: '/',
-    maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
   });
 
   return accessToken;
@@ -336,7 +349,7 @@ export const loginUser = async (req, res) => {
     }
 
     try {
-      assertPortalForRole(user.role, getPortalFromRequest(req));
+      assertPortalForRole(user.role, getPortalFromRequest(req), req);
     } catch (portalErr) {
       return res.status(portalErr.statusCode || 403).json({
         message: portalErr.message,
@@ -374,7 +387,7 @@ export const refreshTokenHandler = async (req, res) => {
   try {
     // Verify token exists in DB and is valid
     const dbToken = await RefreshToken.findOne({ token: refreshToken }).populate('user');
-    
+
     if (!dbToken) {
       res.clearCookie('refreshToken');
       return res.status(401).json({ message: "Invalid refresh token. Please log in again." });
@@ -409,7 +422,7 @@ export const logoutUser = async (req, res) => {
       // Remove from DB
       await RefreshToken.deleteOne({ token: refreshToken });
     }
-    
+
     // Clear cookie
     res.clearCookie('refreshToken', {
       httpOnly: true,
@@ -451,7 +464,7 @@ export const forgotPassword = async (req, res) => {
     user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
 
     await user.save();
-    
+
     // 📧 Send email with token
     sendPasswordResetEmail(user, token).catch((err) =>
       console.log("Password reset email failed:", err.message)

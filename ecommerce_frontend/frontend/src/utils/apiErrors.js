@@ -35,6 +35,9 @@ export function getApiErrorMessage(error, fallback = 'Something went wrong') {
       : fallback;
   }
   const data = error.response?.data;
+  if (typeof data === 'string' && data.trim() && !data.trim().startsWith('<')) {
+    return data.trim();
+  }
   if (typeof data?.message === 'string' && data.message.trim()) return data.message;
   if (Array.isArray(data?.message)) return data.message.join(' ');
   if (error.message && !/^request failed with status code/i.test(error.message)) {

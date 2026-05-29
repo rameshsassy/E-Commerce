@@ -1,0 +1,16 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "npm install && npm install --prefix ecommerce_frontend/frontend",
+  "buildCommand": "npm run build:web",
+  "outputDirectory": "ecommerce_frontend/frontend/dist",
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index" },
+    { "source": "/uploads/(.*)", "destination": "/api/index" },
+    { "source": "/((?!api/|uploads/).*)", "destination": "/index.html" }
+  ]
+}

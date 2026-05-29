@@ -1,0 +1,28 @@
+# Deploy this API on Render (https://render.com) — free tier works for testing.
+# After deploy, copy the service URL (e.g. https://aashansh-api.onrender.com)
+# into Vercel → Environment Variables → BACKEND_URL → Redeploy frontend.
+
+services:
+  - type: web
+    name: aashansh-api
+    runtime: node
+    plan: free
+    rootDir: .
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CORS_ALLOW_VERCEL
+        value: "true"
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: ADMIN_SECRET_KEY
+        sync: false
+      - key: FRONTEND_URL
+        value: https://e-commerce-snj1.vercel.app
+      - key: CORS_EXTRA_ORIGINS
+        value: https://e-commerce-snj1.vercel.app

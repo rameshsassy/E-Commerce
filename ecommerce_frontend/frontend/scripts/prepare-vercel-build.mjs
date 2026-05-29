@@ -9,32 +9,29 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const frontendRoot = path.join(__dirname, '..');
 
-/** Default Render service name from render.yaml — override with BACKEND_URL on Vercel. */
-const DEFAULT_BACKEND = 'https://aashansh-api.onrender.com';
-
 function normalizeBackend(value) {
   if (!value || typeof value !== 'string') return '';
   return value.trim().replace(/\/$/, '').replace(/\/api\/?$/i, '');
+}
+
+const isVercel = Boolean(process.env.VERCEL);
+const repoRoot = path.join(frontendRoot, '..', '..');
+const monolithApi = fs.existsSync(path.join(repoRoot, 'api', 'index.js'));
+
+// Monorepo deploy: API runs as Vercel serverless at repo root — same-origin /api
+if (isVercel && monolithApi) {
+  console.log('[prepare-vercel-build] monolith API detected — using same-origin /api');
+  process.exit(0);
 }
 
 const backend =
   normalizeBackend(process.env.VITE_API_URL) ||
   normalizeBackend(process.env.BACKEND_URL) ||
   normalizeBackend(process.env.API_URL) ||
-  (process.env.VERCEL ? DEFAULT_BACKEND : '');
-
-const isVercel = Boolean(process.env.VERCEL);
-
-if (!backend && isVercel) {
-  console.error(
-    '[prepare-vercel-build] FATAL: Set BACKEND_URL on Vercel to your Render API URL, e.g.',
-    DEFAULT_BACKEND
-  );
-  process.exit(1);
-}
+  '';
 
 if (!backend) {
-  console.log('[prepare-vercel-build] skipped (local build, no BACKEND_URL)');
+  console.log('[prepare-vercel-build] skipped (no external BACKEND_URL)');
   process.exit(0);
 }
 
