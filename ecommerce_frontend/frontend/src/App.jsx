@@ -1,6 +1,6 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { isSellerPortal } from './utils/portalHost';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { isSellerPortal, isLocalHostname } from './utils/portalHost';
 import PortalRouteGuard from './components/routing/PortalRouteGuard';
 import SellerPortalHome from './components/routing/SellerPortalHome';
 
@@ -141,10 +141,20 @@ function CustomerPortalRoutes() {
   );
 }
 
+function AppRoutes() {
+  const { pathname } = useLocation();
+  const host = window.location.hostname;
+  const sellerMode =
+    isSellerPortal(host, pathname) ||
+    (isLocalHostname(host) && pathname.startsWith('/seller'));
+
+  return sellerMode ? <SellerPortalRoutes /> : <CustomerPortalRoutes />;
+}
+
 const App = () => {
   return (
     <Router>
-      {isSellerPortal() ? <SellerPortalRoutes /> : <CustomerPortalRoutes />}
+      <AppRoutes />
     </Router>
   );
 };
