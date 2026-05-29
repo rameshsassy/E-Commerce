@@ -10,7 +10,7 @@ import {
   handleWrongPortalError,
   isSellerPortal,
 } from '../../utils/portalHost';
-import { getApiErrorMessage, isNetworkError } from '../../utils/apiErrors';
+import { API_MISCONFIGURED_MSG, getApiErrorMessage, isNetworkError } from '../../utils/apiErrors';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -82,9 +82,10 @@ const Login = () => {
       }
     } catch (err) {
       if (handleWrongPortalError(err)) return;
-      const msg = isNetworkError(err)
-        ? 'Cannot reach the server. Check that the API is deployed and BACKEND_URL is set on Vercel.'
-        : getApiErrorMessage(err, 'Login failed');
+      const msg = getApiErrorMessage(
+        err,
+        isNetworkError(err) ? API_MISCONFIGURED_MSG : 'Login failed'
+      );
       setError(msg);
     } finally {
       setLoading(false);

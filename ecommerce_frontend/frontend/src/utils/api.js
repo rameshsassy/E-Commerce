@@ -5,6 +5,7 @@ import {
   AUTH_SELLER_REGISTER,
 } from './authEndpoints';
 import { resolveApiBaseUrl, resolveApiUrl } from './apiConfig';
+import { API_MISCONFIGURED_MSG, isHtmlApiResponse } from './apiErrors';
 import { portalApiHeaders } from './portalHost';
 
 const baseUrlHolder = {
@@ -54,8 +55,22 @@ const AUTH_NO_REFRESH = [
 const shouldSkipRefreshRetry = (url = '') =>
   AUTH_NO_REFRESH.some((path) => url.includes(path));
 
+function rejectMisconfiguredApi(response) {
+  const err = new Error(API_MISCONFIGURED_MSG);
+  err.isApiMisconfigured = true;
+  err.response = response;
+  return Promise.reject(err);
+}
+
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const url = String(response.config?.url || '');
+    const base = String(response.config?.baseURL || '');
+    if ((url.includes('/auth/') || base.includes('/api')) && isHtmlApiResponse(response)) {
+      return rejectMisconfiguredApi(response);
+    }
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
 

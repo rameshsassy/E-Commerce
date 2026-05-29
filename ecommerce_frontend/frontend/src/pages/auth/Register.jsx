@@ -13,6 +13,7 @@ import {
   isCustomerPortal,
   isSellerPortal,
 } from '../../utils/portalHost';
+import { API_MISCONFIGURED_MSG, getApiErrorMessage, isNetworkError } from '../../utils/apiErrors';
 
 const Register = () => {
   const searchParams = new URLSearchParams(useLocation().search);
@@ -74,18 +75,22 @@ const Register = () => {
 
       const endpoint = getRegisterEndpoint({ seller: role === 'seller' });
 
+      const portal = role === 'seller' ? 'seller' : 'customer';
       const payload = {
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
         email: formData.email.trim(),
         mobile: formData.mobile.trim(),
         password: formData.password,
+        portal,
         ...(role === 'seller' && referralFromUrl
           ? { referralCode: referralFromUrl.trim() }
           : {}),
       };
 
-      const { data } = await api.post(endpoint, payload);
+      const { data } = await api.post(endpoint, payload, {
+        headers: { 'X-Portal': portal },
+      });
 
       if (data.token && data.user) {
         setSession(data.token, data.user);
@@ -107,7 +112,10 @@ const Register = () => {
       console.error('Registration error:', err);
       if (handleWrongPortalError(err)) return;
       const raw = err.response?.data?.message;
-      const msg = Array.isArray(raw) ? raw.join(' ') : raw || err.message || 'Registration failed';
+      const msg = getApiErrorMessage(
+        err,
+        isNetworkError(err) ? API_MISCONFIGURED_MSG : (Array.isArray(raw) ? raw.join(' ') : raw || 'Registration failed')
+      );
       setError(msg);
     } finally {
       setLoading(false);

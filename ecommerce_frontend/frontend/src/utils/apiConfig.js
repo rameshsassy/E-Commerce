@@ -32,13 +32,14 @@ export function resolveApiBaseUrl() {
   const host = inBrowser ? window.location.hostname : '';
   const onLocal = inBrowser && isLocalDevHost(host);
 
-  // Vercel: always same-origin so /api can proxy to BACKEND_URL (avoids CORS + wrong VITE_API_URL)
-  if (inBrowser && isVercelHost(host)) {
-    return window.location.origin;
-  }
-
+  // Production API URL baked at build (Render/Railway) — use when not on localhost
   if (baked && (!isLocalhostUrl(baked) || onLocal)) {
     return baked;
+  }
+
+  // Vercel: same-origin /api rewrite (vercel.json → BACKEND_URL)
+  if (inBrowser && isVercelHost(host)) {
+    return window.location.origin;
   }
 
   if (inBrowser && !onLocal) {

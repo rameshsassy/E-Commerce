@@ -58,7 +58,10 @@ export const AuthProvider = ({ children }) => {
       { email, password, portal },
       { headers: { 'X-Portal': portal } }
     );
-    const { token, user: userData } = response.data;
+    const { token, user: userData } = response.data || {};
+    if (!token || !userData) {
+      throw new Error('Invalid login response from server');
+    }
 
     localStorage.setItem('token', token);
 
