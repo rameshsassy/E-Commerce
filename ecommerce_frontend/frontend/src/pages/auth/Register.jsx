@@ -4,7 +4,9 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/api';
 import { Mail, Lock, User, UserPlus, Phone } from 'lucide-react';
 import {
+  getCustomerPortalOrigin,
   getOtherPortalRegisterUrl,
+  getPortalDisplayHost,
   getSellerPortalOrigin,
   handleWrongPortalError,
   isCustomerPortal,
@@ -15,6 +17,8 @@ const Register = () => {
   const searchParams = new URLSearchParams(useLocation().search);
   const referralFromUrl = searchParams.get('ref') || searchParams.get('referralCode') || '';
   const sellerPortal = isSellerPortal();
+  const customerHost = getPortalDisplayHost(getCustomerPortalOrigin());
+  const sellerHost = getPortalDisplayHost(getSellerPortalOrigin());
   const role = sellerPortal ? 'seller' : 'customer';
   const [formData, setFormData] = useState({ firstName: '', lastName: '', mobile: '', email: '', password: '', confirmPassword: '', secretKey: '' });
   const [error, setError] = useState('');
@@ -129,7 +133,7 @@ const Register = () => {
           </h1>
           <p className="text-text-muted">
             {sellerPortal
-              ? 'Register to sell on Aashansh at seller.aashansh.org'
+              ? `Register to sell on Aashansh at ${sellerHost}`
               : 'Join Aashansh to shop online'}
           </p>
         </div>
@@ -222,14 +226,14 @@ const Register = () => {
             <>
               Shopping as a customer?{' '}
               <a href={getOtherPortalRegisterUrl()} className="text-primary hover:underline">
-                Register at aashansh.org
+                Register at {customerHost}
               </a>
             </>
           ) : (
             <>
               Want to sell?{' '}
               <a href={getOtherPortalRegisterUrl()} className="text-primary hover:underline">
-                Seller registration at seller.aashansh.org
+                Seller registration at {sellerHost}
               </a>
             </>
           )}

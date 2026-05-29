@@ -3,8 +3,11 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Mail, Lock, LogIn } from 'lucide-react';
 import {
+  getCustomerPortalOrigin,
   getOtherPortalLoginUrl,
   getOtherPortalRegisterUrl,
+  getPortalDisplayHost,
+  getSellerPortalOrigin,
   handleWrongPortalError,
   isSellerPortal,
 } from '../../utils/portalHost';
@@ -21,6 +24,8 @@ const Login = () => {
 
   const from = location.state?.from?.pathname || null;
   const sellerPortal = isSellerPortal();
+  const customerHost = getPortalDisplayHost(getCustomerPortalOrigin());
+  const sellerHost = getPortalDisplayHost(getSellerPortalOrigin());
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -74,8 +79,8 @@ const Login = () => {
           </h1>
           <p className="text-text-muted" style={{ color: 'var(--color-text-muted)' }}>
             {sellerPortal
-              ? 'Sign in to your seller account at seller.aashansh.org'
-              : 'Sign in to shop on aashansh.org'}
+              ? `Sign in to your seller account at ${sellerHost}`
+              : `Sign in to shop on ${customerHost}`}
           </p>
         </div>
 
@@ -136,14 +141,14 @@ const Login = () => {
             <>
               Shopping as a customer?{' '}
               <a href={getOtherPortalLoginUrl()} className="text-primary hover:underline">
-                Sign in at aashansh.org
+                Sign in at {customerHost}
               </a>
             </>
           ) : (
             <>
               Selling on Aashansh?{' '}
               <a href={getOtherPortalRegisterUrl()} className="text-primary hover:underline">
-                Seller sign up at seller.aashansh.org
+                Seller sign up at {sellerHost}
               </a>
             </>
           )}

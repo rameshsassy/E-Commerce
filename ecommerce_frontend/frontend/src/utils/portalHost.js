@@ -46,6 +46,12 @@ export function resolveSellerPortalOrigin() {
     ''
   );
   if (/seller\.aashansh\.org/i.test(configured)) {
+    if (typeof window !== 'undefined') {
+      const h = window.location.hostname.toLowerCase();
+      if (h.endsWith('.vercel.app') || isLocalHostname(h)) {
+        return window.location.origin;
+      }
+    }
     return DEFAULT_SELLER_ORIGIN;
   }
   return configured;
@@ -56,7 +62,21 @@ export function isCustomerPortal() {
 }
 
 export function getCustomerPortalOrigin() {
-  return (import.meta.env.VITE_CUSTOMER_PORTAL_URL || DEFAULT_CUSTOMER_ORIGIN).replace(/\/$/, '');
+  const fromEnv = import.meta.env.VITE_CUSTOMER_PORTAL_URL;
+  if (fromEnv) return String(fromEnv).replace(/\/$/, '');
+  if (typeof window !== 'undefined' && window.location?.origin && !isSellerPortal()) {
+    return window.location.origin;
+  }
+  return DEFAULT_CUSTOMER_ORIGIN;
+}
+
+/** Host label for UI copy (e.g. e-commerce-snj1.vercel.app or localhost:5173). */
+export function getPortalDisplayHost(origin) {
+  try {
+    return new URL(origin).host;
+  } catch {
+    return String(origin || '').replace(/^https?:\/\//, '');
+  }
 }
 
 export function getSellerPortalOrigin() {
