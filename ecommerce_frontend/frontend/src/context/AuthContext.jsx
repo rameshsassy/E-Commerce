@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../utils/api';
+import { AUTH_LOGIN } from '../utils/authEndpoints';
 import { getPortalLoginUrl, isSellerPortal } from '../utils/portalHost';
 
 const AuthContext = createContext(null);
@@ -45,7 +46,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
-    const response = await api.post('/auth/login', {
+    const response = await api.post(AUTH_LOGIN, {
       email,
       password,
       portal: isSellerPortal() ? 'seller' : 'customer',

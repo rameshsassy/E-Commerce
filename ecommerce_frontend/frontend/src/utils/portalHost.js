@@ -41,19 +41,36 @@ export function isSellerPortal(
 
 /** Seller portal base URL — local dev never points at .org until DNS is ready. */
 export function resolveSellerPortalOrigin() {
+  if (typeof window !== 'undefined') {
+    const h = window.location.hostname.toLowerCase();
+    if (h.endsWith('.vercel.app')) {
+      return window.location.origin;
+    }
+  }
+
   const configured = (import.meta.env.VITE_SELLER_PORTAL_URL || DEFAULT_SELLER_ORIGIN).replace(
     /\/$/,
     ''
   );
+
   if (/seller\.aashansh\.org/i.test(configured)) {
+    if (typeof window !== 'undefined' && isLocalHostname(window.location.hostname)) {
+      return DEFAULT_SELLER_ORIGIN;
+    }
     if (typeof window !== 'undefined') {
-      const h = window.location.hostname.toLowerCase();
-      if (h.endsWith('.vercel.app') || isLocalHostname(h)) {
-        return window.location.origin;
-      }
+      return window.location.origin;
     }
     return DEFAULT_SELLER_ORIGIN;
   }
+
+  if (
+    typeof window !== 'undefined' &&
+    !isLocalHostname(window.location.hostname) &&
+    /localhost|127\.0\.0\.1/i.test(configured)
+  ) {
+    return window.location.origin;
+  }
+
   return configured;
 }
 
@@ -62,10 +79,14 @@ export function isCustomerPortal() {
 }
 
 export function getCustomerPortalOrigin() {
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    if (!isSellerPortal(window.location.hostname, window.location.pathname)) {
+      return window.location.origin;
+    }
+  }
   const fromEnv = import.meta.env.VITE_CUSTOMER_PORTAL_URL;
-  if (fromEnv) return String(fromEnv).replace(/\/$/, '');
-  if (typeof window !== 'undefined' && window.location?.origin && !isSellerPortal()) {
-    return window.location.origin;
+  if (fromEnv && !/localhost|127\.0\.0\.1/i.test(fromEnv)) {
+    return String(fromEnv).replace(/\/$/, '');
   }
   return DEFAULT_CUSTOMER_ORIGIN;
 }
@@ -77,6 +98,15 @@ export function getPortalDisplayHost(origin) {
   } catch {
     return String(origin || '').replace(/^https?:\/\//, '');
   }
+}
+
+/** Friendly name on login/register — avoids showing localhost:5173 during local dev. */
+export function getPortalLabelForUi(origin, { seller = false } = {}) {
+  const host = getPortalDisplayHost(origin);
+  if (!host || /localhost|127\.0\.0\.1/i.test(host)) {
+    return seller ? 'Aashansh Seller' : 'Aashansh';
+  }
+  return host;
 }
 
 export function getSellerPortalOrigin() {

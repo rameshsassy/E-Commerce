@@ -1,4 +1,9 @@
 import axios from 'axios';
+import {
+  AUTH_CUSTOMER_REGISTER,
+  AUTH_LOGIN,
+  AUTH_SELLER_REGISTER,
+} from './authEndpoints';
 import { portalApiHeaders } from './portalHost';
 
 export const BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
@@ -30,9 +35,9 @@ api.interceptors.request.use(
 
 // Auth endpoints where a 401 must not trigger refresh-token retry
 const AUTH_NO_REFRESH = [
-  '/auth/login',
-  '/auth/customer/register',
-  '/auth/seller/register',
+  AUTH_LOGIN,
+  AUTH_CUSTOMER_REGISTER,
+  AUTH_SELLER_REGISTER,
   '/auth/admin/register',
   '/auth/forgot-password',
   '/auth/refresh-token',

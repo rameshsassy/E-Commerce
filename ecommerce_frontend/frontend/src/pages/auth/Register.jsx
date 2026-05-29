@@ -3,10 +3,11 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/api';
 import { Mail, Lock, User, UserPlus, Phone } from 'lucide-react';
+import { getRegisterEndpoint } from '../../utils/authEndpoints';
 import {
   getCustomerPortalOrigin,
   getOtherPortalRegisterUrl,
-  getPortalDisplayHost,
+  getPortalLabelForUi,
   getSellerPortalOrigin,
   handleWrongPortalError,
   isCustomerPortal,
@@ -17,10 +18,17 @@ const Register = () => {
   const searchParams = new URLSearchParams(useLocation().search);
   const referralFromUrl = searchParams.get('ref') || searchParams.get('referralCode') || '';
   const sellerPortal = isSellerPortal();
-  const customerHost = getPortalDisplayHost(getCustomerPortalOrigin());
-  const sellerHost = getPortalDisplayHost(getSellerPortalOrigin());
+  const customerLabel = getPortalLabelForUi(getCustomerPortalOrigin(), { seller: false });
+  const sellerLabel = getPortalLabelForUi(getSellerPortalOrigin(), { seller: true });
   const role = sellerPortal ? 'seller' : 'customer';
-  const [formData, setFormData] = useState({ firstName: '', lastName: '', mobile: '', email: '', password: '', confirmPassword: '', secretKey: '' });
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    mobile: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+  });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -64,51 +72,33 @@ const Register = () => {
         return;
       }
 
-      let endpoint = '/auth/customer/register';
-      if (role === 'seller') endpoint = '/auth/seller/register';
-      if (role === 'admin') endpoint = '/auth/admin/register';
+      const endpoint = getRegisterEndpoint({ seller: role === 'seller' });
 
-      const payload =
-        role === 'admin'
-          ? {
-              firstName: formData.firstName.trim(),
-              lastName: formData.lastName.trim(),
-              email: formData.email.trim(),
-              mobile: formData.mobile.trim(),
-              password: formData.password,
-              secretKey: formData.secretKey,
-            }
-          : {
-              firstName: formData.firstName.trim(),
-              lastName: formData.lastName.trim(),
-              email: formData.email.trim(),
-              mobile: formData.mobile.trim(),
-              password: formData.password,
-              ...(role === 'seller' && referralFromUrl
-                ? { referralCode: referralFromUrl.trim() }
-                : {}),
-            };
+      const payload = {
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        email: formData.email.trim(),
+        mobile: formData.mobile.trim(),
+        password: formData.password,
+        ...(role === 'seller' && referralFromUrl
+          ? { referralCode: referralFromUrl.trim() }
+          : {}),
+      };
 
       const { data } = await api.post(endpoint, payload);
 
-      if ((role === 'customer' || role === 'seller') && data.token && data.user) {
+      if (data.token && data.user) {
         setSession(data.token, data.user);
       }
 
       const defaultMsg =
-        role === 'customer'
-          ? 'Customer Registered Successfully'
-          : role === 'seller'
-            ? 'Seller Registered Successfully'
-            : 'Registration successful';
+        role === 'seller'
+          ? 'Seller Registered Successfully'
+          : 'Customer Registered Successfully';
 
       setSuccess(data.message || defaultMsg);
 
       setTimeout(() => {
-        if (role === 'admin') {
-          navigate('/login');
-          return;
-        }
         if (from) navigate(from);
         else if (role === 'seller') navigate('/seller/dashboard');
         else navigate('/products');
@@ -133,7 +123,7 @@ const Register = () => {
           </h1>
           <p className="text-text-muted">
             {sellerPortal
-              ? `Register to sell on Aashansh at ${sellerHost}`
+              ? `Register to sell on ${sellerLabel}`
               : 'Join Aashansh to shop online'}
           </p>
         </div>
@@ -226,14 +216,14 @@ const Register = () => {
             <>
               Shopping as a customer?{' '}
               <a href={getOtherPortalRegisterUrl()} className="text-primary hover:underline">
-                Register at {customerHost}
+                Register on {customerLabel}
               </a>
             </>
           ) : (
             <>
               Want to sell?{' '}
               <a href={getOtherPortalRegisterUrl()} className="text-primary hover:underline">
-                Seller registration at {sellerHost}
+                Seller registration on {sellerLabel}
               </a>
             </>
           )}

@@ -6,7 +6,7 @@ import {
   getCustomerPortalOrigin,
   getOtherPortalLoginUrl,
   getOtherPortalRegisterUrl,
-  getPortalDisplayHost,
+  getPortalLabelForUi,
   getSellerPortalOrigin,
   handleWrongPortalError,
   isSellerPortal,
@@ -24,8 +24,8 @@ const Login = () => {
 
   const from = location.state?.from?.pathname || null;
   const sellerPortal = isSellerPortal();
-  const customerHost = getPortalDisplayHost(getCustomerPortalOrigin());
-  const sellerHost = getPortalDisplayHost(getSellerPortalOrigin());
+  const customerLabel = getPortalLabelForUi(getCustomerPortalOrigin(), { seller: false });
+  const sellerLabel = getPortalLabelForUi(getSellerPortalOrigin(), { seller: true });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -79,8 +79,8 @@ const Login = () => {
           </h1>
           <p className="text-text-muted" style={{ color: 'var(--color-text-muted)' }}>
             {sellerPortal
-              ? `Sign in to your seller account at ${sellerHost}`
-              : `Sign in to shop on ${customerHost}`}
+              ? `Sign in to your seller account on ${sellerLabel}`
+              : `Sign in to shop on ${customerLabel}`}
           </p>
         </div>
 
@@ -141,14 +141,14 @@ const Login = () => {
             <>
               Shopping as a customer?{' '}
               <a href={getOtherPortalLoginUrl()} className="text-primary hover:underline">
-                Sign in at {customerHost}
+                Sign in on {customerLabel}
               </a>
             </>
           ) : (
             <>
               Selling on Aashansh?{' '}
               <a href={getOtherPortalRegisterUrl()} className="text-primary hover:underline">
-                Seller sign up at {sellerHost}
+                Seller sign up on {sellerLabel}
               </a>
             </>
           )}
