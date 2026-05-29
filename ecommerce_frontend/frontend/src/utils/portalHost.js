@@ -12,6 +12,11 @@ function isLocalHostname(hostname) {
   return h === 'localhost' || h === '127.0.0.1';
 }
 
+function isPreviewHostname(hostname) {
+  const h = String(hostname).toLowerCase();
+  return h.endsWith('.vercel.app');
+}
+
 function parseList(value) {
   return String(value || '')
     .split(',')
@@ -33,6 +38,12 @@ export function isSellerPortal(
 
   const h = String(hostname).toLowerCase();
   if (isLocalHostname(h) && pathname.startsWith('/seller')) return true;
+  if (isPreviewHostname(h) && pathname.startsWith('/seller')) return true;
+
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('portal') === 'seller') return true;
+  }
 
   const sellers = sellerHostnames();
   if (sellers.includes(h)) return true;
@@ -125,17 +136,60 @@ export function getPortalRegisterUrl(options = {}) {
   return url.toString();
 }
 
+function samePortalDeployment() {
+  return getCustomerPortalOrigin() === getSellerPortalOrigin();
+}
+
 /** Full URL on the other portal (cross-domain redirect). */
 export function getOtherPortalLoginUrl() {
-  return isSellerPortal()
-    ? `${getCustomerPortalOrigin()}/login`
-    : `${getSellerPortalOrigin()}/login`;
+  if (isSellerPortal()) {
+    return `${getCustomerPortalOrigin()}/login`;
+  }
+  if (samePortalDeployment()) {
+    return `${getSellerPortalOrigin()}/login?portal=seller`;
+  }
+  return `${getSellerPortalOrigin()}/login`;
 }
 
 export function getOtherPortalRegisterUrl() {
-  return isSellerPortal()
-    ? `${getCustomerPortalOrigin()}/register`
-    : `${getSellerPortalOrigin()}/register`;
+  if (isSellerPortal()) {
+    return `${getCustomerPortalOrigin()}/register`;
+  }
+  if (samePortalDeployment()) {
+    return `${getSellerPortalOrigin()}/register?portal=seller`;
+  }
+  return `${getSellerPortalOrigin()}/register`;
+}
+
+/** Keep users on the deployed site — never send them to localhost or dead .org hosts. */
+export function sanitizePortalRedirect(url) {
+  if (!url || typeof window === 'undefined') return url;
+  try {
+    const target = new URL(url, window.location.origin);
+    const currentHost = window.location.hostname.toLowerCase();
+    const targetHost = target.hostname.toLowerCase();
+    const onPreview = isPreviewHostname(currentHost);
+    const badTarget =
+      isLocalHostname(targetHost) ||
+      targetHost === 'seller.localhost' ||
+      (onPreview && /aashansh\.org$/i.test(targetHost));
+
+    if (!badTarget) return target.toString();
+
+    const path = target.pathname || '/login';
+    const search = target.search || '';
+    const sellerPath =
+      target.searchParams.get('portal') === 'seller' ||
+      targetHost.startsWith('seller.') ||
+      path.includes('seller');
+
+    if (onPreview && sellerPath && !search.includes('portal=seller')) {
+      return `${window.location.origin}/login?portal=seller`;
+    }
+    return `${window.location.origin}${path}${search}`;
+  } catch {
+    return url;
+  }
 }
 
 export function portalApiHeaders() {
@@ -153,8 +207,10 @@ export { isLocalHostname };
 export function handleWrongPortalError(err) {
   const data = err?.response?.data;
   if (data?.code === 'WRONG_PORTAL' && data.redirectUrl) {
-    window.location.href = data.redirectUrl;
+    window.location.href = sanitizePortalRedirect(data.redirectUrl);
     return true;
   }
   return false;
 }
+
+export { isPreviewHostname };

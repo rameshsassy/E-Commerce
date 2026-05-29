@@ -6,8 +6,27 @@ import {
 } from './authEndpoints';
 import { portalApiHeaders } from './portalHost';
 
-export const BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+function resolveBaseUrl() {
+  const fromEnv = import.meta.env.VITE_API_URL?.replace(/\/api\/?$/, '');
+  if (fromEnv && !/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(fromEnv)) {
+    return fromEnv.replace(/\/$/, '');
+  }
+  return fromEnv || 'http://localhost:5000';
+}
+
+export const BASE_URL = resolveBaseUrl();
 const API_URL = `${BASE_URL}/api`;
+
+/** Shown on login when the production build still points at localhost for the API. */
+export function getDeployedApiConfigError() {
+  if (!import.meta.env.PROD || typeof window === 'undefined') return null;
+  const host = window.location.hostname.toLowerCase();
+  if (host === 'localhost' || host === '127.0.0.1') return null;
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(BASE_URL)) {
+    return 'This site cannot reach the server. Set VITE_API_URL in Vercel to your hosted API URL, then redeploy.';
+  }
+  return null;
+}
 
 const api = axios.create({
   baseURL: API_URL,

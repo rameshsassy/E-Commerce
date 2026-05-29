@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { isSellerPortal, isLocalHostname } from './utils/portalHost';
+import { isSellerPortal, isLocalHostname, isPreviewHostname } from './utils/portalHost';
 import PortalRouteGuard from './components/routing/PortalRouteGuard';
 import SellerPortalHome from './components/routing/SellerPortalHome';
 
@@ -146,7 +146,7 @@ function AppRoutes() {
   const host = window.location.hostname;
   const sellerMode =
     isSellerPortal(host, pathname) ||
-    (isLocalHostname(host) && pathname.startsWith('/seller'));
+    ((isLocalHostname(host) || isPreviewHostname(host)) && pathname.startsWith('/seller'));
 
   return sellerMode ? <SellerPortalRoutes /> : <CustomerPortalRoutes />;
 }

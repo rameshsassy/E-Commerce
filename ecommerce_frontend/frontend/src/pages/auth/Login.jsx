@@ -11,6 +11,8 @@ import {
   handleWrongPortalError,
   isSellerPortal,
 } from '../../utils/portalHost';
+import { getDeployedApiConfigError } from '../../utils/api';
+import { getApiErrorMessage, isNetworkError } from '../../utils/apiErrors';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -63,7 +65,17 @@ const Login = () => {
       }
     } catch (err) {
       if (handleWrongPortalError(err)) return;
-      const msg = err.response?.data?.message || err.message || 'Login failed';
+      const configErr = getDeployedApiConfigError();
+      if (configErr && isNetworkError(err)) {
+        setError(configErr);
+        return;
+      }
+      const msg = getApiErrorMessage(
+        err,
+        isNetworkError(err)
+          ? 'Cannot reach the server. Check that the API is running and VITE_API_URL is set on Vercel.'
+          : 'Login failed'
+      );
       setError(msg);
     } finally {
       setLoading(false);
