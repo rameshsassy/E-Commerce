@@ -4,7 +4,6 @@ import {
   getSellerPortalOrigin,
   isCustomerPortal,
   isLocalHostname,
-  isPreviewHostname,
 } from '../../utils/portalHost';
 
 /**
@@ -13,20 +12,18 @@ import {
  */
 export default function PortalRouteGuard({ children }) {
   const location = useLocation();
-  const host = window.location.hostname;
-  const onLocal = isLocalHostname(host);
-  const onPreview = isPreviewHostname(host);
+  const onLocal = isLocalHostname(window.location.hostname);
 
   useEffect(() => {
     if (!isCustomerPortal()) return;
     if (!location.pathname.startsWith('/seller')) return;
-    if (onLocal || onPreview) return;
+    if (onLocal) return;
 
     const target = `${getSellerPortalOrigin()}${location.pathname}${location.search}`;
     window.location.replace(target);
-  }, [location.pathname, location.search, onLocal, onPreview]);
+  }, [location.pathname, location.search, onLocal]);
 
-  if (isCustomerPortal() && location.pathname.startsWith('/seller') && !onLocal && !onPreview) {
+  if (isCustomerPortal() && location.pathname.startsWith('/seller') && !onLocal) {
     return (
       <div className="min-h-[40vh] flex items-center justify-center text-text-muted text-sm">
         Redirecting to seller portal…

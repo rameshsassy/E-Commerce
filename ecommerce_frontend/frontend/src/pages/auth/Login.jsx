@@ -11,15 +11,15 @@ import {
   handleWrongPortalError,
   isSellerPortal,
 } from '../../utils/portalHost';
-import { getDeployedApiConfigError } from '../../utils/api';
 import { getApiErrorMessage, isNetworkError } from '../../utils/apiErrors';
+import { resolveApiUrl } from '../../utils/apiConfig';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  
+
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -33,7 +33,7 @@ const Login = () => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    
+
     try {
       const user = await login(email, password);
       // Redirect based on role
@@ -65,17 +65,9 @@ const Login = () => {
       }
     } catch (err) {
       if (handleWrongPortalError(err)) return;
-      const configErr = getDeployedApiConfigError();
-      if (configErr && isNetworkError(err)) {
-        setError(configErr);
-        return;
-      }
-      const msg = getApiErrorMessage(
-        err,
-        isNetworkError(err)
-          ? 'Cannot reach the server. Check that the API is running and VITE_API_URL is set on Vercel.'
-          : 'Login failed'
-      );
+      const msg = isNetworkError(err)
+        ? `Cannot reach the API (${resolveApiUrl()}). Deploy the backend and set BACKEND_URL on Vercel, then redeploy.`
+        : getApiErrorMessage(err, 'Login failed');
       setError(msg);
     } finally {
       setLoading(false);

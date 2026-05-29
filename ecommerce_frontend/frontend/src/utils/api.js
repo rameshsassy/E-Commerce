@@ -4,41 +4,31 @@ import {
   AUTH_LOGIN,
   AUTH_SELLER_REGISTER,
 } from './authEndpoints';
+import { resolveApiBaseUrl, resolveApiUrl } from './apiConfig';
 import { portalApiHeaders } from './portalHost';
 
-function resolveBaseUrl() {
-  const fromEnv = import.meta.env.VITE_API_URL?.replace(/\/api\/?$/, '');
-  if (fromEnv && !/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(fromEnv)) {
-    return fromEnv.replace(/\/$/, '');
-  }
-  return fromEnv || 'http://localhost:5000';
-}
+const baseUrlHolder = {
+  toString() {
+    return resolveApiBaseUrl();
+  },
+  valueOf() {
+    return resolveApiBaseUrl();
+  },
+};
 
-export const BASE_URL = resolveBaseUrl();
-const API_URL = `${BASE_URL}/api`;
-
-/** Shown on login when the production build still points at localhost for the API. */
-export function getDeployedApiConfigError() {
-  if (!import.meta.env.PROD || typeof window === 'undefined') return null;
-  const host = window.location.hostname.toLowerCase();
-  if (host === 'localhost' || host === '127.0.0.1') return null;
-  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(BASE_URL)) {
-    return 'This site cannot reach the server. Set VITE_API_URL in Vercel to your hosted API URL, then redeploy.';
-  }
-  return null;
-}
+/** Use in templates: `${BASE_URL}/uploads/...` — resolves at read time in the browser. */
+export const BASE_URL = baseUrlHolder;
 
 const api = axios.create({
-  baseURL: API_URL,
-  withCredentials: true, // IMPORTANT: Allows cookies to be sent and received
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Add a request interceptor to add the auth token
 api.interceptors.request.use(
   (config) => {
+    config.baseURL = resolveApiUrl();
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -52,7 +42,6 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Auth endpoints where a 401 must not trigger refresh-token retry
 const AUTH_NO_REFRESH = [
   AUTH_LOGIN,
   AUTH_CUSTOMER_REGISTER,
@@ -65,14 +54,11 @@ const AUTH_NO_REFRESH = [
 const shouldSkipRefreshRetry = (url = '') =>
   AUTH_NO_REFRESH.some((path) => url.includes(path));
 
-// Add a response interceptor to handle token refresh
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    
-    // If the error status is 401 and there is no originalRequest._retry flag,
-    // it means the token has expired and we need to refresh it
+
     if (
       error.response &&
       error.response.status === 401 &&
@@ -82,23 +68,16 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        // Try to get a new access token using the refresh token cookie
-        const res = await axios.post(`${API_URL}/auth/refresh-token`, {}, {
-          withCredentials: true
+        const res = await axios.post(`${resolveApiUrl()}/auth/refresh-token`, {}, {
+          withCredentials: true,
         });
 
         if (res.data.token) {
-          // Store the new access token
           localStorage.setItem('token', res.data.token);
-          
-          // Update the original request's authorization header
           originalRequest.headers.Authorization = `Bearer ${res.data.token}`;
-          
-          // Retry the original request
           return api(originalRequest);
         }
       } catch (refreshError) {
-        // If refresh fails, force logout and redirect
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         if (window.location.pathname !== '/login') {
@@ -107,7 +86,7 @@ api.interceptors.response.use(
         return Promise.reject(refreshError);
       }
     }
-    
+
     return Promise.reject(error);
   }
 );
