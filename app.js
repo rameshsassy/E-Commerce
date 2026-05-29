@@ -17,6 +17,7 @@ import couponRoutes from "./routes/coupon.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
 import supportRoutes from "./routes/support.routes.js";
 import categoryRoutes from "./routes/category.routes.js";
+import publicStoreRoutes from "./routes/publicStore.routes.js";
 
 import { errorHandler } from "./middleware/error.middleware.js";
 import { getUploadsRoot, ensureUploadsRoot } from "./utils/uploadPaths.js";
@@ -36,6 +37,7 @@ function parseOriginList(value) {
 const DEFAULT_CORS_ORIGINS = [
   "http://localhost:5173",
   "http://127.0.0.1:5173",
+  "http://seller.localhost:5173",
   "http://localhost:5174",
   "http://127.0.0.1:5174",
   "http://localhost:3000",
@@ -46,6 +48,7 @@ function buildCorsAllowedSet() {
   const set = new Set([
     ...DEFAULT_CORS_ORIGINS,
     ...parseOriginList(process.env.FRONTEND_URL),
+    ...parseOriginList(process.env.SELLER_FRONTEND_URL),
     ...parseOriginList(process.env.CORS_EXTRA_ORIGINS),
   ]);
   return set;
@@ -103,7 +106,7 @@ app.use(
     origin: corsOriginCallback,
     credentials: true,
     methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Portal"],
   })
 );
 app.use(express.json());
@@ -164,6 +167,7 @@ app.use("/api/coupons", couponRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/support", supportRoutes);
 app.use("/api/categories", categoryRoutes);
+app.use("/api/public", publicStoreRoutes);
 
 // ===============================
 // 🏠 ROOT ROUTE

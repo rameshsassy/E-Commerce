@@ -70,6 +70,7 @@ export const getPendingProducts = async (req, res) => {
   try {
     const products = await Product.find({
       approvalStatus: "pending",
+      isDraft: { $ne: true },
     }).populate("sellerId", "firstName email status");
 
     res.json({

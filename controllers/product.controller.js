@@ -2,25 +2,172 @@ import Product from "../models/Product.js";
 import fs from "fs";
 import path from "path";
 import csv from "csv-parser";
-import sanitizeHtml from "sanitize-html";
-import sharp from "sharp";
+import crypto from "crypto";
 import { ensureUploadsRoot, absoluteToWebPath, getUploadsRoot } from "../utils/uploadPaths.js";
+import { optimizeImageBuffer } from "../utils/imageOptimizer.js";
+import ProductViewEvent from "../models/ProductViewEvent.js";
+import {
+  applyProductFields,
+  getUploadedImagePaths,
+  getUploadedFieldFilePaths,
+  parseExistingImagePaths,
+  parseLocations,
+  parseKeywords,
+  sanitizeDescription,
+} from "../utils/productFields.js";
+import {
+  validateProductDescription,
+  validateProductTitle,
+} from "../utils/productContentValidation.js";
+import {
+  resolveSellerCategory,
+  validateBulkProductCategories,
+} from "../utils/sellerCategoryRules.js";
+import {
+  AASHANSH_FAVICON_PATH,
+  buildCategoryPageSeo,
+  buildCategoryProductFilter,
+  resolveCategoryParams,
+} from "../utils/categoryPageSeo.js";
+import { PLAN_ERROR_CODE } from "../utils/storePlanLimits.js";
+import {
+  logProductCreated,
+  logProductUpdated,
+  logProductDeleted,
+  logBulkProductUpload,
+} from "../services/sellerActivity.service.js";
+
+const MAX_PRODUCT_IMAGES = 5;
+import {
+  assertProductEditable,
+  sendProductLockedResponse,
+} from "../middleware/productEdit.middleware.js";
+import {
+  ALL_INDIA_REGIONS,
+  filterSuggestionsStartsWith,
+  filterSuggestionsStartsWithLimited,
+  getIndianCities,
+  getIndianStates,
+  DELIVERY_BY_OPTIONS,
+} from "../data/indiaLocations.js";
 
 ensureUploadsRoot();
 
-const sanitizeDescription = (html) => {
-  if (!html) return "";
-  return sanitizeHtml(html, {
-    allowedTags: ['b', 'i', 'strong', 'em', 'u', 'p', 'div', 'br', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'],
-    allowedAttributes: {
-      '*': ['style', 'class', 'align'],
-    },
-    allowedStyles: {
-      '*': {
-        'text-align': [/^left$/, /^right$/, /^center$/, /^justify$/],
+function sendPlanErrorResponse(res, err) {
+  const status = err.statusCode || 500;
+  const payload = { message: err.message };
+  if (err.code) payload.code = err.code;
+  if (err.upgradeFeature) payload.upgradeFeature = err.upgradeFeature;
+  return res.status(status).json(payload);
+}
+
+async function applyCategoryPlanToBody(req, product = null) {
+  if (req.body.category === undefined && req.body.premiumType === undefined) {
+    return;
+  }
+  const resolved = await resolveSellerCategory(
+    req.user,
+    req.body.category !== undefined ? req.body.category : product?.category,
+    {
+      excludeProductId: product?._id,
+      premiumType: req.body.premiumType,
+    }
+  );
+  req.body.category = resolved.category;
+  if (resolved.premiumType !== undefined) {
+    req.body.premiumType = resolved.premiumType;
+  }
+}
+
+// ===============================
+// 💾 AUTO-SAVE PRODUCT DRAFT
+// ===============================
+export const autoSaveProduct = async (req, res) => {
+  try {
+    if (req.user.status !== "approved") {
+      return res.status(403).json({
+        message: "Complete KYC and get approval to manage products",
+      });
+    }
+
+    let product;
+
+    if (req.params.id) {
+      product = await Product.findById(req.params.id);
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+      if (product.sellerId.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      try {
+        assertProductEditable(product);
+      } catch (err) {
+        return sendProductLockedResponse(res, err);
+      }
+    } else {
+      product = await Product.findOne({
+        sellerId: req.user._id,
+        isDraft: true,
+      });
+
+      if (!product) {
+        product = new Product({
+          sellerId: req.user._id,
+          title: "Untitled draft",
+          description: "",
+          price: 0,
+          category: "Uncategorized",
+          isDraft: true,
+          approvalStatus: "pending",
+        });
       }
     }
-  });
+
+    try {
+      await applyCategoryPlanToBody(req, product);
+    } catch (err) {
+      if (err.code === PLAN_ERROR_CODE) return sendPlanErrorResponse(res, err);
+      throw err;
+    }
+
+    applyProductFields(product, req.body, { partial: true, seller: req.user });
+
+    // Map uploaded variant images to variants without an image yet.
+    // (This mirrors the behavior in addProduct/updateProduct so autosave drafts
+    // don’t lose variant images.)
+    const variantImagePaths = getUploadedFieldFilePaths(req, "variantImages");
+    if (variantImagePaths.length > 0 && Array.isArray(product.variants)) {
+      let idx = 0;
+      product.variants = product.variants.map((v) => {
+        if (idx >= variantImagePaths.length) return v;
+        if (v && (!v.image || String(v.image).trim() === "")) {
+          const next = { ...v, image: variantImagePaths[idx] };
+          idx += 1;
+          return next;
+        }
+        return v;
+      });
+    }
+
+    const newImages = getUploadedImagePaths(req);
+    if (newImages) {
+      product.images = [...(product.images || []), ...newImages];
+    }
+
+    product.isDraft = true;
+    await product.save();
+
+    res.json({
+      message: "Product details auto-saved",
+      autoSaved: true,
+      product,
+    });
+  } catch (error) {
+    if (error.code === PLAN_ERROR_CODE) return sendPlanErrorResponse(res, error);
+    const status = error.statusCode || 500;
+    res.status(status).json({ message: error.message });
+  }
 };
 
 // ===============================
@@ -34,116 +181,217 @@ export const addProduct = async (req, res) => {
       });
     }
 
-    const { title, description, price, compareAtPrice, unitPrice, chargeTax, stock, locations, category, keywords, inventoryTracked, sku, barcode, continueSellingWhenOutOfStock, isPhysicalProduct, packageType, packageLength, packageWidth, packageHeight, packageDimensionsUnit, productWeight, productWeightUnit, pageTitle, metaDescription, urlHandle } = req.body;
+    const { draftId } = req.body;
+    const { title, description, price, category } = req.body;
 
-    const categoryValue =
-      category != null && String(category).trim() !== ""
-        ? String(category).trim()
-        : "Uncategorized";
-
-    if (!title || !description || !price) {
+    if (!title || !description || price === undefined || price === "") {
       return res.status(400).json({
         message: "Title, description, and price are required",
       });
     }
 
-    // 🖼️ Images
-    let imagePaths = [];
-    if (req.files && req.files.length > 0) {
-      const absPaths = req.files.map((file) => file.path);
-      for (const filePath of absPaths) {
-        try {
-          let quality = 80;
-          let buffer = await sharp(filePath)
-            .resize(800, 800, { fit: 'cover', position: 'center' })
-            .jpeg({ quality })
-            .toBuffer();
-          
-          while (buffer.length > 100 * 1024 && quality > 10) {
-            quality -= 10;
-            buffer = await sharp(filePath)
-              .resize(800, 800, { fit: 'cover', position: 'center' })
-              .jpeg({ quality })
-              .toBuffer();
-          }
-          fs.writeFileSync(filePath, buffer);
-        } catch (err) {
-          console.error("Image processing error:", err);
-        }
+    try {
+      validateProductTitle(title);
+      validateProductDescription(description);
+    } catch (err) {
+      return res.status(err.statusCode || 400).json({ message: err.message });
+    }
+
+    let categoryValue =
+      category != null && String(category).trim() !== ""
+        ? String(category).trim()
+        : "Uncategorized";
+
+    let product;
+
+    if (draftId) {
+      product = await Product.findOne({
+        _id: draftId,
+        sellerId: req.user._id,
+        isDraft: true,
+      });
+      if (!product) {
+        return res.status(404).json({ message: "Draft not found" });
       }
-      imagePaths = absPaths.map((p) => absoluteToWebPath(p));
-    }
-
-    // 🔍 Keywords
-    let keywordArray = [];
-    if (typeof keywords === "string" && keywords.trim() !== "") {
-      keywordArray = keywords.split(",").map((k) => k.trim()).filter(Boolean);
-    } else if (Array.isArray(keywords)) {
-      keywordArray = keywords.filter(Boolean);
-    }
-
-    let parsedLocations = [];
-    if (locations) {
       try {
-        parsedLocations = JSON.parse(locations);
-      } catch (e) {
-        if (Array.isArray(locations)) parsedLocations = locations;
+        assertProductEditable(product);
+      } catch (err) {
+        return sendProductLockedResponse(res, err);
       }
     }
-    
-    // Filter and sanitize locations
-    if (parsedLocations.length > 0) {
-      parsedLocations = parsedLocations
-        .filter(loc => loc.address && loc.address.trim() !== "")
-        .map(loc => ({
-          address: loc.address,
-          stock: Number(loc.stock) || 0
-        }));
-    }
-    
-    let totalStock = Number(stock) || 0;
-    if (parsedLocations.length > 0) {
-      totalStock = parsedLocations.reduce((sum, loc) => sum + loc.stock, 0);
-    } else {
-      parsedLocations = [{ address: "Main Shop Location", stock: totalStock }];
+
+    try {
+      const resolved = await resolveSellerCategory(req.user, categoryValue, {
+        excludeProductId: product?._id,
+        premiumType: req.body.premiumType,
+      });
+      categoryValue = resolved.category;
+      req.body.category = resolved.category;
+      if (resolved.premiumType !== undefined) {
+        req.body.premiumType = resolved.premiumType;
+      }
+    } catch (err) {
+      if (err.code === PLAN_ERROR_CODE) return sendPlanErrorResponse(res, err);
+      throw err;
     }
 
-    const product = await Product.create({
+    const imagePaths = getUploadedImagePaths(req, "images") || [];
+    if (imagePaths.length > MAX_PRODUCT_IMAGES) {
+      return res.status(400).json({
+        message: `Maximum ${MAX_PRODUCT_IMAGES} images allowed per product.`,
+      });
+    }
+
+    // Variant images (optional)
+    const variantImagePaths = getUploadedFieldFilePaths(req, "variantImages");
+
+    const { locations: parsedLocations, stock: totalStock } = parseLocations(
+      req.body.locations,
+      req.body.stock
+    );
+
+    const keywordArray = parseKeywords(req.body.keywords) || [];
+
+    if (product) {
+      applyProductFields(product, req.body, {
+        seller: req.user,
+        requireStoreAddress: true,
+      });
+      product.images = imagePaths.length > 0 ? imagePaths : product.images;
+
+      // Map uploaded variant images in-order onto variants with empty image
+      if (variantImagePaths.length > 0 && Array.isArray(product.variants)) {
+        let idx = 0;
+        product.variants = product.variants.map((v) => {
+          if (idx >= variantImagePaths.length) return v;
+          if (v && (!v.image || String(v.image).trim() === "")) {
+            const next = { ...v, image: variantImagePaths[idx] };
+            idx += 1;
+            return next;
+          }
+          return v;
+        });
+      }
+
+      product.category = categoryValue;
+      product.stock = totalStock;
+      product.locations = parsedLocations;
+      product.keywords = keywordArray;
+      product.isDraft = false;
+      product.approvalStatus = "pending";
+      await product.save();
+    } else {
+      const draftProduct = new Product({
+        sellerId: req.user._id,
+        title,
+        description: sanitizeDescription(description),
+        price: Number(price),
+        compareAtPrice: req.body.compareAtPrice
+          ? Number(req.body.compareAtPrice)
+          : undefined,
+        unitPrice: req.body.unitPrice ? Number(req.body.unitPrice) : undefined,
+        chargeTax:
+          req.body.chargeTax === "true" || req.body.chargeTax === true,
+        stock: totalStock,
+        locations: parsedLocations,
+        inventoryTracked:
+          req.body.inventoryTracked === "true" ||
+          req.body.inventoryTracked === true,
+        sku: req.body.sku || "",
+        barcode: req.body.barcode || "",
+        continueSellingWhenOutOfStock:
+          req.body.continueSellingWhenOutOfStock === "true" ||
+          req.body.continueSellingWhenOutOfStock === true,
+        isPhysicalProduct:
+          req.body.isPhysicalProduct === undefined
+            ? true
+            : req.body.isPhysicalProduct === "true" ||
+              req.body.isPhysicalProduct === true,
+        packageType:
+          req.body.packageType ||
+          "Store default - Sample box - 22 x 13.7 x 4.2 cm, 0 kg",
+        packageLength: req.body.packageLength
+          ? Number(req.body.packageLength)
+          : undefined,
+        packageWidth: req.body.packageWidth
+          ? Number(req.body.packageWidth)
+          : undefined,
+        packageHeight: req.body.packageHeight
+          ? Number(req.body.packageHeight)
+          : undefined,
+        packageDimensionsUnit: req.body.packageDimensionsUnit || "cm",
+        productWeight: req.body.productWeight
+          ? Number(req.body.productWeight)
+          : 0,
+        productWeightUnit: req.body.productWeightUnit || "g",
+        pageTitle: req.body.pageTitle || title.substring(0, 70),
+        metaDescription: req.body.metaDescription || "",
+        urlHandle:
+          req.body.urlHandle ||
+          title
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/(^-|-$)+/g, ""),
+        category: categoryValue,
+        keywords: keywordArray,
+        images: imagePaths,
+        isDraft: false,
+        approvalStatus: "pending",
+      });
+      applyProductFields(draftProduct, req.body, {
+        seller: req.user,
+        requireStoreAddress: true,
+      });
+
+      // Map uploaded variant images in-order onto variants with empty image
+      if (variantImagePaths.length > 0 && Array.isArray(draftProduct.variants)) {
+        let idx = 0;
+        draftProduct.variants = draftProduct.variants.map((v) => {
+          if (idx >= variantImagePaths.length) return v;
+          if (v && (!v.image || String(v.image).trim() === "")) {
+            const next = { ...v, image: variantImagePaths[idx] };
+            idx += 1;
+            return next;
+          }
+          return v;
+        });
+      }
+
+      product = await draftProduct.save();
+    }
+
+    // Remove any other stale drafts for this seller
+    await Product.deleteMany({
       sellerId: req.user._id,
-      title,
-      description: sanitizeDescription(description),
-      price: Number(price),
-      compareAtPrice: compareAtPrice ? Number(compareAtPrice) : undefined,
-      unitPrice: unitPrice ? Number(unitPrice) : undefined,
-      chargeTax: chargeTax === 'true' || chargeTax === true,
-      stock: totalStock,
-      locations: parsedLocations,
-      inventoryTracked: inventoryTracked === 'true' || inventoryTracked === true,
-      sku: sku || "",
-      barcode: barcode || "",
-      continueSellingWhenOutOfStock: continueSellingWhenOutOfStock === 'true' || continueSellingWhenOutOfStock === true,
-      isPhysicalProduct: isPhysicalProduct === undefined ? true : (isPhysicalProduct === 'true' || isPhysicalProduct === true),
-      packageType: packageType || "Store default - Sample box - 22 x 13.7 x 4.2 cm, 0 kg",
-      packageLength: packageLength ? Number(packageLength) : undefined,
-      packageWidth: packageWidth ? Number(packageWidth) : undefined,
-      packageHeight: packageHeight ? Number(packageHeight) : undefined,
-      packageDimensionsUnit: packageDimensionsUnit || "cm",
-      productWeight: productWeight ? Number(productWeight) : 0,
-      productWeightUnit: productWeightUnit || "g",
-      pageTitle: pageTitle || title.substring(0, 70),
-      metaDescription: metaDescription || "",
-      urlHandle: urlHandle || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''),
-      category: categoryValue,
-      keywords: keywordArray,
-      images: imagePaths,
-      approvalStatus: "pending",
+      isDraft: true,
+      _id: { $ne: product._id },
     });
+
+    logProductCreated(req.user._id, product);
 
     res.status(201).json({
       message: "Product submitted for admin approval",
       product,
     });
+  } catch (error) {
+    if (error.code === PLAN_ERROR_CODE) return sendPlanErrorResponse(res, error);
+    const status = error.statusCode || 500;
+    res.status(status).json({ message: error.message });
+  }
+};
 
+// ===============================
+// 🏷️ CATEGORY PAGE SEO (public)
+// ===============================
+export const getCategoryPageSeo = async (req, res) => {
+  try {
+    const resolved = resolveCategoryParams(req.query);
+    const seo = buildCategoryPageSeo(resolved);
+    res.json({
+      seo,
+      category: resolved,
+      faviconPath: AASHANSH_FAVICON_PATH,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -157,6 +405,9 @@ export const getAllProducts = async (req, res) => {
     const {
       keyword,
       category,
+      main,
+      sub,
+      type,
       minPrice,
       maxPrice,
       seller,
@@ -165,13 +416,20 @@ export const getAllProducts = async (req, res) => {
       limit = 10,
     } = req.query;
 
+    const resolvedCategory = resolveCategoryParams({
+      main,
+      sub,
+      type,
+      category,
+    });
+
     let query = {
       sellerId: { $ne: null },
       isActive: true,
+      isDraft: { $ne: true },
       approvalStatus: "approved",
     };
 
-    // 🔍 SEARCH
     if (keyword) {
       query.$or = [
         { title: { $regex: keyword, $options: "i" } },
@@ -180,19 +438,22 @@ export const getAllProducts = async (req, res) => {
       ];
     }
 
-    // 📂 CATEGORY
-    if (category) {
-      query.category = category;
+    const categoryFilter = buildCategoryProductFilter({
+      main: resolvedCategory.main,
+      sub: resolvedCategory.sub,
+      type: resolvedCategory.type,
+      legacyCategory: category,
+    });
+    if (categoryFilter && Object.keys(categoryFilter).length > 0) {
+      Object.assign(query, categoryFilter);
     }
 
-    // 💰 PRICE FILTER
     if (minPrice || maxPrice) {
       query.price = {};
       if (minPrice) query.price.$gte = Number(minPrice);
       if (maxPrice) query.price.$lte = Number(maxPrice);
     }
 
-    // 🧑‍💼 SELLER FILTER
     if (seller) {
       query.sellerId = seller;
     }
@@ -201,31 +462,26 @@ export const getAllProducts = async (req, res) => {
     const limitNumber = Number(limit);
     const skip = (pageNumber - 1) * limitNumber;
 
-    // 🔄 SORTING LOGIC
-    let sortObj = { createdAt: -1 }; // newest default
+    let sortObj = { createdAt: -1 };
     if (sort === "price-low") sortObj = { price: 1 };
     if (sort === "price-high") sortObj = { price: -1 };
     if (sort === "newest") sortObj = { createdAt: -1 };
-    // if (sort === "best-selling") sortObj = { soldCount: -1 }; // Future use when soldCount exists
-    // if (sort === "highest-rated") sortObj = { averageRating: -1 }; // Future use for ratings
 
-    // 🔥 IMPORTANT: enforce KYC here
     const products = await Product.find(query)
       .populate({
         path: "sellerId",
-        match: { status: "approved" }, // ✅ KYC must be approved
+        match: { status: "approved" },
         select: "firstName lastName businessName email",
       })
       .sort(sortObj)
       .skip(skip)
       .limit(limitNumber);
 
-    // ❗ Remove products with invalid sellers
-    const filteredProducts = products.filter(
-      (p) => p.sellerId !== null
-    );
+    const filteredProducts = products.filter((p) => p.sellerId !== null);
 
     const total = await Product.countDocuments(query);
+
+    const categorySeo = buildCategoryPageSeo(resolvedCategory);
 
     res.json({
       total,
@@ -233,8 +489,10 @@ export const getAllProducts = async (req, res) => {
       pages: Math.ceil(total / limitNumber),
       count: filteredProducts.length,
       products: filteredProducts,
+      category: resolvedCategory,
+      categorySeo,
+      faviconPath: AASHANSH_FAVICON_PATH,
     });
-
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -272,22 +530,35 @@ export const bulkUploadProducts = async (req, res) => {
           });
         }
 
+        try {
+          await validateBulkProductCategories(req.user, rows);
+        } catch (err) {
+          if (err.code === PLAN_ERROR_CODE) return sendPlanErrorResponse(res, err);
+          throw err;
+        }
+
         const products = [];
 
         for (const row of rows) {
           let localImagePaths = [];
-          
+
           if (row.imageLinks) {
-            const urls = row.imageLinks.split(",").map(url => url.trim()).filter(url => url);
+            const urls = row.imageLinks
+              .split(",")
+              .map((url) => url.trim())
+              .filter((url) => url);
             for (const url of urls) {
               try {
                 const response = await fetch(url);
-                if (!response.ok) throw new Error(`Failed to fetch: ${response.statusText}`);
-                
+                if (!response.ok) {
+                  throw new Error(`Failed to fetch: ${response.statusText}`);
+                }
+
                 const arrayBuffer = await response.arrayBuffer();
-                let buffer = Buffer.from(arrayBuffer);
-                
-                const filename = Date.now() + '-' + Math.round(Math.random() * 1E9) + '.jpg';
+                const inputBuffer = Buffer.from(arrayBuffer);
+
+                const filename =
+                  Date.now() + "-" + Math.round(Math.random() * 1e9) + ".jpg";
                 ensureUploadsRoot();
                 const productsDir = path.join(getUploadsRoot(), "products");
                 if (!fs.existsSync(productsDir)) {
@@ -295,26 +566,26 @@ export const bulkUploadProducts = async (req, res) => {
                 }
                 const absPath = path.join(productsDir, filename);
 
-                let quality = 80;
-                let processedBuffer = await sharp(buffer)
-                  .resize(800, 800, { fit: 'cover', position: 'center' })
-                  .jpeg({ quality })
-                  .toBuffer();
-                  
-                while (processedBuffer.length > 100 * 1024 && quality > 10) {
-                  quality -= 10;
-                  processedBuffer = await sharp(buffer)
-                    .resize(800, 800, { fit: 'cover', position: 'center' })
-                    .jpeg({ quality })
-                    .toBuffer();
-                }
-                
+                const processedBuffer = await optimizeImageBuffer(inputBuffer);
                 fs.writeFileSync(absPath, processedBuffer);
                 localImagePaths.push(absoluteToWebPath(absPath));
               } catch (err) {
-                console.error("Failed to process image from URL:", url, err.message);
+                console.error(
+                  "Failed to process image from URL:",
+                  url,
+                  err.message
+                );
               }
             }
+          }
+
+          let rowCategory = row.category;
+          try {
+            const resolved = await resolveSellerCategory(req.user, row.category, {});
+            rowCategory = resolved.category;
+          } catch (err) {
+            if (err.code === PLAN_ERROR_CODE) return sendPlanErrorResponse(res, err);
+            throw err;
           }
 
           products.push({
@@ -323,17 +594,18 @@ export const bulkUploadProducts = async (req, res) => {
             description: row.description || "",
             price: Number(row.price),
             stock: Number(row.stock || 0),
-            category: row.category,
+            category: rowCategory,
             keywords: row.keywords ? row.keywords.split(",") : [],
             images: localImagePaths,
+            isDraft: false,
             approvalStatus: "pending",
           });
         }
 
         await Product.insertMany(products);
-
-        // 🧹 Cleanup uploaded CSV file
         fs.unlinkSync(req.file.path);
+
+        logBulkProductUpload(req.user._id, products.length);
 
         res.json({
           message: "Bulk upload successful",
@@ -346,7 +618,6 @@ export const bulkUploadProducts = async (req, res) => {
           error: err.message,
         });
       });
-
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -367,13 +638,51 @@ export const getProductById = async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    if (!product.isActive || product.approvalStatus !== "approved") {
+    if (
+      !product.isActive ||
+      product.isDraft ||
+      product.approvalStatus !== "approved"
+    ) {
       return res.status(404).json({ message: "Product not available" });
+    }
+
+    // Analytics: record a product/store view (best-effort; don't block the response)
+    try {
+      const ip =
+        (req.headers["x-forwarded-for"]?.toString().split(",")[0] || req.ip || "")
+          .trim();
+      const ua = String(req.headers["user-agent"] || "");
+      const raw = `${ip}|${ua}`;
+      const visitorHash = crypto.createHash("sha256").update(raw).digest("hex");
+
+      const now = new Date();
+      const start = new Date(now);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(now);
+      end.setHours(23, 59, 59, 999);
+
+      const existing = await ProductViewEvent.findOne({
+        productId: product._id,
+        visitorHash,
+        createdAt: { $gte: start, $lte: end },
+      }).select("_id");
+
+      if (!existing) {
+        await ProductViewEvent.create({
+          sellerId: product.sellerId?._id,
+          productId: product._id,
+          userId: req.user?._id || null,
+          visitorHash,
+        });
+      }
+    } catch (e) {
+      // ignore
     }
 
     res.json(product);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    const status = error.statusCode || 500;
+    res.status(status).json({ message: error.message });
   }
 };
 
@@ -391,98 +700,61 @@ export const updateProduct = async (req, res) => {
       return res.status(403).json({ message: "Not authorized to edit this product" });
     }
 
-    const { title, description, price, compareAtPrice, unitPrice, chargeTax, stock, locations, category, keywords, inventoryTracked, sku, barcode, continueSellingWhenOutOfStock, isPhysicalProduct, packageType, packageLength, packageWidth, packageHeight, packageDimensionsUnit, productWeight, productWeightUnit, pageTitle, metaDescription, urlHandle } = req.body;
-
-    product.title = title || product.title;
-    if (description !== undefined) {
-      product.description = sanitizeDescription(description);
+    try {
+      assertProductEditable(product);
+    } catch (err) {
+      return sendProductLockedResponse(res, err);
     }
-    product.price = price || product.price;
-    if (compareAtPrice !== undefined) product.compareAtPrice = compareAtPrice ? Number(compareAtPrice) : undefined;
-    if (unitPrice !== undefined) product.unitPrice = unitPrice ? Number(unitPrice) : undefined;
-    if (chargeTax !== undefined) product.chargeTax = chargeTax === 'true' || chargeTax === true;
-    
-    if (locations !== undefined) {
-      let parsedLocations = [];
-      try {
-        parsedLocations = typeof locations === 'string' ? JSON.parse(locations) : locations;
-      } catch (e) {
-        if (Array.isArray(locations)) parsedLocations = locations;
+
+    try {
+      await applyCategoryPlanToBody(req, product);
+    } catch (err) {
+      if (err.code === PLAN_ERROR_CODE) return sendPlanErrorResponse(res, err);
+      throw err;
+    }
+
+    applyProductFields(product, req.body, {
+      partial: false,
+      seller: req.user,
+    });
+
+    const newImages = getUploadedImagePaths(req, "images") || [];
+    const existingImages = parseExistingImagePaths(req.body.existingImages);
+    if (req.body.existingImages !== undefined || newImages.length > 0) {
+      const merged = [...existingImages, ...newImages].slice(0, MAX_PRODUCT_IMAGES);
+      if (merged.length > MAX_PRODUCT_IMAGES) {
+        return res.status(400).json({
+          message: `Maximum ${MAX_PRODUCT_IMAGES} images allowed per product.`,
+        });
       }
-      
-      parsedLocations = parsedLocations
-        .filter(loc => loc.address && loc.address.trim() !== "")
-        .map(loc => ({
-          address: loc.address,
-          stock: Number(loc.stock) || 0
-        }));
-        
-      product.locations = parsedLocations;
-      product.stock = parsedLocations.reduce((sum, loc) => sum + loc.stock, 0);
-    } else if (stock !== undefined) {
-      product.stock = stock;
+      product.images = merged;
     }
 
-    if (inventoryTracked !== undefined) product.inventoryTracked = inventoryTracked === 'true' || inventoryTracked === true;
-    if (sku !== undefined) product.sku = sku;
-    if (barcode !== undefined) product.barcode = barcode;
-    if (continueSellingWhenOutOfStock !== undefined) product.continueSellingWhenOutOfStock = continueSellingWhenOutOfStock === 'true' || continueSellingWhenOutOfStock === true;
-    if (isPhysicalProduct !== undefined) product.isPhysicalProduct = isPhysicalProduct === 'true' || isPhysicalProduct === true;
-    if (packageType !== undefined) product.packageType = packageType;
-    if (packageLength !== undefined) product.packageLength = packageLength ? Number(packageLength) : undefined;
-    if (packageWidth !== undefined) product.packageWidth = packageWidth ? Number(packageWidth) : undefined;
-    if (packageHeight !== undefined) product.packageHeight = packageHeight ? Number(packageHeight) : undefined;
-    if (packageDimensionsUnit !== undefined) product.packageDimensionsUnit = packageDimensionsUnit;
-    if (productWeight !== undefined) product.productWeight = Number(productWeight);
-    if (productWeightUnit !== undefined) product.productWeightUnit = productWeightUnit;
-    if (pageTitle !== undefined) product.pageTitle = pageTitle;
-    if (metaDescription !== undefined) product.metaDescription = metaDescription;
-    if (urlHandle !== undefined) product.urlHandle = urlHandle;
-    if (category !== undefined) {
-      product.category =
-        String(category).trim() !== "" ? String(category).trim() : "Uncategorized";
-    }
-
-    if (keywords) {
-      if (typeof keywords === "string" && keywords.trim() !== "") {
-        product.keywords = keywords.split(",").map((k) => k.trim()).filter(Boolean);
-      } else if (Array.isArray(keywords)) {
-        product.keywords = keywords.filter(Boolean);
-      } else {
-        product.keywords = [];
-      }
-    }
-
-    // Handle new images if any are uploaded
-    if (req.files && req.files.length > 0) {
-      const absPaths = req.files.map((file) => file.path);
-      for (const filePath of absPaths) {
-        try {
-          let quality = 80;
-          let buffer = await sharp(filePath)
-            .resize(800, 800, { fit: 'cover', position: 'center' })
-            .jpeg({ quality })
-            .toBuffer();
-          
-          while (buffer.length > 100 * 1024 && quality > 10) {
-            quality -= 10;
-            buffer = await sharp(filePath)
-              .resize(800, 800, { fit: 'cover', position: 'center' })
-              .jpeg({ quality })
-              .toBuffer();
-          }
-          fs.writeFileSync(filePath, buffer);
-        } catch (err) {
-          console.error("Image processing error:", err);
+    const variantImagePaths = getUploadedFieldFilePaths(req, "variantImages");
+    if (variantImagePaths.length > 0 && Array.isArray(product.variants)) {
+      let idx = 0;
+      product.variants = product.variants.map((v) => {
+        if (idx >= variantImagePaths.length) return v;
+        if (v && (!v.image || String(v.image).trim() === "")) {
+          const next = { ...v, image: variantImagePaths[idx] };
+          idx += 1;
+          return next;
         }
-      }
-      product.images = absPaths.map((p) => absoluteToWebPath(p));
+        return v;
+      });
+    }
+
+    if (product.approvalStatus === "rejected") {
+      product.approvalStatus = "pending";
     }
 
     await product.save();
+    logProductUpdated(req.user._id, product);
     res.json({ message: "Product updated successfully", product });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    if (error.code === PLAN_ERROR_CODE) return sendPlanErrorResponse(res, error);
+    const status = error.statusCode || 500;
+    res.status(status).json({ message: error.message });
   }
 };
 
@@ -500,7 +772,16 @@ export const deleteProduct = async (req, res) => {
       return res.status(403).json({ message: "Not authorized to delete this product" });
     }
 
+    try {
+      assertProductEditable(product);
+    } catch (err) {
+      return sendProductLockedResponse(res, err);
+    }
+
+    const title = product.title;
+    const productId = product._id;
     await product.deleteOne();
+    logProductDeleted(req.user._id, title, productId);
     res.json({ message: "Product deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -529,27 +810,90 @@ export const checkPincode = async (req, res) => {
     const seller = product.sellerId;
 
     if (!seller.isHyperlocal) {
-      // Seller delivers everywhere
-      return res.json({ 
-        serviceable: true, 
-        message: "Delivery available to this pincode." 
+      return res.json({
+        serviceable: true,
+        message: "Delivery available to this pincode.",
       });
     }
 
-    const isDeliverable = seller.deliverablePincodes.includes(pincode.trim());
+    let isDeliverable = seller.deliverablePincodes.includes(pincode.trim());
+
+    if (product.deliveryBy === "pincode" && product.deliveryValues?.length > 0) {
+      isDeliverable = product.deliveryValues.includes(pincode.trim());
+    } else if (product.deliveryBy === "all_india") {
+      isDeliverable = true;
+    }
 
     if (isDeliverable) {
-      return res.json({ 
-        serviceable: true, 
-        message: "Delivery available to this pincode." 
-      });
-    } else {
-      return res.json({ 
-        serviceable: false, 
-        message: `Currently not delivering to ${pincode}.` 
+      return res.json({
+        serviceable: true,
+        message: "Delivery available to this pincode.",
       });
     }
+
+    return res.json({
+      serviceable: false,
+      message: `Currently not delivering to ${pincode}.`,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
+};
+
+// GET /api/products/shipping/suggestions?scope=city|state|all_india&q=
+export const getDeliverySuggestions = async (req, res) => {
+  try {
+    const { scope, q = "" } = req.query;
+    const query = String(q).trim();
+    if (!query) {
+      return res.json({
+        suggestions: [],
+        totalMatches: 0,
+        scope,
+        query: "",
+        matchMode: "startsWith",
+      });
+    }
+
+    let sourceList = [];
+    let displayLimit = 80;
+
+    if (scope === "city") {
+      sourceList = await getIndianCities();
+      displayLimit = 100;
+    } else if (scope === "state") {
+      sourceList = await getIndianStates();
+      displayLimit = 40;
+    } else if (scope === "all_india") {
+      sourceList = ALL_INDIA_REGIONS;
+      displayLimit = 20;
+    } else {
+      return res.status(400).json({
+        message: "scope must be city, state, or all_india",
+      });
+    }
+
+    const allMatches = filterSuggestionsStartsWith(sourceList, query);
+    const suggestions = filterSuggestionsStartsWithLimited(
+      sourceList,
+      query,
+      displayLimit
+    );
+
+    res.json({
+      suggestions,
+      totalMatches: allMatches.length,
+      hasMore: allMatches.length > suggestions.length,
+      scope,
+      query,
+      matchMode: "startsWith",
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// GET /api/products/shipping/delivery-options
+export const getDeliveryOptions = async (req, res) => {
+  res.json({ options: DELIVERY_BY_OPTIONS });
 };

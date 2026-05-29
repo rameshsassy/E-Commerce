@@ -5,7 +5,7 @@ import upload from '../middleware/upload.middleware.js';
 
 const router = express.Router();
 
-router.post('/', protect, upload.array('attachments', 3), createTicket);
+router.post('/', protect, ...upload.array('attachments', 3), createTicket);
 router.get('/', protect, getMyTickets);
 
 export default router;

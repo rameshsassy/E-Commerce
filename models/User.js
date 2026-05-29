@@ -69,7 +69,14 @@ const userSchema = new mongoose.Schema(
     officialName: String,
     entityType: {
       type: String,
-      enum: ["entity 1", "entity 2"],
+      trim: true,
+      lowercase: true,
+    },
+    entityTypeOther: {
+      type: String,
+      trim: true,
+      maxlength: 200,
+      default: "",
     },
     storeAddresses: {
       type: [String],
@@ -126,6 +133,26 @@ const userSchema = new mongoose.Schema(
     pendingPremiumOrderAt: { type: Date, default: null },
     /** Last successful premium payment id (support / audit). */
     premiumLastPaymentId: { type: String, default: null },
+
+    // ===============================
+    // 🤝 SELLER REFERRAL (Refer and Earn)
+    // ===============================
+    sellerReferralCode: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+      uppercase: true,
+    },
+    referralSignups: {
+      type: Number,
+      default: 0,
+    },
+    referredBySellerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
 
     // ===============================
     // 🔐 FORGOT PASSWORD

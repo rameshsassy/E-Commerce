@@ -6,11 +6,15 @@ import upload from "../middleware/upload.middleware.js";
 import {
   addProduct,
   getAllProducts,
+  getCategoryPageSeo,
   bulkUploadProducts,
   getProductById,
   updateProduct,
   deleteProduct,
   checkPincode,
+  autoSaveProduct,
+  getDeliverySuggestions,
+  getDeliveryOptions,
 } from "../controllers/product.controller.js";
 import { createBulkInquiry } from "../controllers/bulkInquiry.controller.js";
 
@@ -19,72 +23,100 @@ import {
   getProductReviews,
   markReviewHelpful
 } from "../controllers/review.controller.js";
+import { renameUploadedProductImages } from "../middleware/renameProductImages.middleware.js";
 
 const router = express.Router();
+
+const sellerImageUpload = upload.fields([
+  { name: "images", maxCount: 5 },
+  { name: "variantImages", maxCount: 30 },
+]);
 
 // ===============================
 // 📦 PUBLIC ROUTES
 // ===============================
 
-// Get all approved products (with search, filter, pagination)
+router.get("/category-seo", getCategoryPageSeo);
 router.get("/", getAllProducts);
 
-// Get single approved product by ID
-router.get("/:id", getProductById);
+router.get("/shipping/delivery-options", getDeliveryOptions);
+router.get("/shipping/suggestions", getDeliverySuggestions);
 
-// Check if a product is deliverable to a pincode
+// Bulk CSV (must be before /:id)
+router.post(
+  "/bulk",
+  protect,
+  authorizeRoles("seller"),
+  ...upload.single("file"),
+  bulkUploadProducts
+);
+
 router.get("/:id/check-pincode", checkPincode);
 
-// Bulk order inquiry (Premium sellers only — enforced in controller)
+router.get("/:id", getProductById);
+
 router.post("/:id/bulk-inquiry", createBulkInquiry);
 
 // ===============================
 // ⭐ PRODUCT REVIEWS
 // ===============================
-router.post("/:id/reviews", protect, authorizeRoles("customer"), upload.array("images", 3), createProductReview);
+router.post(
+  "/:id/reviews",
+  protect,
+  authorizeRoles("customer"),
+  ...upload.array("images", 3),
+  createProductReview
+);
 router.get("/:id/reviews", getProductReviews);
 router.put("/:id/reviews/:reviewId/helpful", protect, markReviewHelpful);
 
 // ===============================
+// 💾 SELLER AUTO-SAVE (before :id CRUD)
+// ===============================
+router.patch(
+  "/autosave",
+  protect,
+  authorizeRoles("seller"),
+  ...sellerImageUpload,
+  renameUploadedProductImages,
+  autoSaveProduct
+);
+
+router.patch(
+  "/:id/autosave",
+  protect,
+  authorizeRoles("seller"),
+  ...sellerImageUpload,
+  renameUploadedProductImages,
+  autoSaveProduct
+);
+
+// ===============================
 // ➕ SELLER PRODUCT UPLOAD
 // ===============================
-
-// Single product upload
 router.post(
   "/",
   protect,
   authorizeRoles("seller"),
-  upload.array("images", 5), // limited to 5 images
+  ...sellerImageUpload,
+  renameUploadedProductImages,
   addProduct
 );
 
-// Update product
 router.put(
   "/:id",
   protect,
   authorizeRoles("seller"),
-  upload.array("images", 5),
+  ...sellerImageUpload,
+  renameUploadedProductImages,
   updateProduct
 );
 
-// Delete product
 router.delete(
   "/:id",
   protect,
   authorizeRoles("seller"),
   deleteProduct
-);
-
-// ===============================
-// 📦 BULK PRODUCT UPLOAD (CSV)
-// ===============================
-
-router.post(
-  "/bulk",
-  protect,
-  authorizeRoles("seller"),
-  upload.single("file"), // CSV file upload
-  bulkUploadProducts
 );
 
 export default router;

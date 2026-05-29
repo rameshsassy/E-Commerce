@@ -74,6 +74,13 @@ const orderSchema = new mongoose.Schema(
       enum: ["pending", "completed", "failed", "refunded"],
       default: "pending",
     },
+    isPaid: {
+      type: Boolean,
+      default: false,
+    },
+    paidAt: {
+      type: Date,
+    },
     orderStatus: {
       type: String,
       enum: ["Processing", "Packed", "Shipped", "Out for Delivery", "Delivered", "Cancelled"],
@@ -98,5 +105,8 @@ const orderSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+orderSchema.index({ "items.seller": 1, paymentStatus: 1, createdAt: -1 });
+orderSchema.index({ paymentStatus: 1, createdAt: -1 });
 
 export default mongoose.model("Order", orderSchema);

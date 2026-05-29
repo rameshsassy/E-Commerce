@@ -10,6 +10,13 @@ import {
   sendPasswordResetEmail,
 } from "../services/email.service.js";
 import { generateResetToken } from "../utils/generateResetToken.js";
+import { findReferrerByCode, buildReferralCode } from "../utils/sellerReferral.js";
+import { logSellerLogin } from "../services/sellerActivity.service.js";
+import {
+  getPortalFromRequest,
+  assertPortalForRole,
+  assertPortalAllowsRegistration,
+} from "../utils/portalDomains.js";
 
 const buildSafeUser = (user) => {
   const o = {
@@ -79,8 +86,13 @@ const issueTokensAndSetCookie = async (user, res, req) => {
 // ===============================
 export const registerSeller = async (req, res) => {
   const { firstName, lastName, email, mobile, password } = pickRegisterBody(req.body);
+  const referralInput =
+    req.body.referralCode || req.body.ref || req.query?.ref || null;
 
   try {
+    const portal = getPortalFromRequest(req);
+    assertPortalAllowsRegistration(portal, "seller");
+
     if (!process.env.JWT_SECRET) {
       console.error("[auth] JWT_SECRET is not set");
       return res.status(500).json({ message: "Server authentication is not configured." });
@@ -104,15 +116,43 @@ export const registerSeller = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await User.create({
-      firstName,
-      lastName,
-      email,
-      mobile,
-      password: hashedPassword,
-      role: "seller",
-      status: "pending",
-    });
+    let referredBySellerId = null;
+    let referrer = null;
+    if (referralInput) {
+      referrer = await findReferrerByCode(referralInput);
+      if (referrer) referredBySellerId = referrer._id;
+    }
+
+    let user = null;
+    for (let attempt = 0; attempt < 8 && !user; attempt++) {
+      try {
+        user = await User.create({
+          firstName,
+          lastName,
+          email,
+          mobile,
+          password: hashedPassword,
+          role: "seller",
+          status: "pending",
+          sellerReferralCode: buildReferralCode(),
+          referredBySellerId,
+        });
+      } catch (createErr) {
+        if (createErr?.code === 11000 && createErr?.keyPattern?.sellerReferralCode) {
+          continue;
+        }
+        throw createErr;
+      }
+    }
+    if (!user) {
+      return res.status(500).json({ message: "Could not create seller account. Please try again." });
+    }
+
+    if (referrer) {
+      await User.findByIdAndUpdate(referrer._id, {
+        $inc: { referralSignups: 1 },
+      });
+    }
     console.log(`[auth] User created successfully: ${user._id}`);
 
     const token = await issueTokensAndSetCookie(user, res, req);
@@ -136,7 +176,12 @@ export const registerSeller = async (req, res) => {
     });
   } catch (error) {
     console.error("Seller registration error:", error);
-    res.status(500).json({ message: error.message });
+    const status = error.statusCode || 500;
+    res.status(status).json({
+      message: error.message,
+      code: error.code,
+      redirectUrl: error.redirectUrl,
+    });
   }
 };
 
@@ -148,6 +193,9 @@ export const registerCustomer = async (req, res) => {
   console.log(`[auth] Attempting customer registration for: ${email || "(missing)"}`);
 
   try {
+    const portal = getPortalFromRequest(req);
+    assertPortalAllowsRegistration(portal, "customer");
+
     if (!process.env.JWT_SECRET) {
       console.error("[auth] JWT_SECRET is not set");
       return res.status(500).json({ message: "Server authentication is not configured." });
@@ -272,9 +320,10 @@ export const loginUser = async (req, res) => {
       return res.status(400).json({ message: "Email & password required" });
     }
 
-    const emailOr = [{ email: rawEmail }];
-    if (emailNorm && emailNorm !== rawEmail) emailOr.push({ email: emailNorm });
-    const user = await User.findOne({ $or: emailOr });
+    const user = await User.findOne({ email: emailNorm || rawEmail }).collation({
+      locale: "en",
+      strength: 2,
+    });
 
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials" });
@@ -286,7 +335,21 @@ export const loginUser = async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
+    try {
+      assertPortalForRole(user.role, getPortalFromRequest(req));
+    } catch (portalErr) {
+      return res.status(portalErr.statusCode || 403).json({
+        message: portalErr.message,
+        code: portalErr.code,
+        redirectUrl: portalErr.redirectUrl,
+      });
+    }
+
     const token = await issueTokensAndSetCookie(user, res, req);
+
+    if (user.role === "seller") {
+      logSellerLogin(user._id);
+    }
 
     res.json({
       message: "Login successful",
@@ -373,9 +436,10 @@ export const forgotPassword = async (req, res) => {
       return res.status(400).json({ message: "Email is required" });
     }
 
-    const emailOr = [{ email: rawEmail }];
-    if (emailNorm && emailNorm !== rawEmail) emailOr.push({ email: emailNorm });
-    const user = await User.findOne({ $or: emailOr });
+    const user = await User.findOne({ email: emailNorm || rawEmail }).collation({
+      locale: "en",
+      strength: 2,
+    });
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });

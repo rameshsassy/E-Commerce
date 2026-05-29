@@ -1,5 +1,6 @@
 import Cart from "../models/Cart.js";
 import Product from "../models/Product.js";
+import CartAddEvent from "../models/CartAddEvent.js";
 
 // @desc    Get user cart
 // @route   GET /api/customer/cart
@@ -34,9 +35,19 @@ export const addToCart = async (req, res) => {
     }
     
     const reqQuantity = quantity || 1;
-    
-    if (reqQuantity > 5) {
-      return res.status(400).json({ message: "Maximum 5 units allowed per product." });
+    const maxAllowed = product.maxOrderQuantity ?? 5;
+    const minAllowed = product.minOrderQuantity ?? 1;
+
+    if (reqQuantity < minAllowed) {
+      return res.status(400).json({
+        message: `Minimum ${minAllowed} unit(s) required for this product.`,
+      });
+    }
+
+    if (reqQuantity > maxAllowed) {
+      return res.status(400).json({
+        message: `Maximum ${maxAllowed} units allowed per product.`,
+      });
     }
 
     let cart = await Cart.findOne({ user: req.user._id });
@@ -46,6 +57,15 @@ export const addToCart = async (req, res) => {
         user: req.user._id,
         items: [{ product: productId, quantity: quantity || 1 }]
       });
+
+      // Analytics event: product added to cart
+      await CartAddEvent.create({
+        userId: req.user._id,
+        sellerId: product.sellerId,
+        productId: product._id,
+        quantity: reqQuantity,
+        source: "cart",
+      });
       return res.status(201).json(cart);
     }
     
@@ -54,8 +74,11 @@ export const addToCart = async (req, res) => {
     if (itemIndex > -1) {
       // Update quantity
       const newQuantity = cart.items[itemIndex].quantity + reqQuantity;
-      if (newQuantity > 5) {
-        return res.status(400).json({ message: "Maximum 5 units allowed per product. You already have some in your cart." });
+      const maxAllowed = product.maxOrderQuantity ?? 5;
+      if (newQuantity > maxAllowed) {
+        return res.status(400).json({
+          message: `Maximum ${maxAllowed} units allowed per product. You already have some in your cart.`,
+        });
       }
       cart.items[itemIndex].quantity = newQuantity;
     } else {
@@ -64,6 +87,15 @@ export const addToCart = async (req, res) => {
     }
     
     await cart.save();
+
+    // Analytics event: product added to cart
+    await CartAddEvent.create({
+      userId: req.user._id,
+      sellerId: product.sellerId,
+      productId: product._id,
+      quantity: reqQuantity,
+      source: "cart",
+    });
     
     const updatedCart = await Cart.findOne({ user: req.user._id }).populate({
       path: "items.product",
@@ -87,9 +119,25 @@ export const updateCartItem = async (req, res) => {
     if (quantity < 1) {
       return res.status(400).json({ message: "Quantity must be at least 1" });
     }
-    
-    if (quantity > 5) {
-      return res.status(400).json({ message: "Maximum 5 units allowed per product." });
+
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    const maxAllowed = product.maxOrderQuantity ?? 5;
+    const minAllowed = product.minOrderQuantity ?? 1;
+
+    if (quantity < minAllowed) {
+      return res.status(400).json({
+        message: `Minimum ${minAllowed} unit(s) required for this product.`,
+      });
+    }
+
+    if (quantity > maxAllowed) {
+      return res.status(400).json({
+        message: `Maximum ${maxAllowed} units allowed per product.`,
+      });
     }
 
     const cart = await Cart.findOne({ user: req.user._id });

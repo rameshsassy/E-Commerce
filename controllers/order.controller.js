@@ -238,11 +238,22 @@ export const verifyRazorpayPayment = async (req, res) => {
         // Create Seller Shipments (Order Splitting) & Send separate seller emails
         for (const sellerId in sellerItemsMap) {
           const itemsForSeller = sellerItemsMap[sellerId];
+          const sellerUser = await import("../models/User.js").then((m) =>
+            m.default.findById(sellerId).select("businessName firstName")
+          );
+          const { generateDisplayOrderId } = await import("../utils/orderDisplayId.js");
+          const placedAt = order.createdAt || new Date();
+          const displayOrderId = sellerUser
+            ? await generateDisplayOrderId(sellerUser, placedAt)
+            : undefined;
+
           await Shipment.create({
             order: order._id,
             seller: sellerId,
             items: itemsForSeller,
-            status: 'Pending'
+            status: "Pending",
+            displayOrderId,
+            statusTimeline: { orderPlaced: placedAt },
           });
 
           // Fetch seller info and send email asynchronously

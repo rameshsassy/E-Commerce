@@ -22,8 +22,18 @@ export const errorHandler = (err, req, res, next) => {
     return res.status(400).json({ message });
   }
 
-  res.status(err.status || 500).json({
+  const status =
+    err.status ||
+    err.statusCode ||
+    (err.name === "MulterError" ? 400 : undefined) ||
+    500;
+
+  const payload = {
     message: err.message || "Server Error",
     stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
-  });
+  };
+  if (err.code) payload.code = err.code;
+  if (err.upgradeFeature) payload.upgradeFeature = err.upgradeFeature;
+
+  res.status(status).json(payload);
 };

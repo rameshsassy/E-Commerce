@@ -31,6 +31,12 @@ import {
   updateBulkInquiryStatus,
 } from "../controllers/bulkInquiry.controller.js";
 import { getEmailLogs } from "../controllers/emailLog.controller.js";
+import {
+  listAdminKycEntityTypes,
+  createKycEntityType,
+  updateKycEntityType,
+  deleteKycEntityType,
+} from "../controllers/kycEntityType.controller.js";
 
 const router = express.Router();
 
@@ -48,6 +54,35 @@ router.put("/reject/:id", protect, authorizeAdminRole, requireAdminSection("sell
 router.get("/kyc", protect, authorizeAdminRole, requireAdminSection("kyc"), getPendingKYC);
 router.put("/kyc/approve/:id", protect, authorizeAdminRole, requireAdminSection("kyc"), approveKYC);
 router.put("/kyc/reject/:id", protect, authorizeAdminRole, requireAdminSection("kyc"), rejectKYC);
+
+router.get(
+  "/kyc-entity-types",
+  protect,
+  authorizeAdminRole,
+  requireAdminSection("kyc"),
+  listAdminKycEntityTypes
+);
+router.post(
+  "/kyc-entity-types",
+  protect,
+  authorizeAdminRole,
+  requireAdminSection("kyc"),
+  createKycEntityType
+);
+router.patch(
+  "/kyc-entity-types/:id",
+  protect,
+  authorizeAdminRole,
+  requireAdminSection("kyc"),
+  updateKycEntityType
+);
+router.delete(
+  "/kyc-entity-types/:id",
+  protect,
+  authorizeAdminRole,
+  requireAdminSection("kyc"),
+  deleteKycEntityType
+);
 
 // ===============================
 // 📦 PRODUCT MANAGEMENT
