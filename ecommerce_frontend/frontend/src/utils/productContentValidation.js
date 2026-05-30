@@ -156,6 +156,13 @@ export function isProductPolicyCareValid(productData) {
   return policiesOk && careOk && highlightsOk;
 }
 
+import { validateFreeSellerCategorySelection } from './sellerCategoryPath';
+
+export function isProductCategoryValid(productData, inventoryOptions) {
+  const check = validateFreeSellerCategorySelection(productData, inventoryOptions);
+  return check.ok;
+}
+
 export function isProductPricingInventoryValid(productData, inventoryOptions) {
   const price = Number(productData.price);
   if (!Number.isFinite(price) || price < 0) return false;
@@ -180,7 +187,8 @@ export function isProductFormContentValid(productData, inventoryOptions = null) 
   return (
     isProductBasicInfoValid(productData) &&
     isProductPolicyCareValid(productData) &&
-    isProductPricingInventoryValid(productData, inventoryOptions)
+    isProductPricingInventoryValid(productData, inventoryOptions) &&
+    isProductCategoryValid(productData, inventoryOptions)
   );
 }
 

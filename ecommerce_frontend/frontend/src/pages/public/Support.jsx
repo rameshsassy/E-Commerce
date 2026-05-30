@@ -3,6 +3,8 @@ import { Mail, MessageCircle, FileText, ChevronDown, CheckCircle, HelpCircle, Se
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import api from '../../utils/api';
+import useFormAutosave from '../../hooks/useFormAutosave';
+import FormAutosaveStatus from '../../components/common/FormAutosaveStatus';
 import { getSupportWhatsAppUrl } from '../../utils/supportContact';
 
 const Support = () => {
@@ -20,6 +22,14 @@ const Support = () => {
     orderId: ''
   });
   const [attachments, setAttachments] = useState([]);
+
+  const { status: ticketAutosaveStatus, message: ticketAutosaveMessage, clearDraft: clearTicketDraft } =
+    useFormAutosave({
+      formKey: 'customer.support.ticket',
+      value: formData,
+      enabled: Boolean(user) && activeTab === 'ticket',
+      isEmpty: (v) => !String(v.subject || '').trim() && !String(v.message || '').trim(),
+    });
 
   const fetchTickets = async () => {
     setLoading(true);
@@ -66,7 +76,8 @@ const Support = () => {
       setSuccessMsg("Your support ticket has been created successfully. Our team will contact you shortly.");
       setFormData({ subject: '', issueType: 'Order Issue', message: '', orderId: '' });
       setAttachments([]);
-      
+      await clearTicketDraft();
+
       setTimeout(() => setSuccessMsg(''), 5000);
     } catch (err) {
       alert(err.response?.data?.message || "Failed to create ticket");
@@ -140,6 +151,7 @@ const Support = () => {
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-6">
+                  <FormAutosaveStatus status={ticketAutosaveStatus} message={ticketAutosaveMessage} />
                   {successMsg && (
                     <div className="bg-success/20 text-success p-4 rounded-xl flex items-center gap-3 font-medium">
                       <CheckCircle size={20} /> {successMsg}

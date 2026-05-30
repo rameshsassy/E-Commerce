@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import api, { BASE_URL } from '../../utils/api';
 import {
   Upload,
@@ -16,6 +16,8 @@ import {
   Zap,
 } from 'lucide-react';
 import StoreFormFields, { isStoreFormValid } from '../../components/seller/StoreFormFields';
+import useFormAutosave from '../../hooks/useFormAutosave';
+import FormAutosaveStatus from '../../components/common/FormAutosaveStatus';
 import UpgradePremiumModal from '../../components/seller/UpgradePremiumModal';
 import ApprovedProductLockBanner from '../../components/seller/ApprovedProductLockBanner';
 import {
@@ -31,6 +33,7 @@ import {
   normalizePoliciesForSave,
   clonePolicies,
 } from '../../utils/productContentValidation';
+import { validateFreeSellerCategorySelection } from '../../utils/sellerCategoryPath';
 
 const defaultProductData = {
   title: '', description: '', price: '', compareAtPrice: '', unitPrice: '', chargeTax: false, category: '', stock: 0,
@@ -84,9 +87,11 @@ const SellerProducts = () => {
 
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState('premium');
+  const [upgradeAutoRedirect, setUpgradeAutoRedirect] = useState(false);
 
-  const openUpgradeModal = (feature = 'premium') => {
+  const openUpgradeModal = (feature = 'premium', { autoRedirect = false } = {}) => {
     setUpgradeFeature(feature);
+    setUpgradeAutoRedirect(autoRedirect);
     setUpgradeModalOpen(true);
   };
 
@@ -120,7 +125,12 @@ const SellerProducts = () => {
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
-      if (activeTab !== 'single' || editingProduct) return;
+      if (activeTab !== 'single') return;
+      if (editingProduct) {
+        hydratedDraftRef.current = true;
+        skipNextAutosaveRef.current = false;
+        return;
+      }
 
       // Prevent autosave while we are hydrating state from backend.
       skipNextAutosaveRef.current = true;
@@ -254,9 +264,9 @@ const SellerProducts = () => {
     };
   }, [activeTab, editingProduct]);
 
-  // Autosave while typing (new product only)
+  // Autosave while typing (new product + edit)
   useEffect(() => {
-    if (activeTab !== 'single' || editingProduct) return;
+    if (activeTab !== 'single') return;
     if (!hydratedDraftRef.current) return;
     if (skipNextAutosaveRef.current) return;
 
@@ -366,7 +376,8 @@ const SellerProducts = () => {
         setAutoSaving(true);
         setAutoSaveMsg('Auto-saving...');
 
-        const endpoint = draftId ? `/products/${draftId}/autosave` : '/products/autosave';
+        const productId = draftId || editingProduct?._id;
+        const endpoint = productId ? `/products/${productId}/autosave` : '/products/autosave';
         const { data } = await api.patch(endpoint, formData);
 
         if (!draftId && data?.product?._id) {
@@ -378,7 +389,9 @@ const SellerProducts = () => {
       } catch (err) {
         const payload = err?.response?.data;
         if (payload?.code === 'PREMIUM_REQUIRED') {
-          openUpgradeModal(payload.upgradeFeature || 'premium');
+          openUpgradeModal(payload.upgradeFeature || 'premium', {
+            autoRedirect: Boolean(payload.autoRedirect),
+          });
         }
         setAutoSaveMsg(payload?.message || 'Autosave failed');
       } finally {
@@ -490,6 +503,45 @@ const SellerProducts = () => {
     }
   }, [activeTab]);
 
+  const saveStoreAutosave = useCallback(
+    async (form) => {
+      const formData = new FormData();
+      if (form.storeName) formData.append('storeName', form.storeName);
+      if (form.keywordsInput) formData.append('keywords', form.keywordsInput);
+      if (form.detailedAddress) formData.append('detailedAddress', form.detailedAddress);
+      const extra = (form.additionalAddresses || []).filter((a) => String(a).trim());
+      if (extra.length) formData.append('additionalAddresses', JSON.stringify(extra));
+      if (storeView === 'edit') formData.append('isActive', form.isActive !== false);
+      if (storeLogoFile) formData.append('logo', storeLogoFile);
+      if (storeFaviconFile) formData.append('favicon', storeFaviconFile);
+
+      if (storeView === 'edit' && hasStore) {
+        const { data } = await api.patch('/seller/store', formData);
+        return data;
+      }
+      const { data } = await api.put('/form-drafts/seller.store.create', { data: form });
+      return data;
+    },
+    [storeView, hasStore, storeLogoFile, storeFaviconFile]
+  );
+
+  const {
+    status: storeAutosaveStatus,
+    message: storeAutosaveMessage,
+    clearDraft: clearStoreDraft,
+  } = useFormAutosave({
+    formKey: storeView === 'edit' ? 'seller.store.edit' : 'seller.store.create',
+    value: storeForm,
+    enabled: activeTab === 'store' && (storeView === 'create' || storeView === 'edit'),
+    restore: storeView === 'create',
+    onRestore: (data) => setStoreForm((prev) => ({ ...defaultStoreForm, ...prev, ...data })),
+    saveFn: saveStoreAutosave,
+    isEmpty: (form) =>
+      !String(form.storeName || '').trim() &&
+      !String(form.detailedAddress || '').trim() &&
+      !String(form.keywordsInput || '').trim(),
+  });
+
   const openCreateStore = () => {
     setStoreForm({ ...defaultStoreForm });
     setStoreLogoFile(null);
@@ -557,6 +609,7 @@ const SellerProducts = () => {
     try {
       if (storeView === 'create') {
         const { data } = await api.post('/seller/store', formData);
+        await clearStoreDraft();
         setStoreMsg(data.message || 'Store created!');
         setMyStore(data.store);
         setHasStore(true);
@@ -575,7 +628,9 @@ const SellerProducts = () => {
     } catch (err) {
       const payload = err.response?.data;
       if (payload?.code === 'PREMIUM_REQUIRED') {
-        openUpgradeModal(payload.upgradeFeature || 'premium');
+        openUpgradeModal(payload.upgradeFeature || 'premium', {
+          autoRedirect: Boolean(payload.autoRedirect),
+        });
       }
       setStoreMsg(payload?.message || 'Failed to save store');
     } finally {
@@ -656,6 +711,11 @@ const SellerProducts = () => {
         existingPath: path,
       }))
     );
+    hydratedDraftRef.current = true;
+    skipNextAutosaveRef.current = true;
+    setTimeout(() => {
+      skipNextAutosaveRef.current = false;
+    }, 0);
     setActiveTab('single'); // Switch to the form view
   };
 
@@ -667,6 +727,19 @@ const SellerProducts = () => {
     }
     const policiesForSave = normalizePoliciesForSave(productData.policies);
     const payload = { ...productData, policies: policiesForSave };
+    if (!inventoryOptions?.isSubscribedSeller) {
+      payload.bulkPurchaseEnabled = false;
+    }
+
+    const categoryCheck = validateFreeSellerCategorySelection(payload, inventoryOptions);
+    if (!categoryCheck.ok) {
+      if (categoryCheck.reason === 'mismatch') {
+        openUpgradeModal('free_category_path', { autoRedirect: true });
+        return;
+      }
+      setSingleMsg('Please select Main Category, Sub-Category, and Type.');
+      return;
+    }
 
     if (!isProductFormContentValid(payload, inventoryOptions)) {
       setSingleMsg('Please complete required fields before saving.');
@@ -731,7 +804,9 @@ const SellerProducts = () => {
       const lock = getApiLockPayload(err);
       const payload = err.response?.data;
       if (payload?.code === 'PREMIUM_REQUIRED') {
-        openUpgradeModal(payload.upgradeFeature || 'premium');
+        openUpgradeModal(payload.upgradeFeature || 'premium', {
+          autoRedirect: Boolean(payload.autoRedirect),
+        });
       }
       setSingleMsg(
         lock?.message ||
@@ -759,7 +834,9 @@ const SellerProducts = () => {
     } catch (err) {
       const payload = err.response?.data;
       if (payload?.code === 'PREMIUM_REQUIRED') {
-        openUpgradeModal(payload.upgradeFeature || 'premium');
+        openUpgradeModal(payload.upgradeFeature || 'premium', {
+          autoRedirect: Boolean(payload.autoRedirect),
+        });
       }
       setBulkMsg(payload?.message || 'Bulk upload failed');
     } finally {
@@ -773,8 +850,12 @@ const SellerProducts = () => {
 
       <UpgradePremiumModal
         open={upgradeModalOpen}
-        onClose={() => setUpgradeModalOpen(false)}
+        onClose={() => {
+          setUpgradeModalOpen(false);
+          setUpgradeAutoRedirect(false);
+        }}
         feature={upgradeFeature}
+        autoRedirect={upgradeAutoRedirect}
       />
 
       <div className="flex flex-wrap gap-4 mb-8 border-b border-glass-border pb-2">
@@ -909,10 +990,13 @@ const SellerProducts = () => {
               </div>
             ) : (
               <form onSubmit={handleStoreSubmit} className="max-w-xl text-[#202223]">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold text-[#202223]">
-                    {storeView === 'create' ? 'Create Store' : 'Edit Store'}
-                  </h2>
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h2 className="text-xl font-bold text-[#202223]">
+                      {storeView === 'create' ? 'Create Store' : 'Edit Store'}
+                    </h2>
+                    <FormAutosaveStatus status={storeAutosaveStatus} message={storeAutosaveMessage} />
+                  </div>
                   <button
                     type="button"
                     className="text-[#6D7175] hover:text-[#202223] text-sm"

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import api, { BASE_URL } from '../../utils/api';
 import LoadErrorMessage from '../common/LoadErrorMessage';
+import ResponsiveTable from '../common/ResponsiveTable';
 import { getApiErrorMessage, isNetworkError } from '../../utils/apiErrors';
 import SellerIndividualOrderDetail from './SellerIndividualOrderDetail';
 
@@ -77,8 +78,9 @@ export default function SellerShipmentsPanel() {
         ) : error ? null : shipments.length === 0 ? (
           <div className="py-10 text-center text-text-muted">No orders yet.</div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-glass-border">
-            <table className="w-full text-sm text-left min-w-[900px]">
+          <div className="rounded-xl border border-glass-border">
+            <ResponsiveTable minWidth="900px">
+            <table className="w-full text-sm text-left">
               <thead>
                 <tr className="bg-surface/80 text-text-muted border-b border-glass-border">
                   <th className="p-3 font-medium">Order ID</th>
@@ -128,6 +130,7 @@ export default function SellerShipmentsPanel() {
                 })}
               </tbody>
             </table>
+            </ResponsiveTable>
           </div>
         )}
       </div>

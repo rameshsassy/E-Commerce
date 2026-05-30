@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
 import { User, MapPin, CheckCircle, AlertTriangle } from 'lucide-react';
+import useFormAutosave from '../../hooks/useFormAutosave';
+import FormAutosaveStatus from '../../components/common/FormAutosaveStatus';
 
 const SellerProfile = () => {
   const navigate = useNavigate();
@@ -41,11 +43,39 @@ const SellerProfile = () => {
     fetchProfile();
   }, []);
 
+  const saveProfileDraft = useCallback(async (data) => {
+    const payload = {
+      ...data,
+      deliverablePincodes:
+        typeof data.deliverablePincodes === 'string'
+          ? data.deliverablePincodes.split(',').map((p) => p.trim()).filter(Boolean)
+          : data.deliverablePincodes,
+    };
+    const { data: res } = await api.patch('/seller/profile', payload);
+    return res;
+  }, []);
+
+  const { status: autosaveStatus, message: autosaveMessage, markSaved } = useFormAutosave({
+    formKey: 'seller.profile',
+    value: profileData,
+    enabled: !loading,
+    restore: false,
+    saveFn: saveProfileDraft,
+  });
+
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
     setProfileMsg('');
     try {
-      await api.put('/seller/profile', profileData);
+      const payload = {
+        ...profileData,
+        deliverablePincodes: profileData.deliverablePincodes
+          .split(',')
+          .map((p) => p.trim())
+          .filter(Boolean),
+      };
+      await api.put('/seller/profile', payload);
+      markSaved(profileData);
       setProfileMsg('Profile updated successfully');
       fetchProfile();
     } catch (_err) {
@@ -65,7 +95,10 @@ const SellerProfile = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Profile Info Form */}
         <div className="glass-panel p-8 rounded-2xl">
-          <h2 className="text-xl font-bold mb-6 border-b border-glass-border pb-4">Seller Information</h2>
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-6 border-b border-glass-border pb-4">
+            <h2 className="text-xl font-bold">Seller Information</h2>
+            <FormAutosaveStatus status={autosaveStatus} message={autosaveMessage} />
+          </div>
           
           <div className="flex gap-4 mb-6 text-sm">
             <div>

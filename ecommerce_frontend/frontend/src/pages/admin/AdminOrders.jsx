@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Package, Search } from 'lucide-react';
 import api from '../../utils/api';
+import ResponsiveTable from '../../components/common/ResponsiveTable';
 
 const AdminOrders = () => {
   const [orders, setOrders] = useState([]);
@@ -23,16 +24,17 @@ const AdminOrders = () => {
   if (loading) return <div className="p-8 text-center">Loading orders...</div>;
 
   return (
-    <div className="animate-fade-in max-w-6xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold flex items-center gap-3"><Package className="text-primary"/> All Orders</h1>
-        <div className="relative">
+    <div className="animate-fade-in max-w-6xl mx-auto w-full min-w-0">
+      <div className="responsive-page-header">
+        <h1 className="font-bold flex items-center gap-3"><Package className="text-primary shrink-0"/> All Orders</h1>
+        <div className="relative w-full sm:max-w-xs">
           <Search className="absolute left-3 top-3 text-text-muted" size={18} />
-          <input type="text" placeholder="Search orders..." className="input-field pl-10" />
+          <input type="text" placeholder="Search orders..." className="input-field pl-10 w-full" />
         </div>
       </div>
 
       <div className="glass-panel overflow-hidden rounded-2xl">
+        <ResponsiveTable minWidth="800px">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-glass-border bg-surface">
@@ -66,6 +68,7 @@ const AdminOrders = () => {
             )}
           </tbody>
         </table>
+        </ResponsiveTable>
       </div>
     </div>
   );

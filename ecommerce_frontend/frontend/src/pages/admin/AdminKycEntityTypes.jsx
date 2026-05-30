@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../utils/api';
 import { Plus, Pencil, Trash2, ArrowLeft, Loader2 } from 'lucide-react';
+import useFormAutosave from '../../hooks/useFormAutosave';
+import FormAutosaveStatus from '../../components/common/FormAutosaveStatus';
 
 const AdminKycEntityTypes = () => {
   const [types, setTypes] = useState([]);
@@ -28,6 +30,20 @@ const AdminKycEntityTypes = () => {
     load();
   }, [load]);
 
+  const { status: createAutosaveStatus, message: createAutosaveMessage, clearDraft: clearCreateDraft } =
+    useFormAutosave({
+      formKey: 'admin.kyc-entity-types.new',
+      value: form,
+      isEmpty: (v) => !String(v.label || '').trim(),
+    });
+
+  const { status: editAutosaveStatus, message: editAutosaveMessage } = useFormAutosave({
+    formKey: editingId ? `admin.kyc-entity-types.edit.${editingId}` : 'admin.kyc-entity-types.edit',
+    value: editForm,
+    enabled: Boolean(editingId),
+    restore: false,
+  });
+
   const handleCreate = async (e) => {
     e.preventDefault();
     if (!form.label.trim()) return;
@@ -38,6 +54,7 @@ const AdminKycEntityTypes = () => {
         requiresOtherText: form.requiresOtherText,
       });
       setForm({ label: '', requiresOtherText: false });
+      await clearCreateDraft();
       await load();
     } catch (err) {
       alert(err.response?.data?.message || 'Create failed');
@@ -99,7 +116,10 @@ const AdminKycEntityTypes = () => {
       )}
 
       <div className="glass-panel p-6 rounded-2xl mb-8">
-        <h2 className="text-lg font-bold mb-4">Add entity type</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <h2 className="text-lg font-bold">Add entity type</h2>
+          <FormAutosaveStatus status={createAutosaveStatus} message={createAutosaveMessage} />
+        </div>
         <form onSubmit={handleCreate} className="flex flex-col sm:flex-row gap-3 sm:items-end">
           <div className="flex-1">
             <label className="block text-sm font-medium mb-1">Label</label>
@@ -181,13 +201,16 @@ const AdminKycEntityTypes = () => {
                     </td>
                     <td className="p-3 text-right">
                       {editingId === row._id ? (
-                        <div className="flex justify-end gap-2">
+                        <div className="flex flex-col items-end gap-1">
+                          <FormAutosaveStatus status={editAutosaveStatus} message={editAutosaveMessage} />
+                          <div className="flex justify-end gap-2">
                           <button type="button" className="btn btn-primary text-xs" onClick={saveEdit} disabled={saving}>
                             Save
                           </button>
                           <button type="button" className="btn btn-secondary text-xs" onClick={() => setEditingId(null)}>
                             Cancel
                           </button>
+                          </div>
                         </div>
                       ) : (
                         <div className="flex justify-end gap-2">

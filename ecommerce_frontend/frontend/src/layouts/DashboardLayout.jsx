@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate, Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -21,6 +21,8 @@ import {
   HandCoins,
   Gift,
   Info,
+  Menu,
+  X,
 } from 'lucide-react';
 
 const SELLER_NAV = [
@@ -84,6 +86,11 @@ const DashboardLayout = ({ variant }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [location.pathname, location.hash]);
 
   const isSeller = variant === 'seller';
   const isAdmin = variant === 'admin';
@@ -134,16 +141,67 @@ const DashboardLayout = ({ variant }) => {
 
   const showAdminLink = (section) => isAdmin && canSeeAdminSection(user, section);
 
+  const panelTitle = isAdmin ? 'Admin Panel' : 'Seller Hub';
+
   return (
-    <div className="min-h-screen flex bg-gray-900" style={{ backgroundColor: 'var(--color-bg)' }}>
-      <aside className="w-64 glass-panel m-4 flex flex-col">
-        <div className="p-6 border-b" style={{ borderColor: 'var(--glass-border)' }}>
-          <h2 className="text-xl font-bold text-primary" style={{ color: 'var(--color-primary)' }}>
-            {isAdmin ? 'Admin Panel' : 'Seller Hub'}
+    <div className="min-h-screen flex flex-col lg:flex-row" style={{ backgroundColor: 'var(--color-bg)' }}>
+      <header className="lg:hidden sticky top-0 z-30 glass-panel mx-2 mt-2 mb-0 px-4 py-3 flex items-center justify-between gap-3 safe-area-top">
+        <button
+          type="button"
+          onClick={() => setMobileNavOpen(true)}
+          className="w-10 h-10 flex items-center justify-center rounded-xl border border-glass-border hover:bg-surface-hover"
+          aria-label="Open menu"
+        >
+          <Menu size={22} />
+        </button>
+        <h2 className="text-base font-bold text-primary truncate flex-1 text-center" style={{ color: 'var(--color-primary)' }}>
+          {panelTitle}
+        </h2>
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="w-10 h-10 flex items-center justify-center text-error hover:bg-error/10 rounded-xl"
+          aria-label="Logout"
+        >
+          <LogOut size={18} />
+        </button>
+      </header>
+
+      {mobileNavOpen && (
+        <button
+          type="button"
+          className="lg:hidden fixed inset-0 z-40 bg-black/60"
+          aria-label="Close menu"
+          onClick={() => setMobileNavOpen(false)}
+        />
+      )}
+
+      <aside
+        className={[
+          'fixed lg:static inset-y-0 left-0 z-50',
+          'w-[min(18rem,88vw)] lg:w-64',
+          'glass-panel flex flex-col',
+          'm-0 lg:m-4',
+          'transition-transform duration-300 ease-out',
+          'max-lg:top-0 max-lg:bottom-0 max-lg:rounded-none max-lg:border-y-0',
+          mobileNavOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
+        ].join(' ')}
+      >
+        <div className="p-4 lg:p-6 border-b flex items-center justify-between gap-2" style={{ borderColor: 'var(--glass-border)' }}>
+          <h2 className="text-lg lg:text-xl font-bold text-primary" style={{ color: 'var(--color-primary)' }}>
+            {panelTitle}
           </h2>
+          <button
+            type="button"
+            className="lg:hidden w-9 h-9 flex items-center justify-center rounded-lg hover:bg-surface-hover"
+            onClick={() => setMobileNavOpen(false)}
+            aria-label="Close menu"
+          >
+            <X size={20} />
+          </button>
         </div>
 
-        <nav className={`flex-1 p-4 flex flex-col ${isSeller ? 'gap-2.5' : 'gap-2.5'}`}>
+        <nav className="flex-1 p-3 sm:p-4 flex flex-col gap-2.5 overflow-y-auto overscroll-contain">
           {isAdmin && (
             <div className="flex flex-col gap-2.5">
               {showAdminLink('dashboard') && (
@@ -328,7 +386,7 @@ const DashboardLayout = ({ variant }) => {
         </div>
       </aside>
 
-      <main className="flex-1 p-8 overflow-y-auto">
+      <main className="flex-1 w-full min-w-0 p-4 sm:p-6 lg:p-8 overflow-y-auto overflow-x-hidden">
         <Outlet />
       </main>
     </div>

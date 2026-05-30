@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import api from '../../utils/api';
 import { Tag, Plus, Edit, Trash2, Save, X, Percent } from 'lucide-react';
+import ResponsiveTable from '../../components/common/ResponsiveTable';
+import useFormAutosave from '../../hooks/useFormAutosave';
+import FormAutosaveStatus from '../../components/common/FormAutosaveStatus';
 
 const AdminCategories = () => {
   const [categories, setCategories] = useState([]);
@@ -29,6 +32,19 @@ const AdminCategories = () => {
     fetchCategories();
   }, []);
 
+  const categoryDraftKey = editingId
+    ? `admin.categories.edit.${editingId}`
+    : 'admin.categories.new';
+
+  const { status: categoryAutosaveStatus, message: categoryAutosaveMessage, clearDraft: clearCategoryDraft } =
+    useFormAutosave({
+      formKey: categoryDraftKey,
+      value: formData,
+      enabled: showForm,
+      restore: !editingId,
+      onRestore: (data) => setFormData((prev) => ({ ...prev, ...data })),
+    });
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
@@ -48,6 +64,7 @@ const AdminCategories = () => {
       setShowForm(false);
       setEditingId(null);
       setFormData({ name: '', description: '', icon: '', commissionRate: 5, isActive: true, isFeatured: false, parentCategory: '' });
+      await clearCategoryDraft();
       fetchCategories();
     } catch (err) {
       alert(err.response?.data?.message || 'Error saving category');
@@ -97,8 +114,11 @@ const AdminCategories = () => {
 
       {showForm && (
         <div className="glass-panel p-6 rounded-2xl animate-fade-in border border-primary/30">
-          <div className="flex justify-between items-center mb-6 border-b border-glass-border pb-4">
-            <h2 className="text-xl font-bold">{editingId ? 'Edit Category' : 'Create New Category'}</h2>
+          <div className="flex flex-wrap justify-between items-center gap-2 mb-6 border-b border-glass-border pb-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <h2 className="text-xl font-bold">{editingId ? 'Edit Category' : 'Create New Category'}</h2>
+              <FormAutosaveStatus status={categoryAutosaveStatus} message={categoryAutosaveMessage} />
+            </div>
             <button onClick={() => { setShowForm(false); setEditingId(null); }} className="p-2 hover:bg-surface rounded-full transition-colors"><X size={20}/></button>
           </div>
           
@@ -156,6 +176,7 @@ const AdminCategories = () => {
       )}
 
       <div className="glass-panel rounded-2xl overflow-hidden shadow-lg">
+        <ResponsiveTable minWidth="800px">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-glass-border bg-surface/50">
@@ -212,6 +233,7 @@ const AdminCategories = () => {
             )}
           </tbody>
         </table>
+        </ResponsiveTable>
       </div>
     </div>
   );

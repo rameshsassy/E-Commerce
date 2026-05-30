@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../../utils/api';
 import { Search } from 'lucide-react';
+import ResponsiveTable from '../../components/common/ResponsiveTable';
 
 const AdminPremiumSellers = () => {
   const [sellers, setSellers] = useState([]);
@@ -30,10 +31,10 @@ const AdminPremiumSellers = () => {
   );
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold flex items-center gap-3">Premium Sellers</h1>
-        <div className="relative w-64">
+    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in w-full min-w-0">
+      <div className="responsive-page-header">
+        <h1 className="font-bold flex items-center gap-3">Premium Sellers</h1>
+        <div className="relative w-full sm:max-w-xs">
           <Search className="absolute left-3 top-2.5 text-text-muted" size={18} />
           <input
             type="text"
@@ -51,6 +52,7 @@ const AdminPremiumSellers = () => {
         ) : filtered.length === 0 ? (
           <div className="p-8 text-center text-text-muted">No premium sellers found.</div>
         ) : (
+          <ResponsiveTable minWidth="720px">
           <table className="w-full text-left border-collapse">
             <thead className="bg-surface/10 border-b border-glass-border">
               <tr>
@@ -91,6 +93,7 @@ const AdminPremiumSellers = () => {
               ))}
             </tbody>
           </table>
+          </ResponsiveTable>
         )}
       </div>
     </div>

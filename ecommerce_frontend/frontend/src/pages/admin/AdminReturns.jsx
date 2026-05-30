@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeftRight, CheckCircle, XCircle } from 'lucide-react';
 import api from '../../utils/api';
+import ResponsiveTable from '../../components/common/ResponsiveTable';
 
 const AdminReturns = () => {
   const [returns, setReturns] = useState([]);
@@ -33,10 +34,11 @@ const AdminReturns = () => {
   if (loading) return <div className="p-8 text-center">Loading return requests...</div>;
 
   return (
-    <div className="animate-fade-in max-w-6xl mx-auto">
-      <h1 className="text-3xl font-bold flex items-center gap-3 mb-8"><ArrowLeftRight className="text-primary"/> Return & Refund Requests</h1>
+    <div className="animate-fade-in max-w-6xl mx-auto w-full min-w-0">
+      <h1 className="responsive-page-header font-bold flex items-center gap-3"><ArrowLeftRight className="text-primary shrink-0"/> Return & Refund Requests</h1>
 
       <div className="glass-panel overflow-hidden rounded-2xl">
+        <ResponsiveTable minWidth="760px">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-glass-border bg-surface">
@@ -79,6 +81,7 @@ const AdminReturns = () => {
             )}
           </tbody>
         </table>
+        </ResponsiveTable>
       </div>
     </div>
   );

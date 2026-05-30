@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Tag, Plus, CheckCircle, XCircle } from 'lucide-react';
 import api from '../../utils/api';
+import useFormAutosave from '../../hooks/useFormAutosave';
+import FormAutosaveStatus from '../../components/common/FormAutosaveStatus';
 
 const AdminCoupons = () => {
   const [coupons, setCoupons] = useState([]);
@@ -23,11 +25,21 @@ const AdminCoupons = () => {
     fetchCoupons();
   }, []);
 
+  const { status: couponAutosaveStatus, message: couponAutosaveMessage, clearDraft: clearCouponDraft } =
+    useFormAutosave({
+      formKey: 'admin.coupons.new',
+      value: formData,
+      enabled: showModal,
+      isEmpty: (v) => !String(v.code || '').trim(),
+    });
+
   const handleCreate = async (e) => {
     e.preventDefault();
     try {
       await api.post('/coupons/admin', formData);
       setShowModal(false);
+      setFormData({ code: '', discountPercentage: '', minOrderAmount: 0, expiryDate: '' });
+      await clearCouponDraft();
       fetchCoupons();
     } catch (err) {
       alert(err.response?.data?.message || "Failed to create coupon");
@@ -86,7 +98,10 @@ const AdminCoupons = () => {
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-surface border border-glass-border rounded-2xl p-6 w-full max-w-md animate-fade-in shadow-2xl">
-            <h2 className="text-2xl font-bold mb-6">Create New Promo Code</h2>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
+              <h2 className="text-2xl font-bold">Create New Promo Code</h2>
+              <FormAutosaveStatus status={couponAutosaveStatus} message={couponAutosaveMessage} />
+            </div>
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Code</label>

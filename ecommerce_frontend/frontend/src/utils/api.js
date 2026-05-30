@@ -7,6 +7,7 @@ import {
 import { resolveApiBaseUrl, resolveApiUrl } from './apiConfig';
 import { API_MISCONFIGURED_MSG, isHtmlApiResponse } from './apiErrors';
 import { portalApiHeaders } from './portalHost';
+import { getViewportWidthHeader } from './clientDevice';
 
 const baseUrlHolder = {
   toString() {
@@ -35,6 +36,10 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
     Object.assign(config.headers, portalApiHeaders());
+    const viewportWidth = getViewportWidthHeader();
+    if (viewportWidth) {
+      config.headers['X-Viewport-Width'] = viewportWidth;
+    }
     if (config.data instanceof FormData) {
       delete config.headers['Content-Type'];
     }

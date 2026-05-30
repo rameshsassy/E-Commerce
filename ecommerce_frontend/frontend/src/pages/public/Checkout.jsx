@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldCheck, Truck, CreditCard } from 'lucide-react';
 import api, { BASE_URL } from '../../utils/api';
+import useFormAutosave from '../../hooks/useFormAutosave';
+import FormAutosaveStatus from '../../components/common/FormAutosaveStatus';
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -18,6 +20,20 @@ const Checkout = () => {
   
   const [paymentMethod] = useState('razorpay');
   const [processing, setProcessing] = useState(false);
+
+  const checkoutDraftValue = { address, selectedAddressId, step };
+
+  const { status: checkoutAutosaveStatus, message: checkoutAutosaveMessage, clearDraft: clearCheckoutDraft } =
+    useFormAutosave({
+      formKey: 'customer.checkout',
+      value: checkoutDraftValue,
+      enabled: !loading,
+      onRestore: (data) => {
+        if (data.selectedAddressId) setSelectedAddressId(data.selectedAddressId);
+        if (data.address) setAddress((prev) => ({ ...prev, ...data.address }));
+        if (data.step) setStep(data.step);
+      },
+    });
 
   useEffect(() => {
     const loadData = async () => {
@@ -133,7 +149,8 @@ const Checkout = () => {
             };
 
             await api.post('/customer/order/razorpay/verify', verifyPayload);
-            
+            await clearCheckoutDraft();
+
             // Navigate to success
             navigate(`/order-success/${createdOrder._id}`);
           } catch (err) {
@@ -186,7 +203,10 @@ const Checkout = () => {
 
         {step === 1 && (
           <div className="glass-panel p-6 rounded-2xl">
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2"><Truck size={20}/> Shipping Address</h2>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
+              <h2 className="text-xl font-bold flex items-center gap-2"><Truck size={20}/> Shipping Address</h2>
+              <FormAutosaveStatus status={checkoutAutosaveStatus} message={checkoutAutosaveMessage} />
+            </div>
             
             {savedAddresses.length > 0 && (
               <div className="mb-6">

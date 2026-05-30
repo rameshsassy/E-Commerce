@@ -5,7 +5,14 @@ import api from '../../utils/api';
 import ProductVariantsFields from './ProductVariantsFields';
 import ProductShippingFields from './ProductShippingFields';
 import { Crown } from 'lucide-react';
-import { SELLER_MAIN_CATEGORIES } from '../../constants/sellerMainCategories';
+import {
+  normalizeCategoryPath,
+  isCompleteCategoryPath,
+  categoryPathsEqual,
+  pathFromProductData,
+  pathFromApiLocked,
+  formatCategoryPathLabel,
+} from '../../utils/sellerCategoryPath';
 
 const PREMIUM_MAIN_CATEGORIES = [
   'Fashion',
@@ -281,17 +288,15 @@ export default function ProductPricingInventoryFields({
   const [typeQuery, setTypeQuery] = useState('');
   const [otherSubText, setOtherSubText] = useState('');
   const [otherTypeText, setOtherTypeText] = useState('');
-  const [freeMainOpen, setFreeMainOpen] = useState(false);
-  const [freeMainQuery, setFreeMainQuery] = useState('');
   const maxOrderLimit = inventoryOptions?.maxOrderQuantityLimit ?? 5;
   const categoryLimits = inventoryOptions?.categoryLimits;
-  const lockedMainCategory = categoryLimits?.lockedMainCategory || null;
-  const freeMainOptions = useMemo(() => {
-    const list = categoryLimits?.mainCategoryOptions || SELLER_MAIN_CATEGORIES;
-    const q = freeMainQuery.trim().toLowerCase();
-    if (!q) return list;
-    return list.filter((x) => x.toLowerCase().includes(q));
-  }, [categoryLimits?.mainCategoryOptions, freeMainQuery]);
+  const lockedCategoryPath = useMemo(
+    () => pathFromApiLocked(categoryLimits?.lockedCategoryPath),
+    [categoryLimits?.lockedCategoryPath]
+  );
+  const lockedPathLabel =
+    categoryLimits?.lockedCategoryPath?.label ||
+    (lockedCategoryPath ? formatCategoryPathLabel(lockedCategoryPath) : '');
   const minQty = Number(productData.minOrderQuantity);
   const maxQty = Number(productData.maxOrderQuantity);
   const minInvalid = productData.minOrderQuantity !== '' && productData.minOrderQuantity !== undefined && (minQty < 1 || !Number.isFinite(minQty));
@@ -312,6 +317,13 @@ export default function ProductPricingInventoryFields({
   const addressesLocked = editingProduct?.approvalStatus === 'approved';
   const hasStoreAddresses = (inventoryOptions?.storeAddresses || []).length > 0;
   const isFreeSeller = inventoryOptions?.isSubscribedSeller === false;
+  const isPremium = inventoryOptions?.isSubscribedSeller === true;
+
+  const promptUpgrade = (feature) => {
+    if (isPremium) return false;
+    onRequestUpgrade?.(feature);
+    return true;
+  };
 
   const { main: selectedMain, sub: selectedSub } = useMemo(() => {
     return splitPremiumCategoryString(productData.category);
@@ -375,6 +387,40 @@ export default function ProductPricingInventoryFields({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMain, selectedSub]);
 
+  const guardCategoryPath = (main, sub, type) => {
+    if (isPremium) return true;
+    if (!lockedCategoryPath) return true;
+
+    const mainClean = String(main || '').trim();
+    const subClean = String(sub || '').trim();
+    const typeVal =
+      type !== undefined && type !== null
+        ? String(type || '').trim()
+        : String(productData.premiumType || '').trim();
+    const categoryStr = subClean ? `${mainClean} / ${subClean}` : mainClean;
+    const next = normalizeCategoryPath(categoryStr, typeVal);
+
+    if (mainClean && mainClean.toLowerCase() !== lockedCategoryPath.main) {
+      onRequestUpgrade?.('free_category_path', { autoRedirect: true });
+      return false;
+    }
+    if (subClean && subClean.toLowerCase() !== lockedCategoryPath.sub) {
+      onRequestUpgrade?.('free_category_path', { autoRedirect: true });
+      return false;
+    }
+    if (typeVal && typeVal.toLowerCase() !== lockedCategoryPath.type) {
+      onRequestUpgrade?.('free_category_path', { autoRedirect: true });
+      return false;
+    }
+
+    if (!isCompleteCategoryPath(next)) return true;
+    if (!categoryPathsEqual(next, lockedCategoryPath)) {
+      onRequestUpgrade?.('free_category_path', { autoRedirect: true });
+      return false;
+    }
+    return true;
+  };
+
   const setPremiumCategory = (main, sub) => {
     const mainClean = String(main || '').trim();
     const subClean = String(sub || '').trim();
@@ -383,29 +429,36 @@ export default function ProductPricingInventoryFields({
     setOtherTypeText('');
   };
 
-  const selectFreeMainCategory = (name) => {
-    if (lockedMainCategory && name !== lockedMainCategory) {
-      onRequestUpgrade?.('multiple_categories');
-      return;
-    }
-    setProductData((prev) => ({
-      ...prev,
-      category: name,
-      premiumType: '',
-    }));
-    setFreeMainOpen(false);
-    setFreeMainQuery('');
+  const setPremiumCategoryGuarded = (main, sub) => {
+    if (!guardCategoryPath(main, sub, '')) return;
+    setPremiumCategory(main, sub);
   };
-
-  const freeSelectedMain =
-    splitPremiumCategoryString(productData.category).main ||
-    (productData.category && !String(productData.category).includes('/')
-      ? String(productData.category).trim()
-      : '');
 
   const setPremiumType = (val) => {
     setProductData((prev) => ({ ...prev, premiumType: val }));
   };
+
+  const setPremiumTypeGuarded = (val) => {
+    const { main, sub } = splitPremiumCategoryString(productData.category);
+    if (!guardCategoryPath(main, sub, val)) return;
+    setPremiumType(val);
+  };
+
+  useEffect(() => {
+    if (isPremium || !lockedCategoryPath) return;
+    const current = pathFromProductData(productData);
+    if (isCompleteCategoryPath(current)) return;
+    const main = lockedCategoryPath.mainDisplay || categoryLimits?.lockedCategoryPath?.main;
+    const sub = lockedCategoryPath.subDisplay || categoryLimits?.lockedCategoryPath?.sub;
+    const type = lockedCategoryPath.typeDisplay || categoryLimits?.lockedCategoryPath?.type;
+    if (!main || !sub || !type) return;
+    setProductData((prev) => ({
+      ...prev,
+      category: `${main} / ${sub}`,
+      premiumType: type,
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lockedCategoryPath, isPremium]);
 
   const saveSingleStoreAddress = async () => {
     if (!isFreeSeller) {
@@ -677,168 +730,224 @@ export default function ProductPricingInventoryFields({
         </div>
       </div>
 
-      {/* Premium-only: Bulk Purchase / B2B */}
-      {inventoryOptions?.isSubscribedSeller && (
-        <div className="border border-[#E1E3E5] rounded-lg overflow-hidden">
-          <div className="px-4 py-3 bg-[#F6F6F7] flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[#202223] font-semibold">
-              <span>Bulk Purchase/B2B</span>
-              <Crown size={18} className="text-[#B98900]" />
-            </div>
+      {/* Bulk Purchase / B2B — visible to all; premium can edit */}
+      <div className="border border-[#E1E3E5] rounded-lg overflow-hidden">
+        <div className="px-4 py-3 bg-[#F6F6F7] flex items-center justify-between">
+          <div className="flex items-center gap-2 text-[#202223] font-semibold">
+            <span>Bulk Purchase/B2B</span>
+            <Crown size={18} className="text-[#B98900]" />
+            {!isPremium && (
+              <span className="text-[11px] font-medium text-[#B98900] bg-[#FFF4E5] px-2 py-0.5 rounded-full">
+                Premium
+              </span>
+            )}
+          </div>
 
-            <label className="flex items-center gap-3 text-[13px] text-[#202223]">
-              <span className="font-medium">Available</span>
-              <input
-                type="checkbox"
-                className="w-10 h-5 accent-[#008060]"
-                checked={productData.bulkPurchaseEnabled === true}
-                onChange={(e) => {
-                  const enabled = e.target.checked;
+          <label
+            className={`flex items-center gap-3 text-[13px] text-[#202223] ${!isPremium ? 'cursor-pointer' : ''}`}
+            onClick={(e) => {
+              if (!isPremium) {
+                e.preventDefault();
+                promptUpgrade('bulk_purchase');
+              }
+            }}
+          >
+            <span className="font-medium">Available</span>
+            <input
+              type="checkbox"
+              className="w-10 h-5 accent-[#008060]"
+              checked={isPremium && productData.bulkPurchaseEnabled === true}
+              readOnly={!isPremium}
+              onChange={(e) => {
+                if (promptUpgrade('bulk_purchase')) return;
+                const enabled = e.target.checked;
+                setProductData((prev) => ({
+                  ...prev,
+                  bulkPurchaseEnabled: enabled,
+                  bulkPurchaseMinOrderQuantity: enabled
+                    ? prev.bulkPurchaseMinOrderQuantity ?? 50
+                    : prev.bulkPurchaseMinOrderQuantity ?? 1,
+                }));
+              }}
+            />
+          </label>
+        </div>
+
+        <div
+          className={`px-4 py-4 bg-white ${!isPremium ? 'cursor-pointer' : ''}`}
+          onClick={() => {
+            if (!isPremium) promptUpgrade('bulk_purchase');
+          }}
+          onKeyDown={(e) => {
+            if (!isPremium && (e.key === 'Enter' || e.key === ' ')) {
+              e.preventDefault();
+              promptUpgrade('bulk_purchase');
+            }
+          }}
+          role={!isPremium ? 'button' : undefined}
+          tabIndex={!isPremium ? 0 : undefined}
+        >
+          <label className="block text-[14px] font-semibold text-[#202223] mb-2">
+            Minimum Order Quantity (Pieces/Units)
+          </label>
+
+          <div className="flex items-stretch gap-3">
+            <input
+              type="number"
+              min="1"
+              step="1"
+              readOnly={!isPremium}
+              className={`flex-1 border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] outline-none focus:ring-2 focus:ring-[#005bd3] focus:border-[#005bd3] ${
+                isPremium && productData.bulkPurchaseEnabled
+                  ? 'bg-white'
+                  : 'bg-[#F6F6F7] opacity-60'
+              }`}
+              value={
+                isPremium
+                  ? productData.bulkPurchaseMinOrderQuantity ?? 50
+                  : productData.bulkPurchaseMinOrderQuantity ?? 50
+              }
+              disabled={!isPremium || !productData.bulkPurchaseEnabled}
+              onChange={(e) => {
+                if (promptUpgrade('bulk_purchase')) return;
+                setProductData((prev) => ({
+                  ...prev,
+                  bulkPurchaseMinOrderQuantity: e.target.value,
+                }));
+              }}
+              onClick={(e) => {
+                if (!isPremium) {
+                  e.stopPropagation();
+                  promptUpgrade('bulk_purchase');
+                }
+              }}
+            />
+
+            <div className="flex flex-col">
+              <button
+                type="button"
+                disabled={!isPremium || !productData.bulkPurchaseEnabled}
+                className="h-1/2 px-3 border border-[#8C9196] rounded-t-md bg-white text-[#202223] hover:bg-[#F6F6F7] disabled:opacity-50"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (promptUpgrade('bulk_purchase')) return;
+                  const cur = Number(productData.bulkPurchaseMinOrderQuantity ?? 50);
+                  const next = Number.isFinite(cur) ? cur + 1 : 50;
                   setProductData((prev) => ({
                     ...prev,
-                    bulkPurchaseEnabled: enabled,
-                    bulkPurchaseMinOrderQuantity: enabled
-                      ? prev.bulkPurchaseMinOrderQuantity ?? 50
-                      : prev.bulkPurchaseMinOrderQuantity ?? 1,
+                    bulkPurchaseMinOrderQuantity: next,
                   }));
                 }}
-              />
-            </label>
-          </div>
-
-          <div className="px-4 py-4 bg-white">
-            <label className="block text-[14px] font-semibold text-[#202223] mb-2">
-              Minimum Order Quantity (Pieces/Units)
-            </label>
-
-            <div className="flex items-stretch gap-3">
-              <input
-                type="number"
-                min="1"
-                step="1"
-                className={`flex-1 border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] outline-none focus:ring-2 focus:ring-[#005bd3] focus:border-[#005bd3] ${
-                  productData.bulkPurchaseEnabled ? 'bg-white' : 'bg-[#F6F6F7] opacity-60'
-                }`}
-                value={productData.bulkPurchaseMinOrderQuantity ?? 50}
-                disabled={!productData.bulkPurchaseEnabled}
-                onChange={(e) =>
+                aria-label="Increase minimum order quantity"
+              >
+                ▲
+              </button>
+              <button
+                type="button"
+                disabled={!isPremium || !productData.bulkPurchaseEnabled}
+                className="h-1/2 px-3 border border-t-0 border-[#8C9196] rounded-b-md bg-white text-[#202223] hover:bg-[#F6F6F7] disabled:opacity-50"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (promptUpgrade('bulk_purchase')) return;
+                  const cur = Number(productData.bulkPurchaseMinOrderQuantity ?? 50);
+                  const next = Number.isFinite(cur) ? Math.max(1, cur - 1) : 50;
                   setProductData((prev) => ({
                     ...prev,
-                    bulkPurchaseMinOrderQuantity: e.target.value,
-                  }))
-                }
-              />
-
-              <div className="flex flex-col">
-                <button
-                  type="button"
-                  disabled={!productData.bulkPurchaseEnabled}
-                  className="h-1/2 px-3 border border-[#8C9196] rounded-t-md bg-white text-[#202223] hover:bg-[#F6F6F7] disabled:opacity-50"
-                  onClick={() => {
-                    const cur = Number(productData.bulkPurchaseMinOrderQuantity ?? 50);
-                    const next = Number.isFinite(cur) ? cur + 1 : 50;
-                    setProductData((prev) => ({
-                      ...prev,
-                      bulkPurchaseMinOrderQuantity: next,
-                    }));
-                  }}
-                  aria-label="Increase minimum order quantity"
-                >
-                  ▲
-                </button>
-                <button
-                  type="button"
-                  disabled={!productData.bulkPurchaseEnabled}
-                  className="h-1/2 px-3 border border-t-0 border-[#8C9196] rounded-b-md bg-white text-[#202223] hover:bg-[#F6F6F7] disabled:opacity-50"
-                  onClick={() => {
-                    const cur = Number(productData.bulkPurchaseMinOrderQuantity ?? 50);
-                    const next = Number.isFinite(cur) ? Math.max(1, cur - 1) : 50;
-                    setProductData((prev) => ({
-                      ...prev,
-                      bulkPurchaseMinOrderQuantity: next,
-                    }));
-                  }}
-                  aria-label="Decrease minimum order quantity"
-                >
-                  ▼
-                </button>
-              </div>
+                    bulkPurchaseMinOrderQuantity: next,
+                  }));
+                }}
+                aria-label="Decrease minimum order quantity"
+              >
+                ▼
+              </button>
             </div>
+          </div>
 
-            <p className="text-[12px] text-[#6D7175] mt-2">
-              Bulk purchase is visible to customers as a B2B option.
-            </p>
+          <p className="text-[12px] text-[#6D7175] mt-2">
+            Bulk purchase is visible to customers as a B2B option.
+            {!isPremium && ' Upgrade to Premium to enable this for your products.'}
+          </p>
+        </div>
+      </div>
+
+      {/* Category — full hierarchy for all sellers; free plan locked to one path */}
+      <div ref={categoryWrapRef} className="border border-[#E1E3E5] rounded-lg">
+        <div className="px-4 py-3 bg-[#F6F6F7] flex items-center justify-between">
+          <div className="flex items-center gap-2 text-[#202223] font-semibold">
+            <span>Category</span>
+            <Crown size={18} className="text-[#B98900]" />
           </div>
         </div>
-      )}
 
-      {/* Free plan: one main category */}
-      {!inventoryOptions?.isSubscribedSeller && (
-        <div className="border border-[#E1E3E5] rounded-lg">
-          <div className="px-4 py-3 bg-[#F6F6F7] flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[#202223] font-semibold">
-              <span>Category</span>
-              <Zap size={16} className="text-[#B98900]" fill="currentColor" aria-hidden />
-            </div>
-          </div>
-          <div className="px-4 py-4 bg-white space-y-3">
-            <p className="text-[12px] text-[#6D7175]">
-              {categoryLimits?.categoryHint ||
-                'Free plan: one main category for your entire catalog.'}
+        <div className="px-4 py-4 bg-white">
+          {!isPremium && (
+            <p className="text-[12px] text-[#6D7175] mb-4">
+              {categoryLimits?.categoryHint}
+              {lockedPathLabel ? (
+                <>
+                  {' '}
+                  Your store category path:{' '}
+                  <span className="font-semibold text-[#202223]">{lockedPathLabel}</span>
+                  . All products must use this same path.
+                </>
+              ) : (
+                ' Select one Main → Sub → Type path for your first product; after that, all products must stay on that path.'
+              )}
             </p>
-            {lockedMainCategory ? (
-              <p className="text-[13px] text-[#202223]">
-                Your catalog category:{' '}
-                <span className="font-semibold">{lockedMainCategory}</span>
-              </p>
-            ) : null}
-            <div className="relative max-w-md">
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+            {/* Main category */}
+            <div className="relative">
               <label className="block text-[14px] font-semibold text-[#202223] mb-2">
-                Main category
+                Main Category
               </label>
               <button
                 type="button"
-                className={`w-full flex items-center justify-between border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] ${
-                  lockedMainCategory
-                    ? 'bg-[#F6F6F7] cursor-default'
-                    : 'bg-white hover:bg-[#F6F6F7]'
-                }`}
-                disabled={Boolean(lockedMainCategory)}
+                className="w-full flex items-center justify-between border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] bg-white hover:bg-[#F6F6F7]"
                 onClick={() => {
-                  if (lockedMainCategory) return;
-                  setFreeMainOpen((v) => !v);
-                  setFreeMainQuery('');
+                  setMainOpen((v) => !v);
+                  setSubOpen(false);
+                  setTypeOpen(false);
+                  setMainQuery('');
                 }}
               >
-                <span className={freeSelectedMain ? '' : 'text-[#6D7175]'}>
-                  {lockedMainCategory || freeSelectedMain || 'Select main category'}
+                <span className={selectedMain ? '' : 'text-[#6D7175]'}>
+                  {selectedMain || 'Select main category'}
                 </span>
-                {!lockedMainCategory && <ChevronDown size={18} className="text-[#6D7175]" />}
+                <ChevronDown size={18} className="text-[#6D7175]" />
               </button>
-              {freeMainOpen && !lockedMainCategory && (
+              {mainOpen && (
                 <div className="absolute z-50 w-full mt-1 bg-white border border-[#E1E3E5] rounded-md shadow-lg overflow-hidden">
                   <div className="p-2 border-b border-[#E1E3E5]">
                     <div className="flex items-center gap-2 border border-[#E1E3E5] rounded-md px-2 py-1.5 bg-white">
                       <Search size={16} className="text-[#6D7175]" />
                       <input
                         type="text"
-                        value={freeMainQuery}
-                        onChange={(e) => setFreeMainQuery(e.target.value)}
-                        placeholder="Search category..."
+                        value={mainQuery}
+                        onChange={(e) => setMainQuery(e.target.value)}
+                        placeholder="Search main category..."
                         className="w-full outline-none text-[13px] text-[#202223]"
                         autoFocus
                       />
                     </div>
                   </div>
                   <ul className="max-h-64 overflow-y-auto">
-                    {freeMainOptions.map((name) => (
+                    {mainOptions.length === 0 && (
+                      <li className="px-3 py-2 text-[13px] text-[#6D7175]">No matches</li>
+                    )}
+                    {mainOptions.map((name) => (
                       <li key={name}>
                         <button
                           type="button"
                           className="w-full text-left px-3 py-2 text-[14px] text-[#202223] hover:bg-[#F6F6F7]"
                           onMouseDown={(e) => {
                             e.preventDefault();
-                            selectFreeMainCategory(name);
+                            if (!guardCategoryPath(name, '', '')) return;
+                            setPremiumCategoryGuarded(name, '');
+                            setOtherSubText('');
+                            setMainOpen(false);
+                            setSubOpen(false);
+                            setTypeOpen(false);
                           }}
                         >
                           {name}
@@ -849,98 +958,6 @@ export default function ProductPricingInventoryFields({
                 </div>
               )}
             </div>
-            <button
-              type="button"
-              onClick={() => onRequestUpgrade?.('multiple_categories')}
-              className="w-full flex items-center justify-between px-4 py-3 rounded-md bg-[#E4E5E7] hover:bg-[#D2D5D8] text-[#202223] text-[14px] font-medium transition-colors"
-            >
-              <span className="flex items-center gap-2">
-                Add another category
-                <Zap size={16} className="text-[#B98900]" fill="currentColor" />
-              </span>
-              <Zap size={18} className="text-[#B98900]" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Premium-only: Category (Main + Sub) */}
-      {inventoryOptions?.isSubscribedSeller && (
-        <div ref={categoryWrapRef} className="border border-[#E1E3E5] rounded-lg">
-          <div className="px-4 py-3 bg-[#F6F6F7] flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[#202223] font-semibold">
-              <span>Category</span>
-              <Crown size={18} className="text-[#B98900]" />
-            </div>
-          </div>
-
-          <div className="px-4 py-4 bg-white">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-              {/* Main category */}
-              <div className="relative">
-                <label className="block text-[14px] font-semibold text-[#202223] mb-2">
-                  Main Category
-                </label>
-                <button
-                  type="button"
-                  className="w-full flex items-center justify-between border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] bg-white hover:bg-[#F6F6F7]"
-                  onClick={() => {
-                    setMainOpen((v) => !v);
-                    setSubOpen(false);
-                    setTypeOpen(false);
-                    setMainQuery('');
-                  }}
-                >
-                  <span className={selectedMain ? '' : 'text-[#6D7175]'}>
-                    {selectedMain || 'Select main category'}
-                  </span>
-                  <ChevronDown size={18} className="text-[#6D7175]" />
-                </button>
-
-                {mainOpen && (
-                  <div className="absolute z-50 w-full mt-1 bg-white border border-[#E1E3E5] rounded-md shadow-lg overflow-hidden">
-                    <div className="p-2 border-b border-[#E1E3E5]">
-                      <div className="flex items-center gap-2 border border-[#E1E3E5] rounded-md px-2 py-1.5 bg-white">
-                        <Search size={16} className="text-[#6D7175]" />
-                        <input
-                          type="text"
-                          value={mainQuery}
-                          onChange={(e) => setMainQuery(e.target.value)}
-                          placeholder="Search main category..."
-                          className="w-full outline-none text-[13px] text-[#202223]"
-                          autoFocus
-                        />
-                      </div>
-                    </div>
-                    <ul className="max-h-64 overflow-y-auto">
-                      {mainOptions.length === 0 && (
-                        <li className="px-3 py-2 text-[13px] text-[#6D7175]">
-                          No matches
-                        </li>
-                      )}
-                      {mainOptions.map((name) => (
-                        <li key={name}>
-                          <button
-                            type="button"
-                            className="w-full text-left px-3 py-2 text-[14px] text-[#202223] hover:bg-[#F6F6F7]"
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              // Selecting a new main category resets subcategory.
-                              setPremiumCategory(name, '');
-                              setOtherSubText('');
-                              setMainOpen(false);
-                              setSubOpen(false);
-                              setTypeOpen(false);
-                            }}
-                          >
-                            {name}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
 
               {/* Sub category */}
               <div className="relative">
@@ -995,7 +1012,8 @@ export default function ProductPricingInventoryFields({
                             className="w-full text-left px-3 py-2 text-[14px] text-[#202223] hover:bg-[#F6F6F7]"
                             onMouseDown={(e) => {
                               e.preventDefault();
-                              setPremiumCategory(selectedMain, name);
+                              if (!guardCategoryPath(selectedMain, name, productData.premiumType)) return;
+                              setPremiumCategoryGuarded(selectedMain, name);
                               setSubOpen(false);
                               setTypeOpen(false);
                             }}
@@ -1017,7 +1035,9 @@ export default function ProductPricingInventoryFields({
                 <button
                   type="button"
                   className={`w-full flex items-center justify-between border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] ${
-                    selectedMain && selectedSub ? 'bg-white hover:bg-[#F6F6F7]' : 'bg-[#F6F6F7] opacity-70 cursor-not-allowed'
+                    selectedMain && selectedSub
+                      ? 'bg-white hover:bg-[#F6F6F7]'
+                      : 'bg-[#F6F6F7] opacity-70 cursor-not-allowed'
                   }`}
                   disabled={!selectedMain || !selectedSub}
                   onClick={() => {
@@ -1062,7 +1082,7 @@ export default function ProductPricingInventoryFields({
                             className="w-full text-left px-3 py-2 text-[14px] text-[#202223] hover:bg-[#F6F6F7]"
                             onMouseDown={(e) => {
                               e.preventDefault();
-                              setPremiumType(name);
+                              setPremiumTypeGuarded(name);
                               setTypeOpen(false);
                               if (name !== 'Others (Please mention)') setOtherTypeText('');
                             }}
@@ -1089,7 +1109,7 @@ export default function ProductPricingInventoryFields({
                     const val = e.target.value;
                     setOtherSubText(val);
                     // Save into category string so it persists.
-                    setPremiumCategory(selectedMain, val.trim() ? val : selectedSub);
+                    setPremiumCategoryGuarded(selectedMain, val.trim() ? val : selectedSub);
                   }}
                   placeholder="Type sub-category"
                   className="w-full border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] outline-none focus:ring-2 focus:ring-[#005bd3] focus:border-[#005bd3] bg-white"
@@ -1108,7 +1128,7 @@ export default function ProductPricingInventoryFields({
                   onChange={(e) => {
                     const val = e.target.value;
                     setOtherTypeText(val);
-                    setPremiumType(val.trim() ? val : 'Others (Please mention)');
+                    setPremiumTypeGuarded(val.trim() ? val : 'Others (Please mention)');
                   }}
                   placeholder="Type"
                   className="w-full border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] outline-none focus:ring-2 focus:ring-[#005bd3] focus:border-[#005bd3] bg-white"
@@ -1124,7 +1144,6 @@ export default function ProductPricingInventoryFields({
             </p>
           </div>
         </div>
-      )}
 
       <ProductVariantsFields productData={productData} setProductData={setProductData} />
       <ProductShippingFields productData={productData} setProductData={setProductData} />

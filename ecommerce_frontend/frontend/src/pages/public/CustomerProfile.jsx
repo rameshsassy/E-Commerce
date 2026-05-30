@@ -3,6 +3,8 @@ import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import { User, MapPin, Package, Settings, LogOut, ChevronRight, Star } from 'lucide-react';
 import api from '../../utils/api';
+import useFormAutosave from '../../hooks/useFormAutosave';
+import FormAutosaveStatus from '../../components/common/FormAutosaveStatus';
 
 const CustomerProfile = () => {
   const { user, logout, mergeUser } = useAuth();
@@ -74,7 +76,8 @@ const CustomerProfile = () => {
       setShowAddressModal(false);
       setEditingAddress(null);
       setAddressForm({ fullName: '', phone: '', addressLine1: '', addressLine2: '', city: '', state: '', pinCode: '', landmark: '', isDefault: false });
-      
+      await clearAddressDraft();
+
       const res = await api.get('/customer/address');
       setAddresses(res.data);
     } catch (error) {
@@ -103,6 +106,19 @@ const CustomerProfile = () => {
       console.error("Error setting default address", error);
     }
   };
+
+  const addressDraftKey = editingAddress
+    ? `customer.address.edit.${editingAddress._id}`
+    : 'customer.address.new';
+
+  const { status: addressAutosaveStatus, message: addressAutosaveMessage, clearDraft: clearAddressDraft } =
+    useFormAutosave({
+      formKey: addressDraftKey,
+      value: addressForm,
+      enabled: showAddressModal,
+      onRestore: (data) => setAddressForm((prev) => ({ ...prev, ...data })),
+      isEmpty: (v) => !String(v.fullName || '').trim() && !String(v.addressLine1 || '').trim(),
+    });
 
   const openAddAddressModal = () => {
     setEditingAddress(null);
@@ -375,7 +391,10 @@ const CustomerProfile = () => {
       {showAddressModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
           <div className="bg-surface border border-glass-border p-6 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold mb-4">{editingAddress ? 'Edit Address' : 'Add New Address'}</h3>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+              <h3 className="text-xl font-bold">{editingAddress ? 'Edit Address' : 'Add New Address'}</h3>
+              <FormAutosaveStatus status={addressAutosaveStatus} message={addressAutosaveMessage} />
+            </div>
             <form onSubmit={handleAddressSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>

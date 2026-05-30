@@ -1,9 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CheckCircle } from 'lucide-react';
 import getCroppedImg from '../../utils/cropImage';
 import api, { BASE_URL } from '../../utils/api';
 import BusinessDocumentsFields from '../../components/seller/BusinessDocumentsFields';
+import useFormAutosave from '../../hooks/useFormAutosave';
+import FormAutosaveStatus from '../../components/common/FormAutosaveStatus';
 
 const LOGO_ACCEPT = 'image/jpeg,image/png,image/jpg';
 
@@ -217,6 +219,70 @@ const SellerKYC = () => {
   const hasLogo = Boolean(logo || existingLogoPath);
   const hasDoc = (key) => Boolean(documents[key] || existingDocs[key]);
 
+  const buildKycFormData = useCallback(
+    (includeAgreedTerms = false) => {
+      const formData = new FormData();
+      if (form.officialName.trim()) formData.append('officialName', form.officialName.trim());
+      if (form.entityType) formData.append('entityType', form.entityType);
+      if (selectedEntityType?.requiresOtherText && form.entityTypeOther.trim()) {
+        formData.append('entityTypeOther', form.entityTypeOther.trim());
+      }
+      if (form.elevatorPitch.trim()) formData.append('elevatorPitch', form.elevatorPitch.trim());
+      if (form.dateOfRegistration) formData.append('dateOfRegistration', form.dateOfRegistration);
+      if (form.adminCostPercentage !== '' && form.adminCostPercentage != null) {
+        formData.append('adminCostPercentage', String(form.adminCostPercentage));
+      }
+      if (form.registrationNumber.trim()) {
+        formData.append('registrationNumber', form.registrationNumber.trim());
+      }
+      if (form.orgPanNumber.trim()) formData.append('orgPanNumber', form.orgPanNumber.trim());
+      if (form.gstNumber.trim()) formData.append('gstNumber', form.gstNumber.trim());
+      if (includeAgreedTerms) formData.append('agreedToTerms', 'true');
+      else if (form.agreedToTerms) formData.append('agreedToTerms', 'true');
+
+      form.storeAddresses
+        .split('\n')
+        .map((a) => a.trim())
+        .filter(Boolean)
+        .forEach((addr) => formData.append('storeAddresses', addr));
+
+      if (logo) formData.append('logo', logo);
+      Object.entries(documents).forEach(([key, file]) => {
+        if (file) formData.append(key, file);
+      });
+      return formData;
+    },
+    [form, selectedEntityType, logo, documents]
+  );
+
+  const saveKycDraft = useCallback(async () => {
+    const formData = buildKycFormData(false);
+    const { data } = await api.patch('/seller/kyc/complete', formData);
+    return data;
+  }, [buildKycFormData]);
+
+  const kycAutosaveValue = useMemo(
+    () => ({
+      ...form,
+      hasLogo: Boolean(logo || existingLogoPath),
+      docKeys: Object.keys(documents).filter((k) => documents[k]),
+    }),
+    [form, logo, existingLogoPath, documents]
+  );
+
+  const { status: kycAutosaveStatus, message: kycAutosaveMessage, markSaved: markKycSaved } =
+    useFormAutosave({
+      formKey: 'seller.kyc.complete',
+      value: kycAutosaveValue,
+      enabled: !submitted && !entityTypesLoading,
+      restore: false,
+      saveFn: saveKycDraft,
+      isEmpty: (v) =>
+        !String(v.officialName || '').trim() &&
+        !String(v.elevatorPitch || '').trim() &&
+        !String(v.storeAddresses || '').trim(),
+    });
+
   const canSubmit = useMemo(() => {
     if (!form.officialName.trim()) return false;
     if (!form.entityType) return false;
@@ -246,32 +312,9 @@ const SellerKYC = () => {
       setLoading(true);
       setError(null);
 
-      const formData = new FormData();
-      formData.append('officialName', form.officialName.trim());
-      formData.append('entityType', form.entityType);
-      if (selectedEntityType?.requiresOtherText) {
-        formData.append('entityTypeOther', form.entityTypeOther.trim());
-      }
-      formData.append('elevatorPitch', form.elevatorPitch.trim());
-      formData.append('dateOfRegistration', form.dateOfRegistration);
-      formData.append('adminCostPercentage', String(form.adminCostPercentage));
-      formData.append('registrationNumber', form.registrationNumber.trim());
-      formData.append('orgPanNumber', form.orgPanNumber.trim());
-      formData.append('gstNumber', form.gstNumber.trim());
-      formData.append('agreedToTerms', 'true');
-
-      form.storeAddresses
-        .split('\n')
-        .map((a) => a.trim())
-        .filter(Boolean)
-        .forEach((addr) => formData.append('storeAddresses', addr));
-
-      if (logo) formData.append('logo', logo);
-      Object.entries(documents).forEach(([key, file]) => {
-        if (file) formData.append(key, file);
-      });
-
+      const formData = buildKycFormData(true);
       await api.post('/seller/kyc/complete', formData);
+      markKycSaved(kycAutosaveValue);
       setSubmitted(true);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to submit KYC');
@@ -305,9 +348,12 @@ const SellerKYC = () => {
       className="glass-panel animate-fade-in"
       style={{ padding: '2rem', maxWidth: '900px', margin: '2rem auto' }}
     >
-      <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-        Complete Your KYC
-      </h2>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.5rem' }}>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>
+          Complete Your KYC
+        </h2>
+        <FormAutosaveStatus status={kycAutosaveStatus} message={kycAutosaveMessage} />
+      </div>
       <p style={{ color: 'var(--color-text-muted)', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
         Fill in your organisation details and upload documents on this page. All fields marked with *
         are required.
