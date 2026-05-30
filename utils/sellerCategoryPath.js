@@ -1,4 +1,5 @@
 import Product from "../models/Product.js";
+import { isOtherCategoryLabel } from "../data/sellerCategoryTaxonomy.js";
 
 export const FREE_PLAN_CATEGORY_PATH_MESSAGE =
   "You are on the Free Plan. You can add products only under your selected category. Upgrade to Premium to add products in multiple categories.";
@@ -22,7 +23,15 @@ export function normalizeCategoryPath(categoryValue, premiumType = "") {
 }
 
 export function isCompleteCategoryPath(path) {
-  return Boolean(path?.main && path?.sub && path?.type);
+  if (!path?.main || !path?.sub || !path?.type) return false;
+  if (
+    isOtherCategoryLabel(path.mainDisplay) ||
+    isOtherCategoryLabel(path.subDisplay) ||
+    isOtherCategoryLabel(path.typeDisplay)
+  ) {
+    return false;
+  }
+  return true;
 }
 
 export function categoryPathKey(path) {

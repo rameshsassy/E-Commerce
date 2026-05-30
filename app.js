@@ -107,7 +107,8 @@ app.use(
     origin: corsOriginCallback,
     credentials: true,
     methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Portal", "X-Viewport-Width"],
+    // Omit allowedHeaders so preflight reflects Access-Control-Request-Headers
+    // (fixes X-Viewport-Width, X-Portal, etc. across Vercel ↔ Render).
   })
 );
 app.use(express.json());

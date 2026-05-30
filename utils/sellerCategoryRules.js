@@ -10,6 +10,10 @@ import {
   serializeLockedCategoryPathForApi,
   FREE_PLAN_CATEGORY_PATH_MESSAGE,
 } from "./sellerCategoryPath.js";
+import {
+  assertCategoryPathResolved,
+  getCategoryTaxonomyForApi,
+} from "../data/sellerCategoryTaxonomy.js";
 
 export function parseMainCategory(categoryValue) {
   return normalizeCategoryPath(categoryValue).mainDisplay || "";
@@ -52,12 +56,21 @@ export async function resolveSellerCategory(
     premiumType !== undefined ? String(premiumType || "").trim() : undefined;
 
   if (subscribed) {
+    if (raw === "" && !typeInput) {
+      return {
+        category: "Uncategorized",
+        premiumType: typeInput,
+      };
+    }
+    assertCategoryPathResolved(raw, typeInput ?? "");
     const category = raw !== "" ? raw : "Uncategorized";
     return {
       category,
       premiumType: typeInput,
     };
   }
+
+  assertCategoryPathResolved(raw, typeInput ?? "");
 
   const incoming = normalizeCategoryPath(raw, typeInput ?? "");
 
@@ -117,5 +130,6 @@ export async function getSellerCategoryLimitsForApi(seller) {
     lockedCategoryPath: serializeLockedCategoryPathForApi(lockedPath),
     /** @deprecated use lockedCategoryPath */
     lockedMainCategory: lockedPath?.mainDisplay || lockedPath?.main || null,
+    taxonomy: getCategoryTaxonomyForApi(),
   };
 }

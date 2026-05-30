@@ -4,6 +4,7 @@ export const SELLER_MAIN_CATEGORIES = [
   "Beauty & Personal Care",
   "Health & Wellness",
   "Electronics",
+  "Home & Kitchen",
   "Home Appliances",
   "Grocery & Gourmet",
   "Books & Stationery",
