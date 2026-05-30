@@ -13,11 +13,16 @@ import {
   pathFromApiLocked,
   formatCategoryPathLabel,
 } from '../../utils/sellerCategoryPath';
-import { SELLER_MAIN_CATEGORIES } from '../../constants/sellerMainCategories';
 import {
   CATEGORY_OTHER_LABEL,
+  getMainCategoryOptions,
+  getSubcategoriesForSelection,
+  getTypesForSelection,
+  resolveTaxonomyMainKey,
+  resolveTaxonomySubKey,
+} from '../../constants/sellerCategoryTaxonomy';
+import {
   isOtherCategoryLabel,
-  withOtherOption,
   buildCategoryString,
   resolveCategorySegment,
   resolveTypeValue,
@@ -105,28 +110,22 @@ export default function ProductPricingInventoryFields({
     return splitPremiumCategoryString(productData.category);
   }, [productData.category]);
 
+  const mainKey = resolveTaxonomyMainKey(selectedMain);
+  const subKey = resolveTaxonomySubKey(mainKey, selectedSub);
+
   const mainOptionsList = useMemo(() => {
-    return taxonomy?.mains?.length ? taxonomy.mains : withOtherOption(SELLER_MAIN_CATEGORIES);
+    return taxonomy?.mains?.length ? taxonomy.mains : getMainCategoryOptions();
   }, [taxonomy?.mains]);
 
   const subOptionsList = useMemo(() => {
-    if (!selectedMain) return [];
-    const fromApi = taxonomy?.subcategoriesByMain?.[selectedMain];
-    if (fromApi?.length) return fromApi;
-    if (isOtherCategoryLabel(selectedMain)) {
-      return withOtherOption(['General']);
-    }
-    return withOtherOption(['General']);
-  }, [taxonomy?.subcategoriesByMain, selectedMain]);
+    if (!mainKey) return [];
+    return getSubcategoriesForSelection(mainKey, taxonomy);
+  }, [mainKey, taxonomy]);
 
   const typeOptionsList = useMemo(() => {
-    if (!selectedMain) return [];
-    const fromApi = taxonomy?.typesByMain?.[selectedMain];
-    if (fromApi?.length) return fromApi;
-    return taxonomy?.defaultTypes?.length
-      ? taxonomy.defaultTypes
-      : withOtherOption(['General']);
-  }, [taxonomy?.typesByMain, taxonomy?.defaultTypes, selectedMain]);
+    if (!mainKey || !subKey) return [];
+    return getTypesForSelection(mainKey, subKey, taxonomy);
+  }, [mainKey, subKey, taxonomy]);
 
   const mainOptions = useMemo(() => {
     const q = mainQuery.trim().toLowerCase();
@@ -787,11 +786,11 @@ export default function ProductPricingInventoryFields({
                 <button
                   type="button"
                   className={`w-full flex items-center justify-between border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] ${
-                    selectedMain ? 'bg-white hover:bg-[#F6F6F7]' : 'bg-[#F6F6F7] opacity-70 cursor-not-allowed'
+                    mainKey ? 'bg-white hover:bg-[#F6F6F7]' : 'bg-[#F6F6F7] opacity-70 cursor-not-allowed'
                   }`}
-                  disabled={!selectedMain}
+                  disabled={!mainKey}
                   onClick={() => {
-                    if (!selectedMain) return;
+                    if (!mainKey) return;
                     setSubOpen((v) => !v);
                     setMainOpen(false);
                     setTypeOpen(false);
@@ -855,13 +854,13 @@ export default function ProductPricingInventoryFields({
                 <button
                   type="button"
                   className={`w-full flex items-center justify-between border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] ${
-                    selectedMain && selectedSub
+                    mainKey && subKey
                       ? 'bg-white hover:bg-[#F6F6F7]'
                       : 'bg-[#F6F6F7] opacity-70 cursor-not-allowed'
                   }`}
-                  disabled={!selectedMain || !selectedSub}
+                  disabled={!mainKey || !subKey}
                   onClick={() => {
-                    if (!selectedMain || !selectedSub) return;
+                    if (!mainKey || !subKey) return;
                     setTypeOpen((v) => !v);
                     setMainOpen(false);
                     setSubOpen(false);
