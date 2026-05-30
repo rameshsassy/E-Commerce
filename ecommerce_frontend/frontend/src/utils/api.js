@@ -21,6 +21,17 @@ const baseUrlHolder = {
 /** Use in templates: `${BASE_URL}/uploads/...` — resolves at read time in the browser. */
 export const BASE_URL = baseUrlHolder;
 
+/** Custom headers that need CORS allow-list on cross-origin APIs (e.g. Render). */
+function isSameOriginApi(baseURL) {
+  if (typeof window === 'undefined') return true;
+  try {
+    const apiOrigin = new URL(baseURL, window.location.origin).origin;
+    return apiOrigin === window.location.origin;
+  } catch {
+    return false;
+  }
+}
+
 const api = axios.create({
   withCredentials: true,
   headers: {
@@ -36,9 +47,11 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
     Object.assign(config.headers, portalApiHeaders());
-    const viewportWidth = getViewportWidthHeader();
-    if (viewportWidth) {
-      config.headers['X-Viewport-Width'] = viewportWidth;
+    if (isSameOriginApi(config.baseURL)) {
+      const viewportWidth = getViewportWidthHeader();
+      if (viewportWidth) {
+        config.headers['X-Viewport-Width'] = viewportWidth;
+      }
     }
     if (config.data instanceof FormData) {
       delete config.headers['Content-Type'];

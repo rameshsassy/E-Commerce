@@ -1,6 +1,7 @@
 /**
  * Runs before `vite build` on Vercel (or when BACKEND_URL / VITE_API_URL is set).
- * Writes vercel.json rewrites so /api and /uploads proxy to the hosted Express API.
+ * - BACKEND_URL set → proxy /api to external host (Render)
+ * - Else → keep vercel.json serverless /api (see ../vercel.json)
  */
 import fs from 'fs';
 import path from 'path';
@@ -9,6 +10,23 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const frontendRoot = path.join(__dirname, '..');
 const repoRoot = path.join(frontendRoot, '..', '..');
+
+const MONOLITH_VERCEL = {
+  $schema: 'https://openapi.vercel.sh/vercel.json',
+  installCommand: 'cd ../.. && npm install && npm install',
+  buildCommand: 'npm run build',
+  outputDirectory: 'dist',
+  functions: {
+    'api/index.js': {
+      maxDuration: 30,
+    },
+  },
+  rewrites: [
+    { source: '/api/(.*)', destination: '/api/index' },
+    { source: '/uploads/(.*)', destination: '/api/index' },
+    { source: '/((?!api/|uploads/).*)', destination: '/index.html' },
+  ],
+};
 
 function normalizeBackend(value) {
   if (!value || typeof value !== 'string') return '';
@@ -30,6 +48,14 @@ function writeProxyVercelJson(backend) {
   console.log(`[prepare-vercel-build] proxy /api → ${backend}/api`);
 }
 
+function writeMonolithVercelJson() {
+  fs.writeFileSync(
+    path.join(frontendRoot, 'vercel.json'),
+    `${JSON.stringify(MONOLITH_VERCEL, null, 2)}\n`
+  );
+  console.log('[prepare-vercel-build] using Vercel serverless API at /api (set MONGO_URI + JWT_SECRET on Vercel)');
+}
+
 const isVercel = Boolean(process.env.VERCEL);
 
 const backend =
@@ -38,13 +64,10 @@ const backend =
   normalizeBackend(process.env.API_URL) ||
   '';
 
-const apiInDeployPackage =
+const hasServerlessApi =
   fs.existsSync(path.join(frontendRoot, 'api', 'index.js')) ||
-  fs.existsSync(path.join(process.cwd(), 'api', 'index.js'));
+  fs.existsSync(path.join(repoRoot, 'api', 'index.js'));
 
-const apiInRepoRoot = fs.existsSync(path.join(repoRoot, 'api', 'index.js'));
-
-// Explicit external API (Render, Railway, etc.) — always proxy
 if (backend && !/localhost|127\.0\.0\.1/i.test(backend)) {
   writeProxyVercelJson(backend);
 
@@ -56,25 +79,14 @@ if (backend && !/localhost|127\.0\.0\.1/i.test(backend)) {
   process.exit(0);
 }
 
-// Vercel serverless API only when api/index.js is inside the deployed project root
-if (isVercel && apiInDeployPackage) {
-  console.log('[prepare-vercel-build] serverless API in project — using same-origin /api');
+if (isVercel && hasServerlessApi) {
+  writeMonolithVercelJson();
   process.exit(0);
 }
 
 if (isVercel) {
-  console.warn(
-    '[prepare-vercel-build] WARNING: BACKEND_URL is not set. Login and API calls will fail on Vercel.\n' +
-      '  1) Deploy API on Render (render.yaml) → copy URL\n' +
-      '  2) Vercel → Settings → Environment Variables → BACKEND_URL = that URL\n' +
-      '  3) Redeploy frontend'
-  );
-  fs.writeFileSync(
-    path.join(frontendRoot, 'vercel.json'),
-    `${JSON.stringify({ rewrites: [{ source: '/(.*)', destination: '/index.html' }] }, null, 2)}\n`
-  );
-  process.exit(0);
+  console.warn('[prepare-vercel-build] No API found — set BACKEND_URL or add api/index.js');
 }
 
-console.log('[prepare-vercel-build] skipped (local build, no BACKEND_URL)');
+console.log('[prepare-vercel-build] skipped (local build)');
 process.exit(0);

@@ -39,7 +39,7 @@ export function getApiReachabilityMessage() {
     return 'Cannot reach the API. In the project root run: npm run dev (starts the API on port 5000). Keep that terminal open, then refresh this page.';
   }
   if (isVercelProd()) {
-    return 'Cannot reach the API on Vercel. Deploy the backend on Render (render.yaml), add BACKEND_URL in Vercel → Settings → Environment Variables, then redeploy the frontend. Test: /api/health should return JSON.';
+    return 'Cannot reach the API on Vercel. In Vercel → Settings → Environment Variables add MONGO_URI, JWT_SECRET, and ADMIN_SECRET_KEY, then redeploy. Test: /api/health must return JSON (not this page). See ecommerce_frontend/frontend/DEPLOY.md.';
   }
   return 'Cannot reach the API. Check that the backend server is running and CORS is configured for this site.';
 }

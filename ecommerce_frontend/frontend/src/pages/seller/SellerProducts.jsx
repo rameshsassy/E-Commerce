@@ -737,7 +737,9 @@ const SellerProducts = () => {
         openUpgradeModal('free_category_path', { autoRedirect: true });
         return;
       }
-      setSingleMsg('Please select Main Category, Sub-Category, and Type.');
+      setSingleMsg(
+        'Please select Main Category, Sub-Category, and Type. If you chose "Other (Please mention)", fill in the text field below that dropdown.'
+      );
       return;
     }
 

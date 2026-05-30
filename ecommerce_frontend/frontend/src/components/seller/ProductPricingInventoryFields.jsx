@@ -13,242 +13,15 @@ import {
   pathFromApiLocked,
   formatCategoryPathLabel,
 } from '../../utils/sellerCategoryPath';
-
-const PREMIUM_MAIN_CATEGORIES = [
-  'Fashion',
-  'Beauty & Personal Care',
-  'Health & Wellness',
-  'Electronics',
-  'Home Appliances',
-  'Grocery & Gourmet',
-  'Books & Stationery',
-  'Baby & Kids',
-  'Toys & Games',
-  'Pet Supplies',
-  'Sports & Fitness',
-  'Automotive Accessories',
-  'Gifts & Occasions',
-  'Sustainable / Handmade',
-];
-
-const PREMIUM_SUBCATEGORIES = {
-  Fashion: [
-    "Women’s wear",
-    "Men’s wear",
-    "Kids’ wear",
-    'Ethnic wear',
-    'Western wear',
-    'Innerwear',
-    'Sleepwear',
-    'Footwear',
-    'Fashion accessories',
-    'Jewellery',
-    'Others (Mention)',
-  ],
-  'Beauty & Personal Care': [
-    'Skincare',
-    'Haircare',
-    'Makeup',
-    'Bath & body',
-    'Fragrances',
-    'Grooming tools',
-    'Personal hygiene',
-    'Natural beauty',
-    'Others (Mention)',
-  ],
-  'Health & Wellness': [
-    'Fitness accessories',
-    'Yoga products',
-    'Health devices',
-    'Ayurvedic products',
-    'Sexual wellness',
-    'Immunity support',
-    'Other (Please mention)',
-  ],
-  Electronics: [
-    'Mobiles',
-    'Mobile accessories',
-    'Audio, Wearables',
-    'Smart devices',
-    'Computer accessories',
-    'Cameras',
-    'Power banks',
-    'Small gadgets',
-    'Other (Please mention)',
-  ],
-  'Home Appliances': [
-    'Kitchen appliances',
-    'Cleaning appliances',
-    'Cooling appliances',
-    'Water purifiers',
-    'Personal care appliances',
-  ],
-  'Grocery & Gourmet': [
-    'Staples',
-    'Snacks',
-    'Beverages',
-    'Organic food',
-    'Dry fruits',
-    'Spices',
-    'Ready-to-cook',
-    'Regional foods',
-  ],
-  'Books & Stationery': [
-    'Academic books',
-    'Competitive exam books',
-    'Children’s books',
-    'Fiction',
-    'Non-fiction',
-    'Notebooks',
-    'Art supplies',
-    'Office stationery',
-    'School stationary',
-  ],
-  'Baby & Kids': [
-    'Baby care',
-    'Feeding',
-    'Diapers',
-    'Kids fashion',
-    'Toys',
-    'School essentials',
-    'Nursery products',
-  ],
-  'Toys & Games': [
-    'Educational toys',
-    'Soft toys',
-    'Board games',
-    'Activity kits',
-    'Outdoor toys',
-    'Puzzles',
-  ],
-  'Pet Supplies': [
-    'Pet food',
-    'Grooming',
-    'Toys',
-    'Beds',
-    'Bowls',
-    'Accessories',
-    'Health care',
-  ],
-  'Sports & Fitness': [
-    'Gym equipment',
-    'Yoga mats',
-    'Sportswear',
-    'Outdoor sports gear',
-    'Cycling accessories',
-    'Recovery tools',
-  ],
-  'Automotive Accessories': [
-    'Bike accessories',
-    'Car accessories',
-    'Mobile holders',
-    'Cleaning kits',
-    'Safety products',
-  ],
-  'Gifts & Occasions': [
-    'Birthday gifts',
-    'Wedding gifts',
-    'Festive gifts',
-    'Corporate gifts',
-    'Personalized gifts',
-    'Return gifts',
-  ],
-  'Sustainable / Handmade': [
-    'Handmade decor',
-    'Eco-friendly products',
-    'Recycled goods',
-    'Artisan products',
-    'NGO-made products',
-    'Natural fibre products',
-  ],
-};
-
-const PREMIUM_TYPES_BY_MAIN = {
-  Fashion: [
-    'Saree',
-    'Kurta',
-    'Kurta set',
-    'Dupatta',
-    'Lehenga',
-    'Blouse',
-    'Palazzo',
-    'Salwar suit',
-    'Dress',
-    'Top',
-    'Shirt',
-    'T-shirt',
-    'Jeans',
-    'Trousers',
-    'Skirt',
-    'Co-ord set',
-    'Jacket',
-    'Blazer',
-    'Waistcoat',
-    'Hoodie',
-    'Frock',
-    'Kids kurta set',
-    'Romper',
-    'T-shirt set',
-    'School wear',
-    'Night suit',
-    'Sandals',
-    'Flats',
-    'Heels',
-    'Loafers',
-    'Sneakers',
-    'Slippers',
-    'Mojaris',
-    'Juttis',
-    'Handbag',
-    'Tote bag',
-    'Wallet',
-    'Belt',
-    'Scarf',
-    'Cap',
-    'Sunglasses',
-    'Hair accessory',
-    'Others (Please mention)',
-  ],
-  'Beauty & Personal Care': [
-    'Skincare',
-    'Haircare',
-    'Makeup',
-    'Bath & body',
-    'Fragrances',
-    'Grooming tools',
-    'Personal hygiene',
-    'Natural beauty',
-    'Others (Please mention)',
-  ],
-  'Health & Wellness': [
-    'Fitness accessories',
-    'Yoga products',
-    'Health devices',
-    'Ayurvedic products',
-    'Sexual wellness',
-    'Immunity support',
-    'Others (Please mention)',
-  ],
-  Electronics: [
-    'Mobiles',
-    'Mobile accessories',
-    'Audio, Wearables',
-    'Smart devices',
-    'Computer accessories',
-    'Cameras',
-    'Power banks',
-    'Small gadgets',
-    'Others (Please mention)',
-  ],
-  'Home Appliances': [
-    'Kitchen appliances',
-    'Cleaning appliances',
-    'Cooling appliances',
-    'Water purifiers',
-    'Personal care appliances',
-    'Others (Please mention)',
-  ],
-};
+import { SELLER_MAIN_CATEGORIES } from '../../constants/sellerMainCategories';
+import {
+  CATEGORY_OTHER_LABEL,
+  isOtherCategoryLabel,
+  withOtherOption,
+  buildCategoryString,
+  resolveCategorySegment,
+  resolveTypeValue,
+} from '../../utils/sellerCategoryOther';
 
 function splitPremiumCategoryString(categoryValue) {
   const raw = String(categoryValue || '').trim();
@@ -286,6 +59,7 @@ export default function ProductPricingInventoryFields({
   const [mainQuery, setMainQuery] = useState('');
   const [subQuery, setSubQuery] = useState('');
   const [typeQuery, setTypeQuery] = useState('');
+  const [otherMainText, setOtherMainText] = useState('');
   const [otherSubText, setOtherSubText] = useState('');
   const [otherTypeText, setOtherTypeText] = useState('');
   const maxOrderLimit = inventoryOptions?.maxOrderQuantityLimit ?? 5;
@@ -325,36 +99,67 @@ export default function ProductPricingInventoryFields({
     return true;
   };
 
+  const taxonomy = categoryLimits?.taxonomy;
+
   const { main: selectedMain, sub: selectedSub } = useMemo(() => {
     return splitPremiumCategoryString(productData.category);
   }, [productData.category]);
 
+  const mainOptionsList = useMemo(() => {
+    return taxonomy?.mains?.length ? taxonomy.mains : withOtherOption(SELLER_MAIN_CATEGORIES);
+  }, [taxonomy?.mains]);
+
+  const subOptionsList = useMemo(() => {
+    if (!selectedMain) return [];
+    const fromApi = taxonomy?.subcategoriesByMain?.[selectedMain];
+    if (fromApi?.length) return fromApi;
+    if (isOtherCategoryLabel(selectedMain)) {
+      return withOtherOption(['General']);
+    }
+    return withOtherOption(['General']);
+  }, [taxonomy?.subcategoriesByMain, selectedMain]);
+
+  const typeOptionsList = useMemo(() => {
+    if (!selectedMain) return [];
+    const fromApi = taxonomy?.typesByMain?.[selectedMain];
+    if (fromApi?.length) return fromApi;
+    return taxonomy?.defaultTypes?.length
+      ? taxonomy.defaultTypes
+      : withOtherOption(['General']);
+  }, [taxonomy?.typesByMain, taxonomy?.defaultTypes, selectedMain]);
+
   const mainOptions = useMemo(() => {
     const q = mainQuery.trim().toLowerCase();
-    const list = PREMIUM_MAIN_CATEGORIES.slice();
-    if (!q) return list;
-    return list.filter((x) => x.toLowerCase().includes(q));
-  }, [mainQuery]);
+    if (!q) return mainOptionsList;
+    return mainOptionsList.filter((x) => x.toLowerCase().includes(q));
+  }, [mainQuery, mainOptionsList]);
 
   const subOptions = useMemo(() => {
-    const list = PREMIUM_SUBCATEGORIES[selectedMain] || [];
     const q = subQuery.trim().toLowerCase();
-    if (!q) return list;
-    return list.filter((x) => x.toLowerCase().includes(q));
-  }, [selectedMain, subQuery]);
+    if (!q) return subOptionsList;
+    return subOptionsList.filter((x) => x.toLowerCase().includes(q));
+  }, [subQuery, subOptionsList]);
 
   const typeOptions = useMemo(() => {
-    const list = PREMIUM_TYPES_BY_MAIN[selectedMain] || [];
     const q = typeQuery.trim().toLowerCase();
-    if (!q) return list;
-    return list.filter((x) => x.toLowerCase().includes(q));
-  }, [selectedMain, typeQuery]);
+    if (!q) return typeOptionsList;
+    return typeOptionsList.filter((x) => x.toLowerCase().includes(q));
+  }, [typeQuery, typeOptionsList]);
 
-  const needsOtherText =
-    selectedSub === 'Others (Mention)' || selectedSub === 'Other (Please mention)';
-
+  const mainInList = mainOptionsList.includes(selectedMain);
+  const subInList = subOptionsList.includes(selectedSub);
+  const needsOtherMainText = isOtherCategoryLabel(selectedMain);
+  const needsOtherSubText = isOtherCategoryLabel(selectedSub);
   const selectedType = String(productData.premiumType || '').trim();
-  const needsOtherTypeText = selectedType === 'Others (Please mention)';
+  const typeInList = typeOptionsList.includes(selectedType);
+  const needsOtherTypeText = isOtherCategoryLabel(selectedType);
+
+  const displayMain =
+    needsOtherMainText ? CATEGORY_OTHER_LABEL : selectedMain;
+  const displaySub =
+    needsOtherSubText ? CATEGORY_OTHER_LABEL : selectedSub;
+  const displayType =
+    needsOtherTypeText ? CATEGORY_OTHER_LABEL : selectedType;
 
   // Keep dropdowns closed if user clicks outside.
   useEffect(() => {
@@ -369,23 +174,32 @@ export default function ProductPricingInventoryFields({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // When the selected subcategory is not an "Other" option, clear the extra text.
   useEffect(() => {
-    if (!needsOtherText && otherSubText) setOtherSubText('');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [needsOtherText]);
+    if (!needsOtherMainText && otherMainText) setOtherMainText('');
+  }, [needsOtherMainText, otherMainText]);
 
-  // If we have a category string like "Main / Sub", prefill other text only when it doesn't match known subs.
   useEffect(() => {
-    if (!selectedMain) return;
-    if (selectedSub && !needsOtherText) return;
-    if (!selectedSub) return;
-    const known = PREMIUM_SUBCATEGORIES[selectedMain] || [];
-    if (!known.includes(selectedSub) && otherSubText === '') {
-      setOtherSubText(selectedSub);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedMain, selectedSub]);
+    if (!needsOtherSubText && otherSubText) setOtherSubText('');
+  }, [needsOtherSubText, otherSubText]);
+
+  useEffect(() => {
+    if (!needsOtherTypeText && otherTypeText) setOtherTypeText('');
+  }, [needsOtherTypeText, otherTypeText]);
+
+  useEffect(() => {
+    if (!selectedMain || mainInList || needsOtherMainText) return;
+    if (otherMainText === '') setOtherMainText(selectedMain);
+  }, [selectedMain, mainInList, needsOtherMainText, otherMainText]);
+
+  useEffect(() => {
+    if (!selectedMain || !selectedSub || subInList || needsOtherSubText) return;
+    if (otherSubText === '') setOtherSubText(selectedSub);
+  }, [selectedMain, selectedSub, subInList, needsOtherSubText, otherSubText]);
+
+  useEffect(() => {
+    if (!selectedType || typeInList || needsOtherTypeText) return;
+    if (otherTypeText === '') setOtherTypeText(selectedType);
+  }, [selectedType, typeInList, needsOtherTypeText, otherTypeText]);
 
   const guardCategoryPath = (main, sub, type) => {
     if (isPremium) return true;
@@ -421,27 +235,32 @@ export default function ProductPricingInventoryFields({
     return true;
   };
 
-  const setPremiumCategory = (main, sub) => {
-    const mainClean = String(main || '').trim();
-    const subClean = String(sub || '').trim();
-    const value = subClean ? `${mainClean} / ${subClean}` : mainClean;
+  const applyCategoryFields = (mainLabel, subLabel, nextOtherMain, nextOtherSub) => {
+    const om = nextOtherMain ?? otherMainText;
+    const os = nextOtherSub ?? otherSubText;
+    let main = resolveCategorySegment(mainLabel, om);
+    let sub = resolveCategorySegment(subLabel, os);
+    if (!main && isOtherCategoryLabel(mainLabel)) main = CATEGORY_OTHER_LABEL;
+    if (!sub && isOtherCategoryLabel(subLabel)) sub = CATEGORY_OTHER_LABEL;
+    const value = main && sub ? `${main} / ${sub}` : main || '';
     setProductData((prev) => ({ ...prev, category: value, premiumType: '' }));
     setOtherTypeText('');
   };
 
-  const setPremiumCategoryGuarded = (main, sub) => {
-    if (!guardCategoryPath(main, sub, '')) return;
-    setPremiumCategory(main, sub);
+  const setPremiumCategoryGuarded = (mainLabel, subLabel, opts = {}) => {
+    const resolvedMain = resolveCategorySegment(mainLabel, opts.otherMain ?? otherMainText);
+    const resolvedSub = resolveCategorySegment(subLabel, opts.otherSub ?? otherSubText);
+    if (!guardCategoryPath(resolvedMain, resolvedSub, '')) return;
+    applyCategoryFields(mainLabel, subLabel, opts.otherMain, opts.otherSub);
   };
 
-  const setPremiumType = (val) => {
-    setProductData((prev) => ({ ...prev, premiumType: val }));
-  };
-
-  const setPremiumTypeGuarded = (val) => {
+  const setPremiumTypeGuarded = (typeLabel, opts = {}) => {
     const { main, sub } = splitPremiumCategoryString(productData.category);
-    if (!guardCategoryPath(main, sub, val)) return;
-    setPremiumType(val);
+    const ot = opts.otherType ?? otherTypeText;
+    let val = resolveTypeValue(typeLabel, ot);
+    if (!val && isOtherCategoryLabel(typeLabel)) val = CATEGORY_OTHER_LABEL;
+    if (!guardCategoryPath(main, sub, val || typeLabel)) return;
+    setProductData((prev) => ({ ...prev, premiumType: val }));
   };
 
   useEffect(() => {
@@ -911,8 +730,8 @@ export default function ProductPricingInventoryFields({
                   setMainQuery('');
                 }}
               >
-                <span className={selectedMain ? '' : 'text-[#6D7175]'}>
-                  {selectedMain || 'Select main category'}
+                <span className={displayMain || selectedMain ? '' : 'text-[#6D7175]'}>
+                  {displayMain || selectedMain || 'Select main category'}
                 </span>
                 <ChevronDown size={18} className="text-[#6D7175]" />
               </button>
@@ -943,8 +762,9 @@ export default function ProductPricingInventoryFields({
                           onMouseDown={(e) => {
                             e.preventDefault();
                             if (!guardCategoryPath(name, '', '')) return;
-                            setPremiumCategoryGuarded(name, '');
+                            setOtherMainText('');
                             setOtherSubText('');
+                            setPremiumCategoryGuarded(name, '');
                             setMainOpen(false);
                             setSubOpen(false);
                             setTypeOpen(false);
@@ -978,8 +798,8 @@ export default function ProductPricingInventoryFields({
                     setSubQuery('');
                   }}
                 >
-                  <span className={selectedSub ? '' : 'text-[#6D7175]'}>
-                    {selectedSub || 'Select sub-category'}
+                  <span className={displaySub || selectedSub ? '' : 'text-[#6D7175]'}>
+                    {displaySub || selectedSub || 'Select sub-category'}
                   </span>
                   <ChevronDown size={18} className="text-[#6D7175]" />
                 </button>
@@ -1048,8 +868,8 @@ export default function ProductPricingInventoryFields({
                     setTypeQuery('');
                   }}
                 >
-                  <span className={selectedType ? '' : 'text-[#6D7175]'}>
-                    {selectedType || 'Select type'}
+                  <span className={displayType || selectedType ? '' : 'text-[#6D7175]'}>
+                    {displayType || selectedType || 'Select type'}
                   </span>
                   <ChevronDown size={18} className="text-[#6D7175]" />
                 </button>
@@ -1084,7 +904,7 @@ export default function ProductPricingInventoryFields({
                               e.preventDefault();
                               setPremiumTypeGuarded(name);
                               setTypeOpen(false);
-                              if (name !== 'Others (Please mention)') setOtherTypeText('');
+                              if (!isOtherCategoryLabel(name)) setOtherTypeText('');
                             }}
                           >
                             {name}
@@ -1097,10 +917,31 @@ export default function ProductPricingInventoryFields({
               </div>
             </div>
 
-            {needsOtherText && (
+            {needsOtherMainText && (
               <div className="mt-4">
                 <label className="block text-[13px] text-[#202223] mb-1 font-medium">
-                  Please mention
+                  Please mention main category
+                </label>
+                <input
+                  type="text"
+                  value={otherMainText}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setOtherMainText(val);
+                    setPremiumCategoryGuarded(CATEGORY_OTHER_LABEL, selectedSub, {
+                      otherMain: val,
+                    });
+                  }}
+                  placeholder="Type your main category"
+                  className="w-full border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] outline-none focus:ring-2 focus:ring-[#005bd3] focus:border-[#005bd3] bg-white"
+                />
+              </div>
+            )}
+
+            {needsOtherSubText && (
+              <div className="mt-4">
+                <label className="block text-[13px] text-[#202223] mb-1 font-medium">
+                  Please mention sub-category
                 </label>
                 <input
                   type="text"
@@ -1108,10 +949,11 @@ export default function ProductPricingInventoryFields({
                   onChange={(e) => {
                     const val = e.target.value;
                     setOtherSubText(val);
-                    // Save into category string so it persists.
-                    setPremiumCategoryGuarded(selectedMain, val.trim() ? val : selectedSub);
+                    setPremiumCategoryGuarded(selectedMain, CATEGORY_OTHER_LABEL, {
+                      otherSub: val,
+                    });
                   }}
-                  placeholder="Type sub-category"
+                  placeholder="Type your sub-category"
                   className="w-full border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] outline-none focus:ring-2 focus:ring-[#005bd3] focus:border-[#005bd3] bg-white"
                 />
               </div>
@@ -1128,9 +970,9 @@ export default function ProductPricingInventoryFields({
                   onChange={(e) => {
                     const val = e.target.value;
                     setOtherTypeText(val);
-                    setPremiumTypeGuarded(val.trim() ? val : 'Others (Please mention)');
+                    setPremiumTypeGuarded(CATEGORY_OTHER_LABEL, { otherType: val });
                   }}
-                  placeholder="Type"
+                  placeholder="Type your product type"
                   className="w-full border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] outline-none focus:ring-2 focus:ring-[#005bd3] focus:border-[#005bd3] bg-white"
                 />
               </div>

@@ -1,4 +1,4 @@
-/** Keep in sync with backend data/sellerMainCategories.js */
+/** Keep in sync with backend data/sellerMainCategories.js. "Other" is appended via sellerCategoryTaxonomy. */
 export const SELLER_MAIN_CATEGORIES = [
   'Fashion',
   'Beauty & Personal Care',

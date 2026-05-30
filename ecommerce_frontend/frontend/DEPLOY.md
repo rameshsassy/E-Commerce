@@ -1,39 +1,33 @@
-# Deploy login & registration (Vercel + Render)
+# Deploy login on Vercel (e-commerce-snj1.vercel.app)
 
-Login fails on Vercel when **only the frontend** is deployed. You need **both** services.
+## Option A — API on Vercel (recommended if you use Root Directory `ecommerce_frontend/frontend`)
 
-## 1. Deploy API on Render
+1. **Vercel → Project → Settings → General**
+   - **Root Directory:** `ecommerce_frontend/frontend`
 
-1. Push this repo to GitHub.
-2. [render.com](https://render.com) → **New** → **Blueprint** (or Web Service).
-3. Connect the repo; use `render.yaml` at repo root.
-4. Set **Environment** (required):
-   - `MONGO_URI` — your Atlas connection string
-   - `JWT_SECRET` — long random string
-   - `ADMIN_SECRET_KEY` — admin signup secret
-5. Deploy. Copy the service URL, e.g. `https://aashansh-api.onrender.com`.
-6. Test: `https://YOUR-API.onrender.com/api/health` → `{"ok":true,...}`
+2. **Vercel → Settings → Environment Variables** (Production + Preview)
 
-## 2. Configure Vercel (frontend)
+   | Name | Value |
+   |------|--------|
+   | `MONGO_URI` | Your MongoDB Atlas connection string |
+   | `JWT_SECRET` | Long random string |
+   | `ADMIN_SECRET_KEY` | Admin signup secret |
+   | `FRONTEND_URL` | `https://e-commerce-snj1.vercel.app` |
+   | `CORS_ALLOW_VERCEL` | `true` |
 
-**Project → Settings → General**
+   Do **not** set `BACKEND_URL` unless you use Option B.
 
-- **Root Directory:** `ecommerce_frontend/frontend`
+3. **Redeploy** the project.
 
-**Settings → Environment Variables** (Production)
+4. **Test:** open `https://e-commerce-snj1.vercel.app/api/health`  
+   You must see: `{"ok":true,"service":"aashansh-api"}`  
+   If you see HTML, the API route is still wrong — redeploy after pulling the latest code.
 
-| Name | Value |
-|------|--------|
-| `BACKEND_URL` | `https://aashansh-api.onrender.com` (your Render URL, no trailing slash) |
+## Option B — API on Render + proxy
 
-**Redeploy** the frontend after saving.
-
-Build runs `prepare-vercel-build.mjs`, which proxies `/api` to `BACKEND_URL`.
-
-## 3. Verify
-
-- `https://e-commerce-snj1.vercel.app/api/health` → JSON, not HTML
-- Register / login on the live site
+1. Deploy API on [Render](https://render.com) using root `render.yaml`.
+2. On Vercel set `BACKEND_URL` = `https://your-service.onrender.com` (no trailing slash).
+3. Redeploy frontend.
 
 ## Local dev
 
