@@ -124,22 +124,24 @@ export function applyAdditionalAddressesForSeller(additionalAddresses, seller) {
   return subscribed ? additionalAddresses : [];
 }
 
-export function applyStoreContentFromBody(body, seller = null) {
+export function applyStoreContentFromBody(body, seller = null, { partial = false } = {}) {
   const storeName = validateTextField(body.storeName, {
     fieldLabel: "Store name",
     maxLength: STORE_NAME_MAX,
-    required: true,
+    required: !partial,
   });
   const detailedAddress = validateTextField(body.detailedAddress, {
     fieldLabel: "Store detailed address",
     maxLength: STORE_ADDRESS_MAX,
-    required: true,
+    required: !partial,
   });
-  const keywords = validateStoreKeywords(body.keywords);
-  let additionalAddresses = validateAdditionalAddresses(
-    body.additionalAddresses
-  );
-  if (seller) {
+  const keywords =
+    body.keywords !== undefined ? validateStoreKeywords(body.keywords) : undefined;
+  let additionalAddresses =
+    body.additionalAddresses !== undefined
+      ? validateAdditionalAddresses(body.additionalAddresses)
+      : undefined;
+  if (seller && additionalAddresses !== undefined) {
     additionalAddresses = applyAdditionalAddressesForSeller(
       additionalAddresses,
       seller
@@ -151,6 +153,6 @@ export function applyStoreContentFromBody(body, seller = null) {
     detailedAddress,
     keywords,
     additionalAddresses,
-    subdomainFromName: slugFromStoreName(storeName),
+    subdomainFromName: storeName ? slugFromStoreName(storeName) : "",
   };
 }

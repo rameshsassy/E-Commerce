@@ -166,9 +166,10 @@ export const createStore = async (req, res) => {
   }
 };
 
-// PUT /api/seller/store
+// PUT /api/seller/store — PATCH for auto-save while editing
 export const updateStore = async (req, res) => {
   try {
+    const isAutosave = req.method === "PATCH";
     const storeFilter = { sellerId: req.user._id };
     if (req.body.storeId) {
       storeFilter._id = req.body.storeId;
@@ -180,13 +181,15 @@ export const updateStore = async (req, res) => {
       });
     }
 
-    const content = applyStoreContentFromBody(req.body, req.user);
+    const content = applyStoreContentFromBody(req.body, req.user, { partial: isAutosave });
     const { isActive } = req.body;
 
-    store.storeName = content.storeName;
-    store.keywords = content.keywords;
-    store.detailedAddress = content.detailedAddress;
-    store.additionalAddresses = content.additionalAddresses;
+    if (content.storeName) store.storeName = content.storeName;
+    if (content.keywords !== undefined) store.keywords = content.keywords;
+    if (content.detailedAddress) store.detailedAddress = content.detailedAddress;
+    if (content.additionalAddresses !== undefined) {
+      store.additionalAddresses = content.additionalAddresses;
+    }
 
     if (req.body.tagline !== undefined) {
       store.tagline = String(req.body.tagline).trim();
@@ -199,7 +202,8 @@ export const updateStore = async (req, res) => {
     if (logoPath) store.logo = logoPath;
     if (faviconPath) store.favicon = faviconPath;
 
-    const check = resolveSubdomain(req.body, content.storeName, store.subdomain);
+    const nameForSubdomain = content.storeName || store.storeName;
+    const check = resolveSubdomain(req.body, nameForSubdomain, store.subdomain);
     if (!check.ok) {
       return res.status(400).json({ message: check.message });
     }
@@ -216,10 +220,13 @@ export const updateStore = async (req, res) => {
 
     await store.save();
 
-    logStoreActivity(req.user._id, store.storeName, false);
+    if (!isAutosave) {
+      logStoreActivity(req.user._id, store.storeName, false);
+    }
 
     res.json({
-      message: "Store updated successfully",
+      message: isAutosave ? "Store auto-saved" : "Store updated successfully",
+      autoSaved: isAutosave,
       store: await formatStoreResponse(store, req.user),
     });
   } catch (error) {

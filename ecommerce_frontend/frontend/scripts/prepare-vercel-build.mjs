@@ -63,17 +63,17 @@ if (isVercel && apiInDeployPackage) {
 }
 
 if (isVercel) {
-  if (apiInRepoRoot && !apiInDeployPackage) {
-    console.error(
-      '[prepare-vercel-build] Vercel Root Directory is probably ecommerce_frontend/frontend, so api/index.js is not deployed.\n' +
-        '  Fix: Render → deploy API from render.yaml, then set BACKEND_URL on Vercel to that URL and redeploy.'
-    );
-  } else {
-    console.error(
-      '[prepare-vercel-build] No API for this Vercel project. Set BACKEND_URL to your hosted API (e.g. Render) and redeploy.'
-    );
-  }
-  process.exit(1);
+  console.warn(
+    '[prepare-vercel-build] WARNING: BACKEND_URL is not set. Login and API calls will fail on Vercel.\n' +
+      '  1) Deploy API on Render (render.yaml) → copy URL\n' +
+      '  2) Vercel → Settings → Environment Variables → BACKEND_URL = that URL\n' +
+      '  3) Redeploy frontend'
+  );
+  fs.writeFileSync(
+    path.join(frontendRoot, 'vercel.json'),
+    `${JSON.stringify({ rewrites: [{ source: '/(.*)', destination: '/index.html' }] }, null, 2)}\n`
+  );
+  process.exit(0);
 }
 
 console.log('[prepare-vercel-build] skipped (local build, no BACKEND_URL)');

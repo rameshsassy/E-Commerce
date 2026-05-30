@@ -13,7 +13,7 @@ import {
   isCustomerPortal,
   isSellerPortal,
 } from '../../utils/portalHost';
-import { API_MISCONFIGURED_MSG, getApiErrorMessage, isNetworkError } from '../../utils/apiErrors';
+import { getApiErrorMessage } from '../../utils/apiErrors';
 
 const Register = () => {
   const searchParams = new URLSearchParams(useLocation().search);
@@ -114,7 +114,7 @@ const Register = () => {
       const raw = err.response?.data?.message;
       const msg = getApiErrorMessage(
         err,
-        isNetworkError(err) ? API_MISCONFIGURED_MSG : (Array.isArray(raw) ? raw.join(' ') : raw || 'Registration failed')
+        Array.isArray(raw) ? raw.join(' ') : raw || 'Registration failed'
       );
       setError(msg);
     } finally {

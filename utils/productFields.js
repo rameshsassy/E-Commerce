@@ -312,9 +312,10 @@ export function applyProductFields(
 
   if (bulkPurchaseEnabled !== undefined) {
     if (wantsBulk && !subscribedSeller) {
-      const err = new Error("Bulk Purchase/B2B is available for premium sellers only.");
-      err.statusCode = 403;
-      throw err;
+      throw createPremiumRequiredError(
+        "You need to upgrade to Premium to enable Bulk Purchase / B2B.",
+        "bulk_purchase"
+      );
     }
     if (disablesBulk) product.bulkPurchaseEnabled = false;
     if (wantsBulk) product.bulkPurchaseEnabled = true;
@@ -326,9 +327,10 @@ export function applyProductFields(
 
   if (shouldValidateBulkMin) {
     if (product.bulkPurchaseEnabled && !subscribedSeller) {
-      const err = new Error("Bulk Purchase/B2B is available for premium sellers only.");
-      err.statusCode = 403;
-      throw err;
+      throw createPremiumRequiredError(
+        "You need to upgrade to Premium to enable Bulk Purchase / B2B.",
+        "bulk_purchase"
+      );
     }
     if (bulkPurchaseMinOrderQuantity !== undefined && bulkPurchaseMinOrderQuantity !== "") {
       const n = Number(bulkPurchaseMinOrderQuantity);
@@ -411,14 +413,7 @@ export function applyProductFields(
   }
 
   if (premiumType !== undefined) {
-    const typeVal = String(premiumType || "").trim();
-    if (seller && !isSubscribedSeller(seller) && typeVal) {
-      throw createPremiumRequiredError(
-        "Product types require Premium. Upgrade to use advanced category options.",
-        "multiple_categories"
-      );
-    }
-    product.premiumType = typeVal;
+    product.premiumType = String(premiumType || "").trim();
   }
 
   if (

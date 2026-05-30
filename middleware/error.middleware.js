@@ -34,6 +34,7 @@ export const errorHandler = (err, req, res, next) => {
   };
   if (err.code) payload.code = err.code;
   if (err.upgradeFeature) payload.upgradeFeature = err.upgradeFeature;
+  if (err.autoRedirect) payload.autoRedirect = true;
 
   res.status(status).json(payload);
 };

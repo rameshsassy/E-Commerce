@@ -7,5 +7,6 @@ const router = express.Router();
 // 👤 Common Profile Routes
 router.get("/profile", protect, getProfile);
 router.put("/profile", protect, updateProfile);
+router.patch("/profile", protect, updateProfile);
 
 export default router;

@@ -32,17 +32,18 @@ export function resolveApiBaseUrl() {
   const host = inBrowser ? window.location.hostname : '';
   const onLocal = inBrowser && isLocalDevHost(host);
 
-  // Production API URL baked at build (Render/Railway) — use when not on localhost
-  if (baked && (!isLocalhostUrl(baked) || onLocal)) {
+  // Build-time API host (e.g. Render) — call directly in every environment
+  if (baked && !isLocalhostUrl(baked)) {
     return baked;
   }
 
-  // Vercel: same-origin /api rewrite (vercel.json → BACKEND_URL)
-  if (inBrowser && isVercelHost(host)) {
+  // Local dev: same-origin so Vite proxies /api → http://127.0.0.1:5000 (see vite.config.js)
+  if (onLocal && inBrowser) {
     return window.location.origin;
   }
 
-  if (inBrowser && !onLocal) {
+  // Vercel / live site: same-origin; vercel.json must proxy /api to BACKEND_URL
+  if (inBrowser && (isVercelHost(host) || !onLocal)) {
     return window.location.origin;
   }
 

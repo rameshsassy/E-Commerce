@@ -22,17 +22,38 @@ export function isNetworkError(error) {
   return !error.response && Boolean(error.request);
 }
 
-export const API_MISCONFIGURED_MSG =
-  'Cannot reach the API. Deploy the backend on Render (see render.yaml), set BACKEND_URL on Vercel to that URL, then redeploy the frontend.';
+function isLocalDev() {
+  if (typeof window === 'undefined') return false;
+  const h = window.location.hostname.toLowerCase();
+  return h === 'localhost' || h === '127.0.0.1' || h.endsWith('.localhost');
+}
+
+function isVercelProd() {
+  if (typeof window === 'undefined') return false;
+  return window.location.hostname.toLowerCase().endsWith('.vercel.app');
+}
+
+/** User-facing hint when /api is unreachable (HTML or network error). */
+export function getApiReachabilityMessage() {
+  if (isLocalDev()) {
+    return 'Cannot reach the API. In the project root run: npm run dev (starts the API on port 5000). Keep that terminal open, then refresh this page.';
+  }
+  if (isVercelProd()) {
+    return 'Cannot reach the API on Vercel. Deploy the backend on Render (render.yaml), add BACKEND_URL in Vercel → Settings → Environment Variables, then redeploy the frontend. Test: /api/health should return JSON.';
+  }
+  return 'Cannot reach the API. Check that the backend server is running and CORS is configured for this site.';
+}
 
 export function getApiErrorMessage(error, fallback = 'Something went wrong') {
-  if (error?.isApiMisconfigured || error?.message === API_MISCONFIGURED_MSG) {
-    return API_MISCONFIGURED_MSG;
+  const reachability = getApiReachabilityMessage();
+  if (error?.isApiMisconfigured) {
+    return reachability;
   }
   if (isNetworkError(error)) {
-    return error.response && isHtmlApiResponse(error.response)
-      ? API_MISCONFIGURED_MSG
-      : fallback;
+    if (!error.response || isHtmlApiResponse(error.response)) {
+      return reachability;
+    }
+    return fallback;
   }
   const data = error.response?.data;
   if (typeof data === 'string' && data.trim() && !data.trim().startsWith('<')) {

@@ -1342,6 +1342,7 @@ export const submitKycComplete = async (req, res) => {
       return res.status(403).json({ message: "Only sellers can submit KYC" });
     }
 
+    const isAutosave = req.method === "PATCH";
     const {
       elevatorPitch,
       officialName,
@@ -1353,6 +1354,99 @@ export const submitKycComplete = async (req, res) => {
       gstNumber,
       agreedToTerms,
     } = req.body;
+
+    if (isAutosave) {
+      if (entityType !== undefined && String(entityType).trim()) {
+        const entityCheck = await validateSellerEntityType(entityType, entityTypeOther);
+        if (!entityCheck.ok) {
+          return res.status(400).json({ message: entityCheck.message });
+        }
+        user.entityType = entityCheck.row.code;
+        user.entityTypeOther = entityCheck.row.requiresOtherText
+          ? String(entityTypeOther || "").trim()
+          : "";
+      }
+
+      if (elevatorPitch !== undefined) {
+        user.elevatorPitch = String(elevatorPitch || "").trim();
+      }
+      if (officialName !== undefined) {
+        user.officialName = String(officialName || "").trim();
+      }
+      if (dateOfRegistration !== undefined) {
+        user.dateOfRegistration = dateOfRegistration || user.dateOfRegistration;
+      }
+      if (req.body.adminCostPercentage !== undefined) {
+        user.adminCostPercentage = parseAdminCostPercentage(
+          req.body.adminCostPercentage,
+          user.adminCostPercentage ?? getDefaultSellerPlatformFeePercent()
+        );
+      }
+      if (registrationNumber !== undefined) {
+        user.registrationNumber = String(registrationNumber || "").trim();
+      }
+      if (orgPanNumber !== undefined) {
+        user.orgPanNumber = String(orgPanNumber || "").trim();
+      }
+      if (gstNumber !== undefined) {
+        user.gstNumber = String(gstNumber || "").trim();
+      }
+      if (agreedToTerms !== undefined) {
+        user.agreedToTerms = agreedToTerms === "true" || agreedToTerms === true;
+      }
+
+      const storeAddressesRaw = req.body.storeAddresses ?? req.body["storeAddresses[]"];
+      if (storeAddressesRaw !== undefined) {
+        const parsedStoreAddresses = (Array.isArray(storeAddressesRaw)
+          ? storeAddressesRaw
+          : [storeAddressesRaw])
+          .map((a) => String(a).trim())
+          .filter(Boolean);
+
+        const subscribed = isSubscribedSeller(user);
+        if (!subscribed && parsedStoreAddresses.length > 1) {
+          return res.status(403).json({
+            message:
+              "Only one store address allowed for free users. Upgrade to premium to add more addresses.",
+            code: "PREMIUM_REQUIRED",
+            upgradeFeature: "multiple_addresses",
+          });
+        }
+        user.storeAddresses = subscribed
+          ? parsedStoreAddresses
+          : parsedStoreAddresses.slice(0, 1);
+      }
+
+      if (req.files?.logo?.[0]) {
+        assertKycLogoUpload(req.files.logo[0]);
+        user.organizationLogo = absoluteToWebPath(req.files.logo[0].path);
+      }
+
+      const docChecks = [
+        ["registrationCertificate", "Registration Certificate", assertKycCertificateUpload],
+        ["orgPanImage", "PAN Image", assertKycImageUpload],
+        ["gstImage", "GST Image", assertKycImageUpload],
+      ];
+
+      for (const [field, , assertFn] of docChecks) {
+        const uploaded = req.files?.[field]?.[0];
+        if (uploaded) {
+          assertFn(uploaded, field);
+          user[field] = absoluteToWebPath(uploaded.path);
+        }
+      }
+
+      await user.save();
+
+      return res.json({
+        message: "KYC progress auto-saved",
+        autoSaved: true,
+        organizationLogo: user.organizationLogo,
+        registrationCertificate: user.registrationCertificate,
+        orgPanImage: user.orgPanImage,
+        gstImage: user.gstImage,
+      });
+    }
 
     const entityCheck = await validateSellerEntityType(entityType, entityTypeOther);
     if (!entityCheck.ok) {

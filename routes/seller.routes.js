@@ -78,6 +78,7 @@ const storeAssetsUpload = upload.fields([
 router.get("/store", protect, authorizeRoles("seller"), getMyStore);
 router.post("/store", protect, authorizeRoles("seller"), ...storeAssetsUpload, createStore);
 router.put("/store", protect, authorizeRoles("seller"), ...storeAssetsUpload, updateStore);
+router.patch("/store", protect, authorizeRoles("seller"), ...storeAssetsUpload, updateStore);
 router.get(
   "/store/subdomain-check",
   protect,
@@ -116,6 +117,14 @@ router.post(
 );
 
 router.post(
+  "/kyc/complete",
+  protect,
+  authorizeRoles("seller"),
+  ...kycCompleteUpload,
+  submitKycComplete
+);
+
+router.patch(
   "/kyc/complete",
   protect,
   authorizeRoles("seller"),

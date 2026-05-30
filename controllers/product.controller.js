@@ -23,6 +23,7 @@ import {
   resolveSellerCategory,
   validateBulkProductCategories,
 } from "../utils/sellerCategoryRules.js";
+import { resolveListPagination } from "../utils/listPagination.js";
 import {
   AASHANSH_FAVICON_PATH,
   buildCategoryPageSeo,
@@ -58,6 +59,7 @@ function sendPlanErrorResponse(res, err) {
   const payload = { message: err.message };
   if (err.code) payload.code = err.code;
   if (err.upgradeFeature) payload.upgradeFeature = err.upgradeFeature;
+  if (err.autoRedirect) payload.autoRedirect = true;
   return res.status(status).json(payload);
 }
 
@@ -155,7 +157,11 @@ export const autoSaveProduct = async (req, res) => {
       product.images = [...(product.images || []), ...newImages];
     }
 
-    product.isDraft = true;
+    if (!product.isDraft && product._id) {
+      // Editing a published product — keep it live, only persist field changes.
+    } else {
+      product.isDraft = true;
+    }
     await product.save();
 
     res.json({
@@ -412,8 +418,8 @@ export const getAllProducts = async (req, res) => {
       maxPrice,
       seller,
       sort,
-      page = 1,
-      limit = 10,
+      page: pageQuery,
+      limit: limitQuery,
     } = req.query;
 
     const resolvedCategory = resolveCategoryParams({
@@ -458,9 +464,11 @@ export const getAllProducts = async (req, res) => {
       query.sellerId = seller;
     }
 
-    const pageNumber = Number(page);
-    const limitNumber = Number(limit);
-    const skip = (pageNumber - 1) * limitNumber;
+    const { page: pageNumber, limit: limitNumber, skip } = resolveListPagination(
+      req,
+      { page: pageQuery, limit: limitQuery },
+      { defaults: { mobile: 12, tablet: 16, desktop: 20 } }
+    );
 
     let sortObj = { createdAt: -1 };
     if (sort === "price-low") sortObj = { price: 1 };

@@ -10,7 +10,7 @@ import {
   handleWrongPortalError,
   isSellerPortal,
 } from '../../utils/portalHost';
-import { API_MISCONFIGURED_MSG, getApiErrorMessage, isNetworkError } from '../../utils/apiErrors';
+import { getApiErrorMessage } from '../../utils/apiErrors';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -82,10 +82,7 @@ const Login = () => {
       }
     } catch (err) {
       if (handleWrongPortalError(err)) return;
-      const msg = getApiErrorMessage(
-        err,
-        isNetworkError(err) ? API_MISCONFIGURED_MSG : 'Login failed'
-      );
+      const msg = getApiErrorMessage(err, 'Login failed');
       setError(msg);
     } finally {
       setLoading(false);

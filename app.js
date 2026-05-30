@@ -18,8 +18,10 @@ import notificationRoutes from "./routes/notification.routes.js";
 import supportRoutes from "./routes/support.routes.js";
 import categoryRoutes from "./routes/category.routes.js";
 import publicStoreRoutes from "./routes/publicStore.routes.js";
+import formDraftRoutes from "./routes/formDraft.routes.js";
 
 import { errorHandler } from "./middleware/error.middleware.js";
+import { clientDeviceMiddleware } from "./middleware/clientDevice.middleware.js";
 import { getUploadsRoot, ensureUploadsRoot } from "./utils/uploadPaths.js";
 
 ensureUploadsRoot();
@@ -105,11 +107,12 @@ app.use(
     origin: corsOriginCallback,
     credentials: true,
     methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Portal"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Portal", "X-Viewport-Width"],
   })
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(clientDeviceMiddleware);
 
 // Manual Cookie Parser Middleware
 app.use((req, res, next) => {
@@ -149,7 +152,13 @@ app.use((req, res, next) => {
 // ===============================
 // 📁 STATIC FILES (images, KYC docs)
 // ===============================
-app.use("/uploads", express.static(getUploadsRoot()));
+app.use(
+  "/uploads",
+  express.static(getUploadsRoot(), {
+    maxAge: process.env.NODE_ENV === "production" ? "7d" : 0,
+    immutable: process.env.NODE_ENV === "production",
+  })
+);
 
 // ===============================
 // ✅ ROUTES
@@ -164,6 +173,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/customer", customerRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/user", userRoutes); // ✅ NEW (COMMON PROFILE)
+app.use("/api/form-drafts", formDraftRoutes);
 app.use("/api/shipments", shipmentRoutes);
 app.use("/api/returns", returnRoutes);
 app.use("/api/coupons", couponRoutes);

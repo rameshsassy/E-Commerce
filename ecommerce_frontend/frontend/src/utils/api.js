@@ -5,7 +5,7 @@ import {
   AUTH_SELLER_REGISTER,
 } from './authEndpoints';
 import { resolveApiBaseUrl, resolveApiUrl } from './apiConfig';
-import { API_MISCONFIGURED_MSG, isHtmlApiResponse } from './apiErrors';
+import { getApiReachabilityMessage, isHtmlApiResponse } from './apiErrors';
 import { portalApiHeaders } from './portalHost';
 import { getViewportWidthHeader } from './clientDevice';
 
@@ -61,7 +61,7 @@ const shouldSkipRefreshRetry = (url = '') =>
   AUTH_NO_REFRESH.some((path) => url.includes(path));
 
 function rejectMisconfiguredApi(response) {
-  const err = new Error(API_MISCONFIGURED_MSG);
+  const err = new Error(getApiReachabilityMessage());
   err.isApiMisconfigured = true;
   err.response = response;
   return Promise.reject(err);

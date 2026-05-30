@@ -63,8 +63,11 @@ export const updateProfile = async (req, res) => {
 
     await user.save();
 
+    const isAutosave = req.method === "PATCH";
+
     res.json({
-      message: "Profile updated successfully",
+      message: isAutosave ? "Profile auto-saved" : "Profile updated successfully",
+      autoSaved: isAutosave,
       user: {
         _id: user._id,
         firstName: user.firstName,
