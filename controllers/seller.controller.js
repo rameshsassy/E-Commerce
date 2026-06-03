@@ -26,6 +26,8 @@ import {
   assertKycCertificateUpload,
   assertKycImageUpload,
   getKycMissingFields,
+  validatePanNumber,
+  validateGstNumber,
 } from "../utils/kycValidation.js";
 import {
   getDefaultSellerPlatformFeePercent,
@@ -146,9 +148,24 @@ export const getDashboard = async (req, res) => {
       totalValue: 0,
     };
 
+    // Fetch referral stats for dashboard display
+    let referralCreditsEarned = 0;
+    let successfulReferrals = 0;
+    try {
+      const referralStats = await getReferralStatsForSeller(req.user._id, req.user, { limit: 1 });
+      referralCreditsEarned = referralStats.creditsEarned || 0;
+      successfulReferrals = referralStats.totalApproved || 0;
+    } catch (err) {
+      console.error("Failed to fetch referral stats for dashboard:", err);
+    }
+
     res.status(200).json({
       message: "Dashboard fetched successfully",
-      data: result,
+      data: {
+        ...result,
+        referralCreditsEarned,
+        successfulReferrals,
+      },
     });
 
   } catch (error) {
@@ -985,9 +1002,6 @@ export const getSellerProfile = async (req, res) => {
       entityTypeOther: user.entityTypeOther,
       storeAddresses: user.storeAddresses,
       dateOfRegistration: user.dateOfRegistration,
-      adminCostPercentage:
-        user.adminCostPercentage ?? getDefaultSellerPlatformFeePercent(),
-      defaultPlatformFeePercent: getDefaultSellerPlatformFeePercent(),
       registrationNumber: user.registrationNumber,
       registrationCertificate: user.registrationCertificate,
       orgPanNumber: user.orgPanNumber,
@@ -1009,6 +1023,40 @@ export const getSellerProfile = async (req, res) => {
       plan: isPremium ? "Premium" : "Free",
     });
 
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ===============================
+// 📄 VIEW KYC DOCUMENT (opens in new tab)
+// ===============================
+const KYC_DOC_FIELDS = new Set([
+  "registrationCertificate",
+  "orgPanImage",
+  "gstImage",
+  "cancelledCheckImage",
+]);
+
+export const getKycDocumentUrl = async (req, res) => {
+  try {
+    const user = req.user;
+    const { field } = req.params;
+
+    if (!KYC_DOC_FIELDS.has(field)) {
+      return res.status(400).json({ message: "Invalid document field." });
+    }
+
+    const docPath = user[field];
+    if (!docPath) {
+      return res.status(404).json({ message: "No document uploaded for this field." });
+    }
+
+    // Return the document URL for frontend to open in new tab
+    res.json({
+      field,
+      url: docPath,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -1281,13 +1329,32 @@ export const submitKycStep2 = async (req, res) => {
       req.body;
 
     user.dateOfRegistration = dateOfRegistration || user.dateOfRegistration;
-    user.adminCostPercentage = parseAdminCostPercentage(
-      req.body.adminCostPercentage,
-      user.adminCostPercentage ?? getDefaultSellerPlatformFeePercent()
-    );
     user.registrationNumber = registrationNumber || user.registrationNumber;
-    user.orgPanNumber = orgPanNumber || user.orgPanNumber;
-    user.gstNumber = gstNumber !== undefined ? String(gstNumber || "").trim() : user.gstNumber;
+
+    // PAN validation (compulsory, max 10 alphanumeric)
+    if (orgPanNumber !== undefined && String(orgPanNumber || "").trim()) {
+      const panCheck = validatePanNumber(orgPanNumber);
+      if (!panCheck.valid) {
+        return res.status(400).json({ message: panCheck.message });
+      }
+      user.orgPanNumber = String(orgPanNumber).trim().toUpperCase();
+    } else {
+      user.orgPanNumber = orgPanNumber || user.orgPanNumber;
+    }
+
+    // GST validation (optional, max 15 alphanumeric — only validated if provided)
+    if (gstNumber !== undefined) {
+      const trimmedGst = String(gstNumber || "").trim();
+      if (trimmedGst) {
+        const gstCheck = validateGstNumber(trimmedGst);
+        if (!gstCheck.valid) {
+          return res.status(400).json({ message: gstCheck.message });
+        }
+        user.gstNumber = trimmedGst.toUpperCase();
+      } else {
+        user.gstNumber = "";
+      }
+    }
     
     if (agreedToTerms !== undefined) {
       user.agreedToTerms = agreedToTerms === 'true' || agreedToTerms === true;
@@ -1322,7 +1389,6 @@ export const submitKycStep2 = async (req, res) => {
           : "Business documents saved successfully",
       autoSaved: req.method === "PATCH",
       dateOfRegistration: user.dateOfRegistration,
-      adminCostPercentage: user.adminCostPercentage,
       registrationNumber: user.registrationNumber,
       registrationCertificate: user.registrationCertificate,
       orgPanNumber: user.orgPanNumber,
@@ -1383,20 +1449,32 @@ export const submitKycComplete = async (req, res) => {
       if (dateOfRegistration !== undefined) {
         user.dateOfRegistration = dateOfRegistration || user.dateOfRegistration;
       }
-      if (req.body.adminCostPercentage !== undefined) {
-        user.adminCostPercentage = parseAdminCostPercentage(
-          req.body.adminCostPercentage,
-          user.adminCostPercentage ?? getDefaultSellerPlatformFeePercent()
-        );
-      }
       if (registrationNumber !== undefined) {
         user.registrationNumber = String(registrationNumber || "").trim();
       }
       if (orgPanNumber !== undefined) {
-        user.orgPanNumber = String(orgPanNumber || "").trim();
+        const panStr = String(orgPanNumber || "").trim();
+        if (panStr) {
+          const panCheck = validatePanNumber(panStr);
+          if (!panCheck.valid) {
+            return res.status(400).json({ message: panCheck.message });
+          }
+          user.orgPanNumber = panStr.toUpperCase();
+        } else {
+          user.orgPanNumber = panStr;
+        }
       }
       if (gstNumber !== undefined) {
-        user.gstNumber = String(gstNumber || "").trim();
+        const gstStr = String(gstNumber || "").trim();
+        if (gstStr) {
+          const gstCheck = validateGstNumber(gstStr);
+          if (!gstCheck.valid) {
+            return res.status(400).json({ message: gstCheck.message });
+          }
+          user.gstNumber = gstStr.toUpperCase();
+        } else {
+          user.gstNumber = gstStr;
+        }
       }
       if (agreedToTerms !== undefined) {
         user.agreedToTerms = agreedToTerms === "true" || agreedToTerms === true;
@@ -1473,13 +1551,30 @@ export const submitKycComplete = async (req, res) => {
       ? String(entityTypeOther || "").trim()
       : "";
     user.dateOfRegistration = dateOfRegistration || user.dateOfRegistration;
-    user.adminCostPercentage = parseAdminCostPercentage(
-      req.body.adminCostPercentage,
-      getDefaultSellerPlatformFeePercent()
-    );
     user.registrationNumber = String(registrationNumber || "").trim();
-    user.orgPanNumber = String(orgPanNumber || "").trim();
-    user.gstNumber = String(gstNumber || "").trim();
+
+    // PAN validation (compulsory)
+    const panStr = String(orgPanNumber || "").trim();
+    if (!panStr) {
+      return res.status(400).json({ message: "PAN number is required." });
+    }
+    const panCheck = validatePanNumber(panStr);
+    if (!panCheck.valid) {
+      return res.status(400).json({ message: panCheck.message });
+    }
+    user.orgPanNumber = panStr.toUpperCase();
+
+    // GST validation (optional — only validated if provided)
+    const gstStr = String(gstNumber || "").trim();
+    if (gstStr) {
+      const gstCheck = validateGstNumber(gstStr);
+      if (!gstCheck.valid) {
+        return res.status(400).json({ message: gstCheck.message });
+      }
+      user.gstNumber = gstStr.toUpperCase();
+    } else {
+      user.gstNumber = "";
+    }
     user.agreedToTerms = true;
 
     const storeAddressesRaw = req.body.storeAddresses ?? req.body["storeAddresses[]"];
@@ -1509,13 +1604,13 @@ export const submitKycComplete = async (req, res) => {
       return res.status(400).json({ message: "Organization logo is required (PNG or JPG)." });
     }
 
-    const docChecks = [
+    // Required documents: Registration Certificate and PAN Image
+    const requiredDocChecks = [
       ["registrationCertificate", "Registration Certificate", assertKycCertificateUpload],
       ["orgPanImage", "PAN Image", assertKycImageUpload],
-      ["gstImage", "GST Image", assertKycImageUpload],
     ];
 
-    for (const [field, label, assertFn] of docChecks) {
+    for (const [field, label, assertFn] of requiredDocChecks) {
       const uploaded = req.files?.[field]?.[0];
       if (uploaded) {
         assertFn(uploaded, label);
@@ -1525,8 +1620,11 @@ export const submitKycComplete = async (req, res) => {
       }
     }
 
-    if (!user.gstNumber?.trim()) {
-      return res.status(400).json({ message: "GST Number is required." });
+    // Optional document: GST Image (only validated if uploaded)
+    const gstImageUploaded = req.files?.["gstImage"]?.[0];
+    if (gstImageUploaded) {
+      assertKycImageUpload(gstImageUploaded, "GST Image");
+      user.gstImage = absoluteToWebPath(gstImageUploaded.path);
     }
 
     const missingFields = getKycMissingFields(user);

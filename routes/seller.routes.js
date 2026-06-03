@@ -15,6 +15,7 @@ import {
   submitKycStep2,
   submitKycComplete,
   finalizeKyc,
+  getKycDocumentUrl,
   createSubscriptionOrder,
   verifySubscriptionPayment,
   upgradeSellerToPremiumManual,
@@ -99,6 +100,7 @@ router.get(
 router.get("/products/draft", protect, authorizeRoles("seller"), getProductDraft);
 
 router.get("/kyc/entity-types", protect, authorizeRoles("seller"), listSellerKycEntityTypes);
+router.get("/kyc/document/:field", protect, authorizeRoles("seller"), getKycDocumentUrl);
 
 // 📄 KYC Upload
 router.post("/kyc", protect, authorizeRoles("seller"), ...kycImageUpload, submitKYC);

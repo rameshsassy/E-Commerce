@@ -200,8 +200,8 @@ const SellerAnalytics = () => {
         {/* Header with Logo */}
         <div className="flex flex-col gap-6">
           <div className="text-center flex flex-col items-center gap-2">
-            <Link to="/" className="font-black text-xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary mb-2">
-              AASHANSH
+            <Link to="/">
+              <img src="/brand/aashansh-logo.png" alt="Aashansh Logo" className="h-8 w-auto object-contain mb-2" />
             </Link>
             <h1 className="text-3xl md:text-4xl font-extrabold text-white drop-shadow-lg">
               Seller Analytics
@@ -283,27 +283,23 @@ const SellerAnalytics = () => {
             title="Total Revenue"
             value={data.totalRevenue.toLocaleString()}
             prefix="Rs. "
-            icon={<IndianRupee className="text-primary" />}
+            icon={<IndianRupee />}
             trend={data.monthlyGrowth}
-            className="glass-panel bg-white/5 backdrop-blur-md"
           />
           <AnalyticsCard
             title="Total Orders"
             value={data.totalOrders}
-            icon={<ShoppingBag className="text-primary" />}
-            className="glass-panel bg-white/5 backdrop-blur-md"
+            icon={<ShoppingBag />}
           />
           <AnalyticsCard
             title="Products Sold"
             value={data.productsSold}
-            icon={<Package className="text-primary" />}
-            className="glass-panel bg-white/5 backdrop-blur-md"
+            icon={<Package />}
           />
           <AnalyticsCard
             title="Pending Orders"
             value={data.pendingOrders}
-            icon={<Clock className="text-primary" />}
-            className="glass-panel bg-white/5 backdrop-blur-md"
+            icon={<Clock />}
           />
         </div>
 

@@ -42,6 +42,8 @@ import SellerRaiseFunds from './pages/seller/SellerRaiseFunds';
 import SellerReferAndEarn from './pages/seller/SellerReferAndEarn';
 import SellerAboutUs from './pages/seller/SellerAboutUs';
 import SellerPremium from './pages/seller/SellerPremium';
+import SellerChat from './pages/seller/SellerChat';
+import AdminChat from './pages/admin/AdminChat';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminSellers from './pages/admin/AdminSellers';
@@ -79,6 +81,7 @@ function SellerPortalRoutes() {
         <Route path="/seller/raise-funds" element={<SellerRaiseFunds />} />
         <Route path="/seller/premium" element={<SellerPremium />} />
         <Route path="/seller/refer-and-earn" element={<SellerReferAndEarn />} />
+        <Route path="/seller/chat" element={<SellerChat />} />
         <Route path="/seller/about-us" element={<SellerAboutUs />} />
         <Route path="/terms" element={<TermsAndConditions />} />
       </Route>
@@ -133,6 +136,7 @@ function CustomerPortalRoutes() {
           <Route path="/admin/premium-seller-dashboard" element={<AdminPremiumSellerDashboard />} />
           <Route path="/admin/categories" element={<AdminCategories />} />
           <Route path="/admin/email-logs" element={<AdminEmailLogs />} />
+          <Route path="/admin/chats" element={<AdminChat />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -11,7 +11,13 @@ import { useNavigate } from 'react-router-dom';
 const SellerDashboard = () => {
   const { user, mergeUser } = useAuth();
   const navigate = useNavigate();
-  const [stats, setStats] = useState({ products: 0, pending: 0, sales: 0 });
+  const [stats, setStats] = useState({
+    products: 0,
+    pending: 0,
+    sales: 0,
+    referralCreditsEarned: 0,
+    successfulReferrals: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
   const [activities, setActivities] = useState([]);
@@ -34,12 +40,12 @@ const SellerDashboard = () => {
       try {
         // Fetch real stats from the backend dashboard endpoint and profile
         const [dashboardRes, profileRes, activityRes] = await Promise.all([
-          api.get('/seller/dashboard').catch(() => ({ data: { data: { totalProducts: 0, totalValue: 0 } } })),
+          api.get('/seller/dashboard').catch(() => ({ data: { data: { totalProducts: 0, totalValue: 0, referralCreditsEarned: 0, successfulReferrals: 0 } } })),
           api.get('/seller/profile'),
           api.get('/seller/recent-activity'),
         ]);
         
-        const dashboardData = dashboardRes.data?.data || { totalProducts: 0, totalValue: 0 };
+        const dashboardData = dashboardRes.data?.data || { totalProducts: 0, totalValue: 0, referralCreditsEarned: 0, successfulReferrals: 0 };
         const profileData = profileRes.data;
         setProfile(profileData);
         // Keep auth user in sync with plan fields (so sidebar and other pages update).
@@ -51,7 +57,9 @@ const SellerDashboard = () => {
         setStats({
           products: dashboardData.totalProducts || 0,
           pending: profileData.kycStatus === 'pending' ? 1 : 0,
-          sales: dashboardData.totalValue || 0
+          sales: dashboardData.totalValue || 0,
+          referralCreditsEarned: dashboardData.referralCreditsEarned || 0,
+          successfulReferrals: dashboardData.successfulReferrals || 0,
         });
         setActivities(activityRes.data?.activities || []);
         setActivityError('');
@@ -79,8 +87,12 @@ const SellerDashboard = () => {
   return (
     <div className="animate-fade-in w-full">
       <div className="bg-white border border-[#E1E3E5] rounded-2xl shadow-sm px-4 sm:px-6 py-4 mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-        <div className="text-lg sm:text-[22px] font-semibold text-[#202223] truncate">
-          {greeting} {sellerName}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-[#202223] truncate">
+          <span className="text-lg sm:text-[22px] font-semibold">{greeting} {sellerName}</span>
+          <span className="hidden sm:inline text-[#E1E3E5]">|</span>
+          <span className="text-sm sm:text-[18px] font-medium text-[#6D7175]">
+            Reward Earned: <span className="font-semibold text-[#202223]">₹ {stats.referralCreditsEarned || 0}/-</span>
+          </span>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
@@ -99,37 +111,55 @@ const SellerDashboard = () => {
         </div>
       </div>
 
-      <div className="glass-panel p-6 mb-8 rounded-2xl border border-[#ff7a1f]/25 bg-gradient-to-r from-[#ff7a1f]/10 to-transparent flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-start gap-4">
-          <div className="h-12 w-12 rounded-xl bg-[#ff7a1f]/20 text-[#ff7a1f] flex items-center justify-center shrink-0">
-            <Gift size={24} />
+      <div className="glass-panel p-6 mb-8 rounded-2xl border border-glass-border flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+        <div className="flex items-start gap-4 flex-1">
+          <div className="h-12 w-12 rounded-xl bg-[#ffd401]/10 text-[#ffd401] flex items-center justify-center shrink-0">
+            <Gift size={26} className="text-[#ffd401] fill-[#ffd401]/20" />
           </div>
           <div>
-            <h2 className="text-lg font-bold mb-1">Refer and Earn</h2>
+            <h2 className="text-lg font-bold mb-1 text-white">Refer and Earn</h2>
             <p className="text-sm text-text-muted max-w-md">
-              Invite fellow sellers to Aashansh and earn platform credits when they get approved.
-              {isFree ? ' Premium sellers earn higher rewards.' : ''}
+              Invite fellow sellers and earn exciting rewards on the go.
             </p>
           </div>
         </div>
+
+        <div className="flex flex-col items-center justify-center text-center px-4 shrink-0">
+          <span className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1">
+            Successful Referrals
+          </span>
+          <div className="px-6 py-1 bg-[#ffd401] text-black font-bold rounded-lg shadow-sm">
+            {stats.successfulReferrals || 0}
+          </div>
+        </div>
+
         <button
           type="button"
           onClick={() => navigate('/seller/refer-and-earn')}
-          className="btn h-11 px-6 rounded-xl bg-[#ff7a1f] hover:bg-[#e66d1a] text-white font-bold text-sm border-0 flex items-center gap-2 shrink-0"
+          className="h-11 px-6 rounded-xl bg-[#ffd401] hover:bg-[#e6be00] text-black font-bold text-sm border-0 flex items-center gap-2 shrink-0 transition-transform active:scale-95 shadow-sm"
         >
-          Open Referral Hub <ArrowRight size={16} />
+          Start Referring Now <ArrowRight size={16} />
         </button>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="glass-panel p-6 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-primary/20 text-primary flex items-center justify-center">
-            <Package size={24} />
+        <div className="glass-panel p-6 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-primary/20 text-primary flex items-center justify-center">
+              <Package size={24} />
+            </div>
+            <div>
+              <p className="text-text-muted text-sm font-medium">Total Products</p>
+              <h3 className="text-2xl font-bold">{stats.products}</h3>
+            </div>
           </div>
-          <div>
-            <p className="text-text-muted text-sm font-medium">Total Products</p>
-            <h3 className="text-2xl font-bold">{stats.products}</h3>
-          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/seller/products')}
+            className="px-3 py-1.5 rounded-lg bg-[#ffd401] hover:bg-[#e6be00] text-black font-semibold text-xs transition-transform active:scale-95 shadow-sm"
+          >
+            View All
+          </button>
         </div>
         
         <div className="glass-panel p-6 flex items-center gap-4">
@@ -142,14 +172,23 @@ const SellerDashboard = () => {
           </div>
         </div>
         
-        <div className="glass-panel p-6 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-success/20 text-success flex items-center justify-center">
-            <DollarSign size={24} />
+        <div className="glass-panel p-6 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-success/20 text-success flex items-center justify-center">
+              <DollarSign size={24} />
+            </div>
+            <div>
+              <p className="text-text-muted text-sm font-medium">Total Sales</p>
+              <h3 className="text-2xl font-bold">${stats.sales}</h3>
+            </div>
           </div>
-          <div>
-            <p className="text-text-muted text-sm font-medium">Total Sales</p>
-            <h3 className="text-2xl font-bold">${stats.sales}</h3>
-          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/seller/orders-enquiries')}
+            className="px-3 py-1.5 rounded-lg bg-[#ffd401] hover:bg-[#e6be00] text-black font-semibold text-xs transition-transform active:scale-95 shadow-sm"
+          >
+            View All
+          </button>
         </div>
       </div>
 

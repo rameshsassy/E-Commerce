@@ -88,6 +88,7 @@ const SellerProducts = () => {
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState('premium');
   const [upgradeAutoRedirect, setUpgradeAutoRedirect] = useState(false);
+  const [actionOpenId, setActionOpenId] = useState(null);
 
   const openUpgradeModal = (feature = 'premium', { autoRedirect = false } = {}) => {
     setUpgradeFeature(feature);
@@ -1103,41 +1104,75 @@ const SellerProducts = () => {
                         <td className="p-4">{product.stock}</td>
                         <td className="p-4">
                           {product.approvalStatus === 'approved' && <span className="inline-flex items-center gap-1 text-xs font-bold bg-success/20 text-success px-2 py-1 rounded-full"><CheckCircle size={12}/> Approved</span>}
-                          {product.approvalStatus === 'pending' && <span className="inline-flex items-center gap-1 text-xs font-bold bg-warning/20 text-warning px-2 py-1 rounded-full"><Clock size={12}/> Pending</span>}
+                          {product.approvalStatus === 'pending' && <span className="inline-flex items-center gap-1 text-xs font-bold bg-warning/20 text-warning px-2 py-1 rounded-full"><Clock size={12}/> Under Approval</span>}
                           {product.approvalStatus === 'rejected' && <span className="inline-flex items-center gap-1 text-xs font-bold bg-error/20 text-error px-2 py-1 rounded-full"><XCircle size={12}/> Rejected</span>}
+                          {product.approvalStatus === 'deleted' && <span className="inline-flex items-center gap-1 text-xs font-bold bg-error/20 text-error px-2 py-1 rounded-full"><XCircle size={12}/> Deleted</span>}
+                          {product.isActive === false && <span className="ml-2 inline-flex items-center gap-1 text-xs font-bold bg-glass-border/20 text-text-muted px-2 py-1 rounded-full">Unlisted</span>}
                         </td>
                         <td className="p-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            {isProductLocked(product) ? (
-                              <a
-                                href={getApprovedProductWhatsAppUrl(product.title)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#25D366]/15 text-[#128C7E] hover:bg-[#25D366]/25 text-xs font-semibold transition-colors"
-                                title="Contact WhatsApp to edit"
-                              >
-                                <MessageCircle size={14} />
-                                WhatsApp
-                              </a>
-                            ) : (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => handleEditInit(product)}
-                                  className="p-2 bg-surface hover:bg-primary/20 text-primary transition-colors rounded-lg"
-                                  title="Edit"
-                                >
-                                  <Edit2 size={16} />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteProduct(product)}
-                                  className="p-2 bg-surface hover:bg-error/20 text-error transition-colors rounded-lg"
-                                  title="Delete"
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              </>
+                          <div className="relative inline-block text-left">
+                            <button
+                              type="button"
+                              onClick={() => setActionOpenId(actionOpenId === product._id ? null : product._id)}
+                              className="p-2 bg-surface hover:bg-primary/20 text-primary transition-colors rounded-lg"
+                              title="Actions"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M6 10a2 2 0 114 0 2 2 0 01-4 0zm6 0a2 2 0 114 0 2 2 0 01-4 0z" /></svg>
+                            </button>
+                            {actionOpenId === product._id && (
+                              <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-glass-bg ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
+                                <div className="py-1">
+                                  {product.approvalStatus === 'approved' && (
+                                    <button
+                                      type="button"
+                                      onClick={() => { window.open(getApprovedProductWhatsAppUrl(product.title), '_blank'); }}
+                                      className="w-full text-left px-4 py-2 text-sm text-text-muted hover:bg-surface"
+                                    >
+                                      Request for edits (On chat)
+                                    </button>
+                                  )}
+                                  {product.approvalStatus !== 'approved' && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleEditInit(product)}
+                                      className="w-full text-left px-4 py-2 text-sm text-text-muted hover:bg-surface"
+                                    >
+                                      Edit product
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteProduct(product)}
+                                    className="w-full text-left px-4 py-2 text-sm text-error hover:bg-surface"
+                                  >
+                                    Delete product
+                                  </button>
+                                  {product.isActive !== false && (
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        await api.patch(`/products/${product._id}/active`, { isActive: false });
+                                        fetchMyProducts();
+                                      }}
+                                      className="w-full text-left px-4 py-2 text-sm text-text-muted hover:bg-surface"
+                                    >
+                                      Un-list product
+                                    </button>
+                                  )}
+                                  {product.isActive === false && (
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        await api.patch(`/products/${product._id}/active`, { isActive: true });
+                                        fetchMyProducts();
+                                      }}
+                                      className="w-full text-left px-4 py-2 text-sm text-text-muted hover:bg-surface"
+                                    >
+                                      Make it live
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
                             )}
                           </div>
                         </td>

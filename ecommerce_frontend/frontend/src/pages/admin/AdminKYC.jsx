@@ -75,9 +75,17 @@ const AdminKYC = () => {
               <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
                 <div className="flex items-center gap-4">
                   {seller.organizationLogo ? (
-                    <img src={`${BASE_URL}/${seller.organizationLogo.replace(/\\/g, '/')}`} alt="Logo" className="w-16 h-16 rounded-full object-cover border border-[#E1E3E5]" />
+                    <a
+                      href={`${BASE_URL}/${seller.organizationLogo.replace(/\\/g, '/')}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      title="Click to view full size"
+                      className="hover:opacity-80 transition-opacity block shrink-0"
+                    >
+                      <img src={`${BASE_URL}/${seller.organizationLogo.replace(/\\/g, '/')}`} alt="Logo" className="w-16 h-16 rounded-full object-cover border border-[#E1E3E5]" />
+                    </a>
                   ) : (
-                    <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-xl border border-[#E1E3E5]">
+                    <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-xl border border-[#E1E3E5] shrink-0">
                       {seller.firstName?.[0]}{seller.lastName?.[0]}
                     </div>
                   )}

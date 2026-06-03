@@ -15,6 +15,7 @@ import {
   autoSaveProduct,
   getDeliverySuggestions,
   getDeliveryOptions,
+  updateProductActiveStatus,
 } from "../controllers/product.controller.js";
 import { createBulkInquiry } from "../controllers/bulkInquiry.controller.js";
 
@@ -117,6 +118,13 @@ router.delete(
   protect,
   authorizeRoles("seller"),
   deleteProduct
+);
+
+router.patch(
+  "/:id/active",
+  protect,
+  authorizeRoles("seller"),
+  updateProductActiveStatus
 );
 
 export default router;

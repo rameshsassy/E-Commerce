@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
-import { User, MapPin, Package, Settings, LogOut, ChevronRight, Star } from 'lucide-react';
+import { User, MapPin, Package, Settings, LogOut, ChevronRight, Star, MessageSquare } from 'lucide-react';
 import api from '../../utils/api';
+import CustomerChat from '../../components/chat/CustomerChat';
 import useFormAutosave from '../../hooks/useFormAutosave';
 import FormAutosaveStatus from '../../components/common/FormAutosaveStatus';
 
@@ -63,6 +64,7 @@ const CustomerProfile = () => {
     { id: 'addresses', label: 'Address Management', icon: <MapPin size={20} /> },
     { id: 'orders', label: 'My Orders & Tracking', icon: <Package size={20} /> },
     { id: 'settings', label: 'Account Settings', icon: <Settings size={20} /> },
+    { id: 'chat', label: 'Chat Support', icon: <MessageSquare size={20} /> },
   ];
 
   const handleAddressSubmit = async (e) => {
@@ -385,6 +387,9 @@ const CustomerProfile = () => {
           </div>
         )}
 
+        {activeTab === 'chat' && (
+          <CustomerChat />
+        )}
       </div>
 
       {/* Address Modal */}

@@ -54,15 +54,15 @@ export default function PerformanceOverviewCard({
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className="px-4 py-2 rounded-full bg-[#FFD700] hover:bg-[#F2C400] text-[#202223] font-semibold text-[13px] md:text-[14px] shadow-sm flex items-center gap-2"
+            className="px-4 py-2 rounded-full bg-[#ffd401] hover:bg-[#e0bb00] text-black font-semibold text-[13px] md:text-[14px] shadow-sm flex items-center gap-2"
           >
-            {expanded ? 'Collapse' : 'Expand'} <span className="text-[16px] leading-none">+</span>
+            {expanded ? 'Collapse' : 'Expand'} <span className="text-[16px] leading-none">{expanded ? '−' : '+'}</span>
           </button>
           {onViewAll ? (
             <button
               type="button"
               onClick={onViewAll}
-              className="px-4 py-2 rounded-full bg-[#FFD700] hover:bg-[#F2C400] text-[#202223] font-semibold text-[13px] md:text-[14px] shadow-sm"
+              className="px-4 py-2 rounded-full bg-[#ffd401] hover:bg-[#e0bb00] text-black font-semibold text-[13px] md:text-[14px] shadow-sm"
             >
               {viewAllLabel}
             </button>

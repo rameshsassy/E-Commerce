@@ -228,7 +228,23 @@ const Support = () => {
                       {attachments.length > 0 && (
                         <div className="mt-4 flex flex-wrap gap-2 justify-center">
                           {attachments.map((file, i) => (
-                            <span key={i} className="bg-primary/20 text-primary text-xs px-2 py-1 rounded-md">{file.name}</span>
+                            <span key={i} className="bg-primary/20 text-primary text-xs px-2 py-1 rounded-md flex items-center gap-1.5">
+                              {file.name}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  const url = URL.createObjectURL(file);
+                                  window.open(url, '_blank');
+                                }}
+                                className="text-primary hover:underline font-bold text-[10px] ml-1 border-l border-primary/30 pl-1.5"
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                                title="Preview in new tab"
+                              >
+                                Preview
+                              </button>
+                            </span>
                           ))}
                         </div>
                       )}

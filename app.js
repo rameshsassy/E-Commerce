@@ -19,6 +19,7 @@ import supportRoutes from "./routes/support.routes.js";
 import categoryRoutes from "./routes/category.routes.js";
 import publicStoreRoutes from "./routes/publicStore.routes.js";
 import formDraftRoutes from "./routes/formDraft.routes.js";
+import chatRoutes from "./routes/chat.routes.js";
 
 import { errorHandler } from "./middleware/error.middleware.js";
 import { clientDeviceMiddleware } from "./middleware/clientDevice.middleware.js";
@@ -182,6 +183,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/support", supportRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/public", publicStoreRoutes);
+app.use("/api/chat", chatRoutes);
 
 // ===============================
 // 🏠 ROOT ROUTE

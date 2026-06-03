@@ -47,11 +47,22 @@ const AdminProducts = () => {
             <div key={product._id} className="glass-panel p-6 rounded-2xl flex flex-col md:flex-row gap-6 items-start md:items-center justify-between hover:bg-surface/50 transition-colors">
               <div className="flex gap-4 items-center">
                 <div className="w-20 h-20 bg-surface rounded-lg overflow-hidden shrink-0">
-                  <img 
-                    src={product.images?.[0] ? `${BASE_URL}/${product.images[0].replace(/\\/g, '/')}` : 'https://placehold.co/100x100/1e293b/f8fafc?text=Img'} 
-                    alt={product.title}
-                    className="w-full h-full object-cover"
-                  />
+                  <a
+                    href={product.images?.[0] ? `${BASE_URL}/${product.images[0].replace(/\\/g, '/')}` : '#'}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={product.images?.[0] ? "Click to view full image" : ""}
+                    className={`block w-full h-full ${product.images?.[0] ? "hover:opacity-80 transition-opacity cursor-pointer" : "cursor-default"}`}
+                    onClick={(e) => {
+                      if (!product.images?.[0]) e.preventDefault();
+                    }}
+                  >
+                    <img 
+                      src={product.images?.[0] ? `${BASE_URL}/${product.images[0].replace(/\\/g, '/')}` : 'https://placehold.co/100x100/1e293b/f8fafc?text=Img'} 
+                      alt={product.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </a>
                 </div>
                 <div>
                   <h3 className="text-xl font-bold mb-1">{product.title}</h3>

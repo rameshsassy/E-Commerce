@@ -780,17 +780,42 @@ export const deleteProduct = async (req, res) => {
       return res.status(403).json({ message: "Not authorized to delete this product" });
     }
 
-    try {
-      assertProductEditable(product);
-    } catch (err) {
-      return sendProductLockedResponse(res, err);
-    }
-
     const title = product.title;
     const productId = product._id;
     await product.deleteOne();
     logProductDeleted(req.user._id, title, productId);
     res.json({ message: "Product deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ===============================
+// 👁️ UPDATE PRODUCT ACTIVE STATUS (SELLER ONLY)
+// ===============================
+export const updateProductActiveStatus = async (req, res) => {
+  try {
+    const { isActive } = req.body;
+    if (isActive === undefined) {
+      return res.status(400).json({ message: "isActive is required" });
+    }
+
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    if (product.sellerId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Not authorized to update this product status" });
+    }
+
+    product.isActive = Boolean(isActive);
+    await product.save();
+
+    res.json({
+      message: `Product successfully ${product.isActive ? "made live" : "unlisted"}`,
+      product,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

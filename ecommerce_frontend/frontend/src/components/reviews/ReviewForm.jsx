@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Star, Image as ImageIcon, Send, X } from 'lucide-react';
+import { Star, Image as ImageIcon, Send, X, Eye } from 'lucide-react';
 import api from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 
@@ -112,13 +112,24 @@ const ReviewForm = ({ productId, onReviewAdded }) => {
             {images.map((img, idx) => (
               <div key={idx} className="relative w-20 h-20 rounded-lg overflow-hidden border border-glass-border group">
                 <img src={URL.createObjectURL(img)} alt="upload preview" className="w-full h-full object-cover" />
-                <button 
-                  type="button"
-                  onClick={() => removeImage(idx)}
-                  className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <X size={20} className="text-white" />
-                </button>
+                <div className="absolute inset-0 bg-black/60 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    type="button"
+                    onClick={() => window.open(URL.createObjectURL(img), '_blank')}
+                    className="p-1 rounded bg-white/20 hover:bg-white/40 text-white"
+                    title="Preview in new tab"
+                  >
+                    <Eye size={16} />
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => removeImage(idx)}
+                    className="p-1 rounded bg-white/20 hover:bg-white/40 text-white"
+                    title="Remove"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
               </div>
             ))}
             

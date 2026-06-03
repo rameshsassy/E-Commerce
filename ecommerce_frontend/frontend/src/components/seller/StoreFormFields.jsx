@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { Plus, XCircle, Zap } from 'lucide-react';
+import { Plus, XCircle, Zap, ExternalLink } from 'lucide-react';
 import { BASE_URL } from '../../utils/api';
 import StoreSeoPreview from './StoreSeoPreview';
 
@@ -197,17 +197,28 @@ export default function StoreFormFields({
             Store logo <span className="text-[#D82C0D]">*</span>
           </p>
           <div className="flex gap-4 items-start">
-            <button
-              type="button"
-              onClick={() => logoInputRef.current?.click()}
-              className="w-24 h-24 shrink-0 border-2 border-dashed border-[#8C9196] rounded-lg flex items-center justify-center bg-[#F6F6F7] hover:bg-[#F1F2F3] overflow-hidden"
-            >
-              {displayLogo ? (
-                <img src={displayLogo} alt="Store logo" className="w-full h-full object-cover" />
-              ) : (
-                <Plus size={28} className="text-[#6D7175]" />
+            <div className="flex flex-col items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => logoInputRef.current?.click()}
+                className="w-24 h-24 border-2 border-dashed border-[#8C9196] rounded-lg flex items-center justify-center bg-[#F6F6F7] hover:bg-[#F1F2F3] overflow-hidden"
+              >
+                {displayLogo ? (
+                  <img src={displayLogo} alt="Store logo" className="w-full h-full object-cover" />
+                ) : (
+                  <Plus size={28} className="text-[#6D7175]" />
+                )}
+              </button>
+              {displayLogo && (
+                <button
+                  type="button"
+                  onClick={() => window.open(displayLogo, '_blank')}
+                  className="text-[12px] text-[#005bd3] hover:text-[#004bb4] underline font-medium flex items-center gap-1"
+                >
+                  <ExternalLink size={12} /> Preview
+                </button>
               )}
-            </button>
+            </div>
             <input
               ref={logoInputRef}
               type="file"
@@ -226,17 +237,28 @@ export default function StoreFormFields({
         <div>
           <p className="text-[14px] font-medium mb-2">Favicon</p>
           <div className="flex gap-4 items-start">
-            <button
-              type="button"
-              onClick={() => faviconInputRef.current?.click()}
-              className="w-16 h-16 shrink-0 border-2 border-dashed border-[#8C9196] rounded-lg flex items-center justify-center bg-[#F6F6F7] hover:bg-[#F1F2F3] overflow-hidden"
-            >
-              {displayFavicon ? (
-                <img src={displayFavicon} alt="Favicon" className="w-full h-full object-cover" />
-              ) : (
-                <Plus size={22} className="text-[#6D7175]" />
+            <div className="flex flex-col items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => faviconInputRef.current?.click()}
+                className="w-16 h-16 border-2 border-dashed border-[#8C9196] rounded-lg flex items-center justify-center bg-[#F6F6F7] hover:bg-[#F1F2F3] overflow-hidden"
+              >
+                {displayFavicon ? (
+                  <img src={displayFavicon} alt="Favicon" className="w-full h-full object-cover" />
+                ) : (
+                  <Plus size={22} className="text-[#6D7175]" />
+                )}
+              </button>
+              {displayFavicon && (
+                <button
+                  type="button"
+                  onClick={() => window.open(displayFavicon, '_blank')}
+                  className="text-[12px] text-[#005bd3] hover:text-[#004bb4] underline font-medium flex items-center gap-1"
+                >
+                  <ExternalLink size={12} /> Preview
+                </button>
               )}
-            </button>
+            </div>
             <input
               ref={faviconInputRef}
               type="file"

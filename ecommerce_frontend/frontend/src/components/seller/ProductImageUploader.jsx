@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Eye } from 'lucide-react';
 import {
   PRODUCT_IMAGE_MAX_COUNT,
   PRODUCT_IMAGE_MAX_BYTES,
@@ -180,6 +180,20 @@ export default function ProductImageUploader({ images, onChange }) {
                 aria-label="Remove image"
               >
                 <X size={14} />
+              </button>
+            )}
+            {img?.preview && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(img.preview, '_blank');
+                }}
+                className="absolute -bottom-2 -left-2 w-6 h-6 rounded-full bg-[#008060] text-white flex items-center justify-center shadow hover:bg-[#006e52]"
+                aria-label="Preview image"
+                title="Preview in new tab"
+              >
+                <Eye size={12} />
               </button>
             )}
           </div>

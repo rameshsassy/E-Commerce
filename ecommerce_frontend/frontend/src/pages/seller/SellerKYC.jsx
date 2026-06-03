@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, ExternalLink } from 'lucide-react';
 import getCroppedImg from '../../utils/cropImage';
 import api, { BASE_URL } from '../../utils/api';
 import BusinessDocumentsFields from '../../components/seller/BusinessDocumentsFields';
@@ -33,7 +33,6 @@ const SellerKYC = () => {
     entityTypeOther: '',
     storeAddresses: '',
     dateOfRegistration: '',
-    adminCostPercentage: '',
     registrationNumber: '',
     orgPanNumber: '',
     gstNumber: '',
@@ -56,6 +55,12 @@ const SellerKYC = () => {
     registrationCertificate: false,
     orgPanImage: false,
     gstImage: false,
+  });
+
+  const [existingDocPaths, setExistingDocPaths] = useState({
+    registrationCertificate: '',
+    orgPanImage: '',
+    gstImage: '',
   });
 
   const selectedEntityType = useMemo(
@@ -98,9 +103,6 @@ const SellerKYC = () => {
               ? profile.storeAddresses.join('\n')
               : prev.storeAddresses,
             dateOfRegistration: dateStr,
-            adminCostPercentage: String(
-              profile.adminCostPercentage ?? profile.defaultPlatformFeePercent ?? ''
-            ),
             registrationNumber: profile.registrationNumber || '',
             orgPanNumber: profile.orgPanNumber || '',
             gstNumber: profile.gstNumber || '',
@@ -118,6 +120,12 @@ const SellerKYC = () => {
             gstImage: Boolean(profile.gstImage),
           });
 
+          setExistingDocPaths({
+            registrationCertificate: profile.registrationCertificate || '',
+            orgPanImage: profile.orgPanImage || '',
+            gstImage: profile.gstImage || '',
+          });
+
           if (profile.kycStatus === 'pending' || profile.status === 'kyc_submitted') {
             setSubmitted(true);
           }
@@ -125,7 +133,6 @@ const SellerKYC = () => {
           setForm((prev) => ({
             ...prev,
             entityType: types[0].code,
-            adminCostPercentage: prev.adminCostPercentage || '12.39',
           }));
         }
       } catch {
@@ -229,9 +236,7 @@ const SellerKYC = () => {
       }
       if (form.elevatorPitch.trim()) formData.append('elevatorPitch', form.elevatorPitch.trim());
       if (form.dateOfRegistration) formData.append('dateOfRegistration', form.dateOfRegistration);
-      if (form.adminCostPercentage !== '' && form.adminCostPercentage != null) {
-        formData.append('adminCostPercentage', String(form.adminCostPercentage));
-      }
+
       if (form.registrationNumber.trim()) {
         formData.append('registrationNumber', form.registrationNumber.trim());
       }
@@ -283,6 +288,10 @@ const SellerKYC = () => {
         !String(v.storeAddresses || '').trim(),
     });
 
+  // PAN format check (mirrors backend)
+  const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i;
+  const GST_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i;
+
   const canSubmit = useMemo(() => {
     if (!form.officialName.trim()) return false;
     if (!form.entityType) return false;
@@ -293,11 +302,12 @@ const SellerKYC = () => {
     if (!form.dateOfRegistration) return false;
     if (!form.registrationNumber.trim()) return false;
     if (!hasDoc('registrationCertificate')) return false;
+    // PAN is compulsory and must be valid format
     if (!form.orgPanNumber.trim()) return false;
+    if (!PAN_REGEX.test(form.orgPanNumber.trim())) return false;
     if (!hasDoc('orgPanImage')) return false;
-    if (!form.gstNumber.trim()) return false;
-    if (!hasDoc('gstImage')) return false;
-    if (form.adminCostPercentage === '' || form.adminCostPercentage == null) return false;
+    // GST is optional — but if entered, must be valid format
+    if (form.gstNumber.trim() && !GST_REGEX.test(form.gstNumber.trim())) return false;
     if (!form.agreedToTerms) return false;
     return true;
   }, [form, selectedEntityType, hasLogo, documents, existingDocs]);
@@ -467,16 +477,37 @@ const SellerKYC = () => {
               >
                 <input type="file" onChange={onLogoChange} accept={LOGO_ACCEPT} />
                 {logoPreview && (
-                  <img
-                    src={logoPreview}
-                    alt="Logo preview"
-                    style={{
-                      width: '56px',
-                      height: '56px',
-                      objectFit: 'cover',
-                      borderRadius: 'var(--radius-md)',
-                    }}
-                  />
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.35rem' }}>
+                    <img
+                      src={logoPreview}
+                      alt="Logo preview"
+                      style={{
+                        width: '56px',
+                        height: '56px',
+                        objectFit: 'cover',
+                        borderRadius: 'var(--radius-md)',
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => window.open(logoPreview, '_blank')}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--color-primary, #005bd3)',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        textDecoration: 'underline',
+                        cursor: 'pointer',
+                        padding: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                      }}
+                    >
+                      <ExternalLink size={12} /> Preview
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -487,6 +518,8 @@ const SellerKYC = () => {
           form={form}
           documents={documents}
           existingDocs={existingDocs}
+          existingDocPaths={existingDocPaths}
+          baseUrl={String(BASE_URL)}
           onChange={handleChange}
           onDocumentChange={handleDocumentChange}
         />

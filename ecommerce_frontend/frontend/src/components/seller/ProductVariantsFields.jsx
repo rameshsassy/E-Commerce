@@ -63,6 +63,16 @@ function VariantImage({ variant, onPickFile }) {
           <li>Square Images</li>
           <li>JPG or PNG format only</li>
         </ul>
+        {src && (
+          <button
+            type="button"
+            onClick={() => window.open(src, '_blank')}
+            className="text-xs text-[#005bd3] hover:text-[#004bb4] underline font-semibold flex items-center gap-1 mt-2"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+          >
+            Preview image in new tab
+          </button>
+        )}
       </div>
     </div>
   );

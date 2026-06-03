@@ -283,7 +283,7 @@ const productSchema = new mongoose.Schema(
     // ✅ PRODUCT APPROVAL SYSTEM
     approvalStatus: {
       type: String,
-      enum: ["pending", "approved", "rejected"],
+      enum: ["pending", "approved", "rejected", "deleted"],
       default: "pending",
       index: true,
     },

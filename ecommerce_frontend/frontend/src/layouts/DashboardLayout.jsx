@@ -23,6 +23,7 @@ import {
   Info,
   Menu,
   X,
+  MessageSquare,
 } from 'lucide-react';
 
 const SELLER_NAV = [
@@ -35,6 +36,7 @@ const SELLER_NAV = [
   { to: '/seller/raise-funds', label: 'Raise funds', icon: HandCoins },
   { to: '/seller/premium', label: 'Premium', icon: Zap, premium: true },
   { to: '/seller/refer-and-earn', label: 'Refer and Earn', icon: Gift },
+  { to: '/seller/chat', label: 'Chat', icon: MessageSquare },
   { to: '/seller/about-us', label: 'About Us', icon: Info },
 ];
 
@@ -154,9 +156,18 @@ const DashboardLayout = ({ variant }) => {
         >
           <Menu size={22} />
         </button>
-        <h2 className="text-base font-bold text-primary truncate flex-1 text-center" style={{ color: 'var(--color-primary)' }}>
-          {panelTitle}
-        </h2>
+        {isSeller ? (
+          <div className="flex-1 flex items-center justify-center gap-2">
+            <img src="/brand/aashansh-logo.png" alt="Aashansh Logo" className="h-6 w-auto object-contain" />
+            <h2 className="text-base font-bold text-white truncate">
+              {panelTitle}
+            </h2>
+          </div>
+        ) : (
+          <h2 className="text-base font-bold text-primary truncate flex-1 text-center" style={{ color: 'var(--color-primary)' }}>
+            {panelTitle}
+          </h2>
+        )}
         <button
           type="button"
           onClick={handleLogout}
@@ -190,9 +201,18 @@ const DashboardLayout = ({ variant }) => {
         ].join(' ')}
       >
         <div className="p-4 lg:p-6 border-b flex items-center justify-between gap-2" style={{ borderColor: 'var(--glass-border)' }}>
-          <h2 className="text-lg lg:text-xl font-bold text-primary" style={{ color: 'var(--color-primary)' }}>
-            {panelTitle}
-          </h2>
+          {isSeller ? (
+            <div className="flex items-center gap-2">
+              <img src="/brand/aashansh-logo.png" alt="Aashansh Logo" className="h-8 w-auto object-contain" />
+              <h2 className="text-lg lg:text-xl font-bold text-white">
+                {panelTitle}
+              </h2>
+            </div>
+          ) : (
+            <h2 className="text-lg lg:text-xl font-bold text-primary" style={{ color: 'var(--color-primary)' }}>
+              {panelTitle}
+            </h2>
+          )}
           <button
             type="button"
             className="lg:hidden w-9 h-9 flex items-center justify-center rounded-lg hover:bg-surface-hover"
@@ -332,6 +352,16 @@ const DashboardLayout = ({ variant }) => {
                   Roles
                 </Link>
               )}
+
+              {(user.role === 'admin' || user.role === 'admin_staff') && (
+                <Link
+                  to="/admin/chats"
+                  className={adminNavLinkClass(location.pathname, location.hash, '/admin/chats')}
+                >
+                  <MessageSquare size={20} className="text-primary" />
+                  Chats
+                </Link>
+              )}
             </div>
           )}
 
@@ -341,22 +371,24 @@ const DashboardLayout = ({ variant }) => {
                 location.pathname === item.to ||
                 (item.to !== '/seller/dashboard' && location.pathname.startsWith(item.to));
               const Icon = item.icon;
+              const activeClass = active
+                ? 'text-[#ffd401] border-[#ffd401] bg-[#ffd401]/10 font-bold'
+                : 'border-white/25 hover:bg-surface-hover hover:border-white/40 text-white';
               const baseClass = [
                 'flex items-center gap-3 p-3 rounded-xl border transition-colors',
-                'border-white/25 hover:bg-surface-hover hover:border-white/40',
-                active ? 'bg-surface-hover border-white/50' : '',
+                activeClass,
               ].join(' ');
 
               return (
                 <Link key={item.to} to={item.to} className={baseClass} style={{ transition: 'background-color 0.2s, border-color 0.2s' }}>
                   {item.icon === 'chart' ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={active ? 'text-[#ffd401]' : ''}><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
                   ) : item.premium ? (
-                    <Icon size={20} className="text-warning fill-warning/20" />
+                    <Icon size={20} className={active ? 'text-[#ffd401] fill-[#ffd401]/20' : 'text-warning fill-warning/20'} />
                   ) : item.iconAccent ? (
-                    <Icon size={20} className="text-warning" />
+                    <Icon size={20} className={active ? 'text-[#ffd401]' : 'text-warning'} />
                   ) : (
-                    <Icon size={20} />
+                    <Icon size={20} className={active ? 'text-[#ffd401]' : ''} />
                   )}
                   {item.label}
                 </Link>
