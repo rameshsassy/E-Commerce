@@ -41,9 +41,9 @@ const SellerSubscription = () => {
   };
 
   return (
-    <div className="p-4 md:p-8 animate-fade-in w-full max-w-5xl mx-auto">
-      <h1 className="text-3xl font-black mb-8 flex items-center gap-3">
-        <Zap className="text-warning fill-warning/20" size={32} />
+    <div className="p-0 sm:p-2 md:p-4 animate-fade-in w-full max-w-5xl mx-auto">
+      <h1 className="seller-page-title flex flex-wrap items-center gap-2 sm:gap-3">
+        <Zap className="text-warning fill-warning/20 shrink-0" size={28} />
         Seller Subscription Plans
       </h1>
 
@@ -78,8 +78,9 @@ const SellerSubscription = () => {
       )}
 
       {isPremium ? (
-        <div className="glass-panel p-8 rounded-3xl border border-success/30 bg-success/5 flex flex-col items-center justify-center text-center">
-          <ShieldCheck size={64} className="text-success mb-4" />
+        <div className="glass-panel seller-panel rounded-3xl border border-success/30 bg-success/5 flex flex-col items-center justify-center text-center">
+          <ShieldCheck size={48} className="sm:hidden text-success mb-4" />
+          <ShieldCheck size={64} className="hidden sm:block text-success mb-4" />
           <h2 className="text-2xl font-bold text-success mb-2">
             You are a Premium Seller!
           </h2>
@@ -102,8 +103,8 @@ const SellerSubscription = () => {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="glass-panel p-8 rounded-3xl border border-glass-border flex flex-col opacity-80">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+          <div className="glass-panel seller-panel rounded-3xl border border-glass-border flex flex-col opacity-80">
             <h2 className="text-xl font-bold mb-2">Standard Seller</h2>
             <div className="text-3xl font-black mb-6">Free</div>
 
@@ -139,17 +140,17 @@ const SellerSubscription = () => {
             </button>
           </div>
 
-          <div className="glass-panel p-8 rounded-3xl border-2 border-primary relative overflow-hidden flex flex-col shadow-glow">
-            <div className="absolute top-0 right-0 bg-primary text-white text-xs font-black uppercase tracking-wider py-1 px-8 rotate-45 translate-x-6 translate-y-4 shadow-lg">
+          <div className="glass-panel seller-panel rounded-3xl border-2 border-primary relative overflow-hidden flex flex-col shadow-glow">
+            <div className="absolute top-0 right-0 bg-primary text-white text-[10px] sm:text-xs font-black uppercase tracking-wider py-1 px-6 sm:px-8 rotate-45 translate-x-4 sm:translate-x-6 translate-y-3 sm:translate-y-4 shadow-lg">
               Recommended
             </div>
 
-            <h2 className="text-xl font-bold mb-2 text-primary">
+            <h2 className="text-lg sm:text-xl font-bold mb-2 text-primary pr-8">
               Premium Seller
             </h2>
-            <div className="flex items-end gap-2 mb-6">
-              <div className="text-4xl font-black">₹9,125</div>
-              <div className="text-text-muted text-sm pb-1">
+            <div className="flex flex-col sm:flex-row sm:items-end gap-1 sm:gap-2 mb-6">
+              <div className="text-3xl sm:text-4xl font-black">₹9,125</div>
+              <div className="text-text-muted text-sm pb-0 sm:pb-1">
                 / year (+ 18% GST)
               </div>
             </div>

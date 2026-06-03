@@ -98,7 +98,7 @@ const Register = () => {
 
       const defaultMsg =
         role === 'seller'
-          ? 'Seller Registered Successfully'
+          ? 'Seller Registered Successfully. Welcome email has been sent.'
           : 'Customer Registered Successfully';
 
       setSuccess(data.message || defaultMsg);

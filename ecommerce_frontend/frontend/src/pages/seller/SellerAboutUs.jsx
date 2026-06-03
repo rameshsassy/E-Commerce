@@ -46,18 +46,18 @@ export default function SellerAboutUs() {
   }
 
   return (
-    <div className="animate-fade-in space-y-8 max-w-3xl">
+    <div className="seller-page animate-fade-in space-y-6 sm:space-y-8">
       <div>
-        <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
-          <Info className="text-primary" size={32} />
+        <h1 className="seller-page-title flex flex-wrap items-center gap-2 sm:gap-3">
+          <Info className="text-primary shrink-0" size={28} />
           {content?.title || 'About Us'}
         </h1>
-        <p className="text-lg text-text-muted">{content?.tagline}</p>
+        <p className="text-base sm:text-lg text-text-muted">{content?.tagline}</p>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {(content?.sections || []).map((section) => (
-          <div key={section.heading} className="glass-panel p-8 rounded-2xl">
+          <div key={section.heading} className="glass-panel seller-panel rounded-2xl">
             <h2 className="text-xl font-bold mb-3">{section.heading}</h2>
             <p className="text-text-muted leading-relaxed">{section.body}</p>
           </div>

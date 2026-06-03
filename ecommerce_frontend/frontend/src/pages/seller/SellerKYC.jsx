@@ -325,18 +325,15 @@ const SellerKYC = () => {
 
   if (submitted) {
     return (
-      <div
-        className="glass-panel animate-fade-in"
-        style={{ padding: '2rem', maxWidth: '640px', margin: '2rem auto', textAlign: 'center' }}
-      >
-        <CheckCircle size={48} color="var(--color-success)" style={{ margin: '0 auto 1rem' }} />
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+      <div className="glass-panel seller-kyc-success animate-fade-in">
+        <CheckCircle size={48} color="var(--color-success)" className="mx-auto mb-4" />
+        <h2 className="text-xl sm:text-2xl font-bold mb-2">
           KYC submitted
         </h2>
-        <p style={{ color: 'var(--color-text-muted)', marginBottom: '1.5rem' }}>
+        <p className="text-text-muted mb-6">
           Your verification is under review. We will notify you once approved.
         </p>
-        <button type="button" className="btn btn-primary" onClick={() => navigate('/seller/profile')}>
+        <button type="button" className="btn btn-primary w-full sm:w-auto" onClick={() => navigate('/seller/profile')}>
           Go to profile
         </button>
       </div>
@@ -344,17 +341,14 @@ const SellerKYC = () => {
   }
 
   return (
-    <div
-      className="glass-panel animate-fade-in"
-      style={{ padding: '2rem', maxWidth: '900px', margin: '2rem auto' }}
-    >
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.5rem' }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>
+    <div className="glass-panel seller-kyc-shell animate-fade-in">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+        <h2 className="text-xl sm:text-2xl font-bold m-0">
           Complete Your KYC
         </h2>
         <FormAutosaveStatus status={kycAutosaveStatus} message={kycAutosaveMessage} />
       </div>
-      <p style={{ color: 'var(--color-text-muted)', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
+      <p className="text-text-muted mb-6 text-sm sm:text-base">
         Fill in your organisation details and upload documents on this page. All fields marked with *
         are required.
       </p>
@@ -541,10 +535,10 @@ const SellerKYC = () => {
           </div>
         </section>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <div className="flex flex-col sm:flex-row sm:justify-end">
           <button
             type="button"
-            className="btn btn-primary"
+            className="btn btn-primary w-full sm:w-auto"
             onClick={submitKyc}
             disabled={loading || !canSubmit}
             style={{ opacity: !canSubmit && !loading ? 0.55 : 1 }}

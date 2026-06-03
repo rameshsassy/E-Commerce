@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../utils/api';
 
-export default function AashanshPremiumSellerDashboard() {
+export default function PremiumSellerDashboard() {
   const [metrics, setMetrics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -78,9 +78,13 @@ export default function AashanshPremiumSellerDashboard() {
                 ⭐ Premium Seller
               </div>
               <h1 className="text-4xl font-bold">Welcome Back, Artisan Hub</h1>
-              <p className="text-slate-300 mt-2 max-w-2xl">
-                Manage bulk inquiries, monitor premium analytics, and grow your business with Aashansh Premium.
-              </p>
+              <div className="text-slate-300 mt-2 max-w-2xl flex items-center gap-2 flex-wrap">
+                <span>Manage bulk inquiries, monitor premium analytics, and grow your business with</span>
+                <span className="inline-flex items-center gap-2">
+                  <img src="/brand/aashansh-logo.png" alt="Brand logo" className="h-5 w-auto object-contain" />
+                  <span className="font-semibold text-white">Premium</span>
+                </span>
+              </div>
             </div>
 
             <div className="bg-white/10 backdrop-blur-md rounded-2xl p-5 min-w-[260px]">
@@ -219,7 +223,7 @@ export default function AashanshPremiumSellerDashboard() {
               'Seller purchases Premium Plan via Razorpay.',
               'Bulk Purchase button becomes visible on product pages.',
               'Business buyers submit bulk inquiries with quantity requirements.',
-              'Seller, buyer, and Aashansh coordinate pricing & fulfillment.',
+              'Seller, buyer, and platform team coordinate pricing & fulfillment.',
             ].map((step, index) => (
               <div key={index} className="bg-slate-800/90 rounded-2xl p-5 border border-slate-600">
                 <div className="w-10 h-10 rounded-full bg-amber-400 text-slate-900 flex items-center justify-center font-bold mb-4">

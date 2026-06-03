@@ -179,7 +179,7 @@ const SellerAnalytics = () => {
   // Loading state – full screen spinner only on first load
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5">
+      <div className="flex items-center justify-center min-h-[40vh] py-16 animate-fade-in">
         <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -188,16 +188,15 @@ const SellerAnalytics = () => {
   // Error / empty data state
   if (!data) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5">
-        <p className="text-text-muted">Unable to load analytics – please try again later.</p>
+      <div className="flex items-center justify-center min-h-[40vh] py-16 animate-fade-in">
+        <p className="text-text-muted text-center px-4">Unable to load analytics – please try again later.</p>
       </div>
     );
   }
 
   // Main dashboard UI – premium glass‑morphism + subtle animation
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 p-4 md:p-8 animate-fade-in">
-      <div className="max-w-7xl mx-auto space-y-10">
+    <div className="w-full max-w-7xl mx-auto space-y-8 sm:space-y-10 p-0 sm:p-2 animate-fade-in">
         {/* Header with Logo */}
         <div className="flex flex-col gap-6">
           <div className="text-center flex flex-col items-center gap-2">
@@ -229,7 +228,7 @@ const SellerAnalytics = () => {
               <select
                 value={rangePreset}
                 onChange={(e) => setRangePreset(e.target.value)}
-                className="px-4 py-2 rounded-xl bg-white/10 text-white border border-glass-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full sm:w-auto min-w-0 px-4 py-2 rounded-xl bg-white/10 text-white border border-glass-border focus:outline-none focus:ring-2 focus:ring-primary/50"
               >
                 {PRESETS.map((p) => (
                   <option key={p.value} value={p.value} className="text-black">
@@ -251,18 +250,18 @@ const SellerAnalytics = () => {
                     type="date"
                     value={customFrom}
                     onChange={(e) => setCustomFrom(e.target.value)}
-                    className="px-4 py-2 rounded-xl bg-white/10 text-white border border-glass-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className="w-full sm:w-auto min-w-0 px-4 py-2 rounded-xl bg-white/10 text-white border border-glass-border focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                   <span className="text-white/70 hidden sm:block">to</span>
                   <input
                     type="date"
                     value={customTo}
                     onChange={(e) => setCustomTo(e.target.value)}
-                    className="px-4 py-2 rounded-xl bg-white/10 text-white border border-glass-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className="w-full sm:w-auto min-w-0 px-4 py-2 rounded-xl bg-white/10 text-white border border-glass-border focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                   <button
                     onClick={onApplyCustom}
-                    className="px-4 py-2 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 transition-colors"
+                    className="w-full sm:w-auto px-4 py-2 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 transition-colors"
                   >
                     Apply
                   </button>
@@ -688,7 +687,6 @@ const SellerAnalytics = () => {
             </div>
           </div>
         </div>
-      </div>
 
       <AnalyticsViewAllModal
         open={Boolean(viewAllModal?.open)}

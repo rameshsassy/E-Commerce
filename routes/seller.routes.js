@@ -19,6 +19,7 @@ import {
   verifySubscriptionPayment,
   upgradeSellerToPremiumManual,
   getReferAndEarn,
+  sendReferralInvite,
   getAboutUs,
   getRecentActivity,
 } from "../controllers/seller.controller.js";
@@ -59,6 +60,7 @@ router.get("/dashboard", protect, authorizeRoles("seller"), getDashboard);
 router.get("/recent-activity", protect, authorizeRoles("seller"), getRecentActivity);
 router.get("/analytics", protect, authorizeRoles("seller"), getAnalytics);
 router.get("/refer-and-earn", protect, authorizeRoles("seller"), getReferAndEarn);
+router.post("/refer-and-earn/invite", protect, authorizeRoles("seller"), sendReferralInvite);
 router.get("/about-us", protect, authorizeRoles("seller"), getAboutUs);
 router.get("/bulk-inquiries", protect, authorizeRoles("seller"), listSellerBulkInquiries);
 router.get("/bulk-inquiries/:id", protect, authorizeRoles("seller"), getSellerBulkInquiryDetail);

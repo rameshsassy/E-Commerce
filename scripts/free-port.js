@@ -47,6 +47,22 @@ function processLabel(pid) {
   }
 }
 
+function parentPid(pid) {
+  try {
+    const out = execSync(`ps -p ${pid} -o ppid=`, { encoding: "utf8" }).trim();
+    return out ? Number(out) : null;
+  } catch {
+    return null;
+  }
+}
+
+function isNodemonProcess(pid) {
+  if (!pid) return false;
+  const args = processArgs(pid);
+  const label = processLabel(pid);
+  return label === "nodemon" || /\bnodemon(\s|$)/.test(args);
+}
+
 const pids = listPidsOnPort();
 if (!pids.length) {
   process.exit(0);
@@ -70,6 +86,11 @@ for (const pid of pids) {
   }
   console.log(`[dev] Stopping stale server on port ${port} (pid ${pid})`);
   try {
+    const ppid = parentPid(pid);
+    if (isNodemonProcess(ppid)) {
+      console.log(`[dev] Also stopping parent nodemon (pid ${ppid})`);
+      process.kill(Number(ppid), "SIGTERM");
+    }
     process.kill(Number(pid), "SIGTERM");
   } catch (err) {
     if (err.code !== "ESRCH") throw err;

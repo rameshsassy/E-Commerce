@@ -1,5 +1,12 @@
 import Category from "../models/Category.js";
 
+const buildSlug = (value = "") =>
+  value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
+
 // ===============================
 // 📋 GET ALL CATEGORIES
 // ===============================
@@ -33,13 +40,26 @@ export const getCategory = async (req, res) => {
 export const createCategory = async (req, res) => {
   try {
     const { name, description, image, icon, parentCategory, commissionRate, isActive, isFeatured } = req.body;
-    
-    // Generate slug from name
-    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+
+    if (!name || !String(name).trim()) {
+      return res.status(400).json({ message: "Category name is required" });
+    }
+
+    const slug = buildSlug(name);
+    if (!slug) {
+      return res.status(400).json({ message: "Category name is invalid" });
+    }
 
     const categoryExists = await Category.findOne({ slug });
     if (categoryExists) {
       return res.status(400).json({ message: "Category with this name already exists" });
+    }
+
+    if (parentCategory) {
+      const parentExists = await Category.exists({ _id: parentCategory });
+      if (!parentExists) {
+        return res.status(400).json({ message: "Selected parent category does not exist" });
+      }
     }
 
     const category = new Category({
@@ -67,21 +87,43 @@ export const createCategory = async (req, res) => {
 export const updateCategory = async (req, res) => {
   try {
     const { name, description, image, icon, parentCategory, commissionRate, isActive, isFeatured } = req.body;
-    
+
     const category = await Category.findById(req.params.id);
     if (!category) {
       return res.status(404).json({ message: "Category not found" });
     }
 
     if (name) {
+      const nextSlug = buildSlug(name);
+      if (!nextSlug) {
+        return res.status(400).json({ message: "Category name is invalid" });
+      }
+      const duplicate = await Category.findOne({
+        slug: nextSlug,
+        _id: { $ne: category._id },
+      });
+      if (duplicate) {
+        return res.status(400).json({ message: "Category with this name already exists" });
+      }
       category.name = name;
-      category.slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+      category.slug = nextSlug;
     }
-    
+
     if (description !== undefined) category.description = description;
     if (image !== undefined) category.image = image;
     if (icon !== undefined) category.icon = icon;
-    if (parentCategory !== undefined) category.parentCategory = parentCategory || null;
+    if (parentCategory !== undefined) {
+      if (parentCategory && String(parentCategory) === String(category._id)) {
+        return res.status(400).json({ message: "A category cannot be its own parent" });
+      }
+      if (parentCategory) {
+        const parentExists = await Category.exists({ _id: parentCategory });
+        if (!parentExists) {
+          return res.status(400).json({ message: "Selected parent category does not exist" });
+        }
+      }
+      category.parentCategory = parentCategory || null;
+    }
     if (commissionRate !== undefined) category.commissionRate = commissionRate;
     if (isActive !== undefined) category.isActive = isActive;
     if (isFeatured !== undefined) category.isFeatured = isFeatured;

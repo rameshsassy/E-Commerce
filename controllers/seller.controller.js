@@ -10,7 +10,10 @@ import ProductViewEvent from "../models/ProductViewEvent.js";
 import Review from "../models/Review.js";
 import crypto from "crypto";
 import Razorpay from "razorpay";
-import { sendPremiumUpgradeEmail } from "../services/email.service.js";
+import {
+  sendPremiumUpgradeEmail,
+  sendSellerReferralInviteEmail,
+} from "../services/email.service.js";
 import { absoluteToWebPath } from "../utils/uploadPaths.js";
 import {
   getPurchaseTypeOptionsForSeller,
@@ -30,12 +33,16 @@ import {
 } from "../utils/sellerPlatformFee.js";
 import {
   SELLER_REFER_PROGRAM,
+  SELLER_REFER_PLAN_ROWS,
   SELLER_ABOUT_US,
 } from "../utils/sellerHubContent.js";
 import {
   ensureSellerReferralCode,
+  getReferralStatsForSeller,
+  sellerPortalBaseUrl,
   sellerRegisterUrl,
 } from "../utils/sellerReferral.js";
+import { capListLimit } from "../utils/clientDevice.js";
 import {
   getRecentSellerActivities,
   logKycActivity,
@@ -1840,22 +1847,120 @@ export const getReferAndEarn = async (req, res) => {
     }
 
     const referralCode = await ensureSellerReferralCode(user);
-    const frontendBase =
-      process.env.FRONTEND_URL?.split(",")[0]?.trim() || "http://localhost:5173";
+    const frontendBase = sellerPortalBaseUrl();
+    const deviceType = req.clientDevice || "desktop";
+    const referredLimit = capListLimit(deviceType, req.query?.referredLimit, {
+      mobile: 15,
+      tablet: 30,
+      desktop: 100,
+    });
+    const stats = await getReferralStatsForSeller(user._id, user, {
+      limit: referredLimit,
+    });
+    const isPremium =
+      user.sellerType === "premium" && user.subscriptionActive === true;
+    const senderName =
+      user.businessName?.trim() ||
+      [user.firstName, user.lastName].filter(Boolean).join(" ").trim() ||
+      "Seller";
 
     res.status(200).json({
       message: "Refer and earn fetched successfully",
       data: {
         program: SELLER_REFER_PROGRAM,
+        planRows: SELLER_REFER_PLAN_ROWS,
         referralCode,
         referralLink: sellerRegisterUrl(frontendBase, referralCode),
-        stats: {
-          referralSignups: user.referralSignups ?? 0,
+        currentPlan: isPremium ? "Premium" : "Free",
+        senderName,
+        stats,
+        meta: {
+          clientDevice: deviceType,
+          referredLimit,
         },
       },
     });
   } catch (error) {
+    console.error("[seller] getReferAndEarn:", error?.message || error);
     res.status(500).json({ message: "Failed to load refer and earn" });
+  }
+};
+
+export const sendReferralInvite = async (req, res) => {
+  try {
+    const {
+      inviteeEmail,
+      inviteeFirstName,
+      inviteeLastName,
+      inviteeVenture,
+      inviteeType,
+      inviteeContact,
+      inviteeDesignation,
+    } = req.body || {};
+
+    const email = typeof inviteeEmail === "string" ? inviteeEmail.trim() : "";
+    const firstName =
+      typeof inviteeFirstName === "string" ? inviteeFirstName.trim() : "";
+    const lastName =
+      typeof inviteeLastName === "string" ? inviteeLastName.trim() : "";
+    const venture =
+      typeof inviteeVenture === "string" && inviteeVenture.trim()
+        ? inviteeVenture.trim()
+        : "your business";
+    const inviteeTypeNorm =
+      typeof inviteeType === "string" && inviteeType.trim()
+        ? inviteeType.trim()
+        : null;
+    const contact =
+      typeof inviteeContact === "string" ? inviteeContact.trim() : "";
+    const designation =
+      typeof inviteeDesignation === "string" ? inviteeDesignation.trim() : "";
+
+    if (!email || !firstName) {
+      return res.status(400).json({
+        message: "Invitee email and first name are required",
+      });
+    }
+
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    if (!emailOk) {
+      return res.status(400).json({ message: "Invalid invitee email address" });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user || user.role !== "seller") {
+      return res.status(404).json({ message: "Seller not found" });
+    }
+
+    const referralCode = await ensureSellerReferralCode(user);
+    const referralLink = sellerRegisterUrl(sellerPortalBaseUrl(), referralCode);
+    const senderName =
+      user.businessName?.trim() ||
+      [user.firstName, user.lastName].filter(Boolean).join(" ").trim() ||
+      "Aashansh Seller";
+
+    await sendSellerReferralInviteEmail({
+      to: email,
+      inviteeFirstName: firstName,
+      inviteeLastName: lastName,
+      inviteeVenture: venture,
+      inviteeType: inviteeTypeNorm,
+      inviteeContact: contact,
+      inviteeDesignation: designation,
+      senderName,
+      referralLink,
+      referrerId: user._id,
+    });
+
+    res.status(200).json({
+      message: "Invitation email sent successfully",
+      data: { inviteeEmail: email },
+    });
+  } catch (error) {
+    console.error("[seller] sendReferralInvite:", error?.message || error);
+    res.status(500).json({
+      message: error.message || "Failed to send invitation email",
+    });
   }
 };
 

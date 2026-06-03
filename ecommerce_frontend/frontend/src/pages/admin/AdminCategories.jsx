@@ -8,6 +8,7 @@ import FormAutosaveStatus from '../../components/common/FormAutosaveStatus';
 const AdminCategories = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   
   // Form State
   const [showForm, setShowForm] = useState(false);
@@ -53,21 +54,28 @@ const AdminCategories = () => {
     }));
   };
 
+  const resetFormState = () => {
+    setShowForm(false);
+    setEditingId(null);
+    setFormData({ name: '', description: '', icon: '', commissionRate: 5, isActive: true, isFeatured: false, parentCategory: '' });
+    clearCategoryDraft();
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      setSaving(true);
       if (editingId) {
         await api.put(`/categories/${editingId}`, formData);
       } else {
         await api.post('/categories', formData);
       }
-      setShowForm(false);
-      setEditingId(null);
-      setFormData({ name: '', description: '', icon: '', commissionRate: 5, isActive: true, isFeatured: false, parentCategory: '' });
-      await clearCategoryDraft();
+      resetFormState();
       fetchCategories();
     } catch (err) {
       alert(err.response?.data?.message || 'Error saving category');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -119,7 +127,12 @@ const AdminCategories = () => {
               <h2 className="text-xl font-bold">{editingId ? 'Edit Category' : 'Create New Category'}</h2>
               <FormAutosaveStatus status={categoryAutosaveStatus} message={categoryAutosaveMessage} />
             </div>
-            <button onClick={() => { setShowForm(false); setEditingId(null); }} className="p-2 hover:bg-surface rounded-full transition-colors"><X size={20}/></button>
+            <button
+              onClick={resetFormState}
+              className="p-2 hover:bg-surface rounded-full transition-colors"
+            >
+              <X size={20}/>
+            </button>
           </div>
           
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -142,6 +155,18 @@ const AdminCategories = () => {
                   <option key={cat._id} value={cat._id}>{cat.name}</option>
                 ))}
               </select>
+            </div>
+
+            <div>
+              <label className="block text-sm mb-1 font-medium">Icon (Optional)</label>
+              <input
+                type="text"
+                name="icon"
+                className="input-field w-full"
+                value={formData.icon}
+                onChange={handleInputChange}
+                placeholder="e.g. tag, laptop, tshirt"
+              />
             </div>
 
             <div className="md:col-span-2">
@@ -168,8 +193,16 @@ const AdminCategories = () => {
             </div>
 
             <div className="md:col-span-2 flex justify-end gap-3 mt-4 pt-4 border-t border-glass-border">
-              <button type="button" onClick={() => { setShowForm(false); setEditingId(null); }} className="btn bg-surface hover:bg-surface-hover border border-glass-border text-text">Cancel</button>
-              <button type="submit" className="btn btn-primary flex items-center gap-2"><Save size={18}/> {editingId ? 'Update Category' : 'Save Category'}</button>
+              <button
+                type="button"
+                onClick={resetFormState}
+                className="btn bg-surface hover:bg-surface-hover border border-glass-border text-text"
+              >
+                Cancel
+              </button>
+              <button type="submit" disabled={saving} className="btn btn-primary flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
+                <Save size={18}/> {saving ? 'Saving...' : (editingId ? 'Update Category' : 'Save Category')}
+              </button>
             </div>
           </form>
         </div>

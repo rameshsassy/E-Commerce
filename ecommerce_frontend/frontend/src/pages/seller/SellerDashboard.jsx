@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import api from '../../utils/api';
-import { Package, TrendingUp, DollarSign } from 'lucide-react';
+import { Package, TrendingUp, DollarSign, Gift, ArrowRight } from 'lucide-react';
 import BulkInquiriesPanel from '../../components/bulk/BulkInquiriesPanel';
 import SellerRecentActivity from '../../components/seller/SellerRecentActivity';
 import LoadErrorMessage from '../../components/common/LoadErrorMessage';
@@ -77,14 +77,14 @@ const SellerDashboard = () => {
   }, [loading]);
 
   return (
-    <div className="animate-fade-in">
-      <div className="bg-white border border-[#E1E3E5] rounded-2xl shadow-sm px-6 py-4 mb-8 flex items-center justify-between gap-4">
-        <div className="text-[18px] md:text-[22px] font-semibold text-[#202223] truncate">
+    <div className="animate-fade-in w-full">
+      <div className="bg-white border border-[#E1E3E5] rounded-2xl shadow-sm px-4 sm:px-6 py-4 mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+        <div className="text-lg sm:text-[22px] font-semibold text-[#202223] truncate">
           {greeting} {sellerName}
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="text-[16px] md:text-[20px] font-medium text-[#202223]">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
+          <div className="text-sm sm:text-[20px] font-medium text-[#202223]">
             Plan: {planLabel}
           </div>
           {isFree && (
@@ -97,6 +97,28 @@ const SellerDashboard = () => {
             </button>
           )}
         </div>
+      </div>
+
+      <div className="glass-panel p-6 mb-8 rounded-2xl border border-[#ff7a1f]/25 bg-gradient-to-r from-[#ff7a1f]/10 to-transparent flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-start gap-4">
+          <div className="h-12 w-12 rounded-xl bg-[#ff7a1f]/20 text-[#ff7a1f] flex items-center justify-center shrink-0">
+            <Gift size={24} />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold mb-1">Refer and Earn</h2>
+            <p className="text-sm text-text-muted max-w-md">
+              Invite fellow sellers to Aashansh and earn platform credits when they get approved.
+              {isFree ? ' Premium sellers earn higher rewards.' : ''}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => navigate('/seller/refer-and-earn')}
+          className="btn h-11 px-6 rounded-xl bg-[#ff7a1f] hover:bg-[#e66d1a] text-white font-bold text-sm border-0 flex items-center gap-2 shrink-0"
+        >
+          Open Referral Hub <ArrowRight size={16} />
+        </button>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

@@ -1,17 +1,16 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { CheckCircle, BadgeCheck, BarChart2 } from 'lucide-react';
+import { CheckCircle, BadgeCheck, BarChart2, Gift, ArrowRight } from 'lucide-react';
 
 const SellerPremium = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 p-8 animate-fade-in">
-      <div className="max-w-4xl mx-auto space-y-8">
+    <div className="animate-fade-in w-full max-w-4xl mx-auto space-y-6 sm:space-y-8 p-0 sm:p-2">
         {/* Header */}
-        <div className="text-center">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-white drop-shadow-lg mb-2">
+        <div className="text-center px-1">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold text-white drop-shadow-lg mb-2">
             Become a Premium Seller
           </h1>
-          <p className="text-lg text-gray-200">
+          <p className="text-base sm:text-lg text-gray-200">
             Unlock powerful tools to grow your business and reach B2B buyers.
           </p>
         </div>
@@ -25,8 +24,8 @@ const SellerPremium = () => {
         </div>
 
         {/* Features */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="glass-panel p-6 rounded-2xl flex flex-col gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+          <div className="glass-panel seller-panel rounded-2xl flex flex-col gap-3">
             <h2 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
               <CheckCircle className="text-primary" size={20} /> Features
             </h2>
@@ -56,7 +55,7 @@ const SellerPremium = () => {
           </div>
 
           {/* Demo Analytics */}
-          <div className="glass-panel p-6 rounded-2xl flex flex-col gap-3">
+          <div className="glass-panel seller-panel rounded-2xl flex flex-col gap-3">
             <h2 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
               <BarChart2 className="text-primary" size={20} /> Demo Analytics
             </h2>
@@ -73,7 +72,7 @@ const SellerPremium = () => {
         {/* Pricing */}
         <div className="text-center">
           <div className="inline-block bg-primary/10 text-primary px-4 py-2 rounded-xl mb-4">
-            <span className="text-3xl font-bold">₹9,125</span>
+            <span className="text-2xl sm:text-3xl font-bold">₹9,125</span>
             <span className="text-sm text-primary/70"> / year (+18% GST)</span>
           </div>
           <p className="text-text-muted mb-6">
@@ -93,7 +92,42 @@ const SellerPremium = () => {
             Apply Now
           </Link>
         </div>
-      </div>
+
+        {/* Refer and Earn */}
+        <div className="glass-panel seller-panel rounded-2xl border border-[#ff7a1f]/30 bg-gradient-to-br from-[#ff7a1f]/10 to-transparent">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+            <div className="flex flex-col sm:flex-row items-start gap-4 w-full">
+              <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-2xl bg-[#ff7a1f]/20 text-[#ff7a1f] flex items-center justify-center shrink-0">
+                <Gift size={24} className="sm:hidden" />
+                <Gift size={28} className="hidden sm:block" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">Refer and Earn More</h2>
+                <p className="text-text-muted max-w-xl">
+                  Premium sellers earn ₹750 per approved referral plus ₹1,500 when their referral upgrades.
+                  Share your link or send branded email invites from your referral hub.
+                </p>
+                <ul className="mt-4 space-y-2 text-sm text-text-muted">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="text-success shrink-0" size={16} /> Unlimited seller invitations
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="text-success shrink-0" size={16} /> WhatsApp, Twitter &amp; email sharing
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="text-success shrink-0" size={16} /> Full referral stats dashboard
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <Link
+              to="/seller/refer-and-earn"
+              className="btn w-full sm:w-auto h-12 px-6 sm:px-8 rounded-xl bg-[#ff7a1f] hover:bg-[#e66d1a] text-white font-bold border-0 flex items-center justify-center gap-2 shrink-0"
+            >
+              Go to Referral Hub <ArrowRight size={18} />
+            </Link>
+          </div>
+        </div>
     </div>
   );
 };

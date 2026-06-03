@@ -180,7 +180,9 @@ const DashboardLayout = ({ variant }) => {
         className={[
           'fixed lg:static inset-y-0 left-0 z-50',
           'w-[min(18rem,88vw)] lg:w-64',
-          'glass-panel flex flex-col',
+          'glass-panel flex flex-col min-h-0',
+          'h-screen lg:h-[calc(100vh-2rem)]',
+          'lg:sticky lg:top-4',
           'm-0 lg:m-4',
           'transition-transform duration-300 ease-out',
           'max-lg:top-0 max-lg:bottom-0 max-lg:rounded-none max-lg:border-y-0',
@@ -201,7 +203,7 @@ const DashboardLayout = ({ variant }) => {
           </button>
         </div>
 
-        <nav className="flex-1 p-3 sm:p-4 flex flex-col gap-2.5 overflow-y-auto overscroll-contain">
+        <nav className="flex-1 min-h-0 p-3 sm:p-4 flex flex-col gap-2.5 overflow-y-auto overscroll-contain">
           {isAdmin && (
             <div className="flex flex-col gap-2.5">
               {showAdminLink('dashboard') && (
@@ -386,7 +388,7 @@ const DashboardLayout = ({ variant }) => {
         </div>
       </aside>
 
-      <main className="flex-1 w-full min-w-0 p-4 sm:p-6 lg:p-8 overflow-y-auto overflow-x-hidden">
+      <main className="flex-1 w-full min-w-0 p-3 sm:p-6 lg:p-8 overflow-y-auto overflow-x-hidden safe-area-bottom">
         <Outlet />
       </main>
     </div>

@@ -12,6 +12,7 @@ import cartReminder from "../templates/customer/cartReminder.js";
 import newProductEmail from "../templates/customer/newProductEmail.js";
 import festivalEmail from "../templates/customer/festivalEmail.js";
 import sellerWelcome from "../templates/seller/sellerWelcome.js";
+import sellerReferralInvite from "../templates/seller/sellerReferralInvite.js";
 import newOrderSeller from "../templates/seller/newOrderSeller.js";
 import weeklyReport from "../templates/seller/weeklyReport.js";
 import monthlyInsights from "../templates/seller/monthlyInsights.js";
@@ -54,7 +55,7 @@ export const sendSellerWelcomeEmail = async (user) => {
   const result = await dispatchEmail({
     templateType: "seller_welcome",
     to,
-    subject: "Welcome to Seller Platform — your Aashansh store is ready",
+    subject: "Welcome to Aashansh — your seller account is ready",
     html,
     senderType: "seller",
     meta: { userId: user._id },
@@ -62,6 +63,55 @@ export const sendSellerWelcomeEmail = async (user) => {
   if (result?.skipped) return result;
   if (!result?.ok) {
     throw new Error(result?.error || "Seller welcome email failed to send");
+  }
+  return result;
+};
+
+export const sendSellerReferralInviteEmail = async ({
+  to,
+  inviteeFirstName,
+  inviteeLastName,
+  inviteeVenture,
+  inviteeType,
+  inviteeContact,
+  inviteeDesignation,
+  senderName,
+  referralLink,
+  referrerId,
+}) => {
+  const email = to != null ? String(to).trim() : "";
+  if (!email) {
+    return { ok: false, skipped: true };
+  }
+
+  const logoUrl = `${base()}/brand/aashansh-logo.png`;
+  const html = sellerReferralInvite({
+    inviteeFirstName,
+    inviteeVenture,
+    senderName,
+    referralLink,
+    logoUrl,
+  });
+
+  const result = await dispatchEmail({
+    templateType: "seller_referral_invite",
+    to: email,
+    subject: `${senderName || "A seller"} invited you to sell on Aashansh`,
+    html,
+    senderType: "seller",
+    meta: {
+      referrerId,
+      inviteeVenture,
+      inviteeType: inviteeType || null,
+      inviteeContact: inviteeContact || null,
+      inviteeDesignation: inviteeDesignation || null,
+      inviteeLastName: inviteeLastName || null,
+    },
+  });
+
+  if (result?.skipped) return result;
+  if (!result?.ok) {
+    throw new Error(result?.error || "Referral invitation email failed to send");
   }
   return result;
 };
