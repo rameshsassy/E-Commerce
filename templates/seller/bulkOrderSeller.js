@@ -1,5 +1,3 @@
-import { formatShippingAddress } from "../_helpers.js";
-
 const escapeHtml = (str) =>
   String(str || "")
     .replace(/&/g, "&amp;")
@@ -23,28 +21,56 @@ function featureCard(iconUrl, title, description) {
 }
 
 /**
- * Premium "New Order Alert" email for sellers.
- * Matches the Aashansh brand design with yellow banner, product breakdown,
- * CTA button, and "Why Aashansh" feature section.
+ * Premium "Bulk Order Alert" email for sellers.
+ * Sent when a customer submits a bulk purchase inquiry on a seller's product.
+ *
+ * @param {object} seller       - seller user document (firstName, email)
+ * @param {object} payload      - bulk inquiry data
+ * @param {string} payload.productTitle
+ * @param {string} payload.quantityRequired - raw quantity string (may contain variants separated by commas/newlines)
+ * @param {string} payload.buyerName
+ * @param {string} payload.buyerEmail
+ * @param {string} payload.buyerPhone
+ * @param {string} payload.message
+ * @param {string} payload.inquiryId
+ * @param {string} payload.productUrl
  */
-export default function newOrderSeller(seller, customerName, customerPhone, address, order, items) {
+export default function bulkOrderSeller(seller, payload) {
   const firstName = escapeHtml(seller.firstName || "there");
   const dashboardUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/seller/dashboard`;
 
-  // Build the ordered product list rows
-  const productRows = (items || [])
-    .map((item, idx) => {
-      const title = escapeHtml(item.title || "Product");
-      const qty = Number(item.quantity) || 1;
-      const price = item.price != null ? Number(item.price) : null;
-      const amount = price != null ? `Amount: ₹ ${(price * qty).toLocaleString("en-IN")}/-` : "";
-      return `<tr>
+  // Parse the quantity string into individual product/variant lines
+  // The quantityRequired field can be "250" or "250, 500" or multi-line
+  const rawQty = String(payload.quantityRequired || "").trim();
+  const qtyParts = rawQty
+    .split(/[\n,;|]+/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  const productTitle = escapeHtml(payload.productTitle || "Product");
+
+  // Build product list rows — each variant gets its own row
+  let productRows = "";
+  if (qtyParts.length <= 1) {
+    // Single quantity
+    const qty = qtyParts[0] || rawQty || "—";
+    productRows = `<tr>
+      <td style="padding: 4px 0; font-size: 14px; color: #333; line-height: 1.6;">
+        1. ${productTitle} | Quantity Requested: ${escapeHtml(qty)}
+      </td>
+    </tr>`;
+  } else {
+    // Multiple variant quantities
+    productRows = qtyParts
+      .map((part, idx) => {
+        return `<tr>
         <td style="padding: 4px 0; font-size: 14px; color: #333; line-height: 1.6;">
-          ${idx + 1}. ${title} | Quantity: ${qty} | ${amount}
+          ${idx + 1}. ${productTitle} | Quantity Requested: ${escapeHtml(part)}
         </td>
       </tr>`;
-    })
-    .join("");
+      })
+      .join("");
+  }
 
   // "Why Aashansh" feature cards matching the design
   const features = [
@@ -104,7 +130,7 @@ export default function newOrderSeller(seller, customerName, customerPhone, addr
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>New Order Alert - Aashansh</title>
+  <title>Bulk Order Alert - Aashansh</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #F6F6F6; font-family: Arial, Helvetica, sans-serif;">
 <center>
@@ -126,7 +152,7 @@ export default function newOrderSeller(seller, customerName, customerPhone, addr
               <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #FFD600; border-radius: 8px;">
                 <tr>
                   <td align="center" style="padding: 14px 20px;">
-                    <div style="font-size: 16px; font-weight: bold; color: #333;">Congratulation! You have a New Order</div>
+                    <div style="font-size: 16px; font-weight: bold; color: #333;">Congratulation! You have a New Bulk Order Request</div>
                   </td>
                 </tr>
               </table>
@@ -136,8 +162,8 @@ export default function newOrderSeller(seller, customerName, customerPhone, addr
           <!-- ===== BODY COPY ===== -->
           <tr>
             <td style="padding: 25px 30px 0; color: #333; line-height: 1.7; font-size: 14px;">
-              <p style="margin: 0 0 15px;">Congratulations ${firstName}! your new order just came in on Aashansh!</p>
-              <p style="margin: 0 0 15px;">We're incredibly excited to see your products finding happy customers.</p>
+              <p style="margin: 0 0 15px;">Congratulations ${firstName}! you have a new bulk order enquiry on Aashansh!</p>
+              <p style="margin: 0 0 15px;">We're incredibly excited to see your products finding happy B2B customers.</p>
               <p style="margin: 0 0 10px; font-weight: bold;">Here's what was purchased:</p>
             </td>
           </tr>

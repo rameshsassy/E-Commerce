@@ -265,7 +265,7 @@ export const verifyRazorpayPayment = async (req, res) => {
               // We can get titles from order.items
               const detailedItems = itemsForSeller.map(isf => {
                 const orderItem = order.items.find(oi => oi.product.toString() === isf.product.toString());
-                return { ...isf, title: orderItem?.title || 'Product' };
+                return { ...isf, title: orderItem?.title || 'Product', price: orderItem?.price || 0 };
               });
               sendSellerNewOrderEmail(seller, customerName, customerPhone, order.shippingAddress, order, detailedItems).catch(console.error);
             }

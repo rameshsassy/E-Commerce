@@ -20,25 +20,25 @@ export const SELLER_REFER_PROGRAM = {
     },
   ],
   rewards: [
-    "₹500 platform credit per approved seller referral",
-    "Bonus credits when your referral upgrades to Premium",
+    "₹500 platform credit per approved seller referral (Non-refundable)",
+    "Bonus credits when your referral upgrades to Premium (Non-refundable)",
     "No limit on how many sellers you can refer",
   ],
   termsNote:
-    "Rewards are credited after the referred seller completes KYC approval. Aashansh may update reward amounts with notice on this page.",
+    "Rewards are credited after the referred seller completes KYC approval. Aashansh may update reward amounts with notice on this page. All referral credits are non-refundable and non-transferable.",
 };
 
 /** Plan comparison for referrers — Free vs Premium seller accounts */
 export const SELLER_REFER_PLAN_ROWS = [
   {
     label: "Reward per approved seller",
-    free: "₹500 platform credit",
-    premium: "₹750 platform credit",
+    free: "₹500 platform credit (Non-refundable)",
+    premium: "₹750 platform credit (Non-refundable)",
   },
   {
     label: "Premium upgrade bonus",
-    free: "₹500 bonus",
-    premium: "₹1,500 bonus",
+    free: "₹500 bonus (Non-refundable)",
+    premium: "₹1,500 bonus (Non-refundable)",
   },
   {
     label: "Seller invitations",

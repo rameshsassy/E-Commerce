@@ -17,6 +17,9 @@ import newOrderSeller from "../templates/seller/newOrderSeller.js";
 import weeklyReport from "../templates/seller/weeklyReport.js";
 import monthlyInsights from "../templates/seller/monthlyInsights.js";
 import premiumUpgrade from "../templates/seller/premiumUpgrade.js";
+import bulkOrderSeller from "../templates/seller/bulkOrderSeller.js";
+import kycApprovalSeller from "../templates/seller/kycApprovalSeller.js";
+import kycRejectionSeller from "../templates/seller/kycRejectionSeller.js";
 import passwordReset from "../templates/customer/passwordReset.js";
 
 
@@ -55,7 +58,7 @@ export const sendSellerWelcomeEmail = async (user) => {
   const result = await dispatchEmail({
     templateType: "seller_welcome",
     to,
-    subject: "Welcome to Aashansh — your seller account is ready",
+    subject: "Welcome to Aashansh - Your Seller Journey Starts Here",
     html,
     senderType: "seller",
     meta: { userId: user._id },
@@ -63,6 +66,50 @@ export const sendSellerWelcomeEmail = async (user) => {
   if (result?.skipped) return result;
   if (!result?.ok) {
     throw new Error(result?.error || "Seller welcome email failed to send");
+  }
+  return result;
+};
+
+export const sendKycApprovalEmail = async (user) => {
+  const to = user?.email != null ? String(user.email).trim() : "";
+  if (!to) {
+    console.warn("[emailService] sendKycApprovalEmail: missing email for user", user?._id);
+    return { ok: false, skipped: true };
+  }
+  const html = kycApprovalSeller(user.firstName || "there", `${base()}/seller/dashboard`);
+  const result = await dispatchEmail({
+    templateType: "seller_kyc_approval",
+    to,
+    subject: "Congratulations! KYC Approved — You're All Set to Sell on Aashansh!",
+    html,
+    senderType: "seller",
+    meta: { userId: user._id },
+  });
+  if (result?.skipped) return result;
+  if (!result?.ok) {
+    throw new Error(result?.error || "KYC approval email failed to send");
+  }
+  return result;
+};
+
+export const sendKycRejectionEmail = async (user) => {
+  const to = user?.email != null ? String(user.email).trim() : "";
+  if (!to) {
+    console.warn("[emailService] sendKycRejectionEmail: missing email for user", user?._id);
+    return { ok: false, skipped: true };
+  }
+  const html = kycRejectionSeller(user.firstName || "there", `${base()}/seller/dashboard`);
+  const result = await dispatchEmail({
+    templateType: "seller_kyc_rejection",
+    to,
+    subject: "KYC Not Approved Yet — Here's What to Do Next",
+    html,
+    senderType: "seller",
+    meta: { userId: user._id },
+  });
+  if (result?.skipped) return result;
+  if (!result?.ok) {
+    throw new Error(result?.error || "KYC rejection email failed to send");
   }
   return result;
 };
@@ -203,7 +250,7 @@ export const sendSellerNewOrderEmail = async (seller, customerName, customerPhon
   await dispatchEmail({
     templateType: "seller_new_order",
     to: seller.email,
-    subject: `New Order Alert: #${order._id.toString().slice(-8)}`,
+    subject: `New Order Alert! You've Got a New Order on Aashansh!`,
     html,
     senderType: "order",
     meta: { orderId: order._id, sellerId: seller._id },
@@ -239,7 +286,7 @@ export const sendWeeklySellerReport = async (seller, summary) => {
   await dispatchEmail({
     templateType: "seller_weekly_report",
     to: seller.email,
-    subject: "Your weekly seller performance — Aashansh",
+    subject: "Weekly Aashansh Recap: Orders, Bulk Deals & Referral Wins!",
     html,
     senderType: "seller",
     meta: { sellerId: seller._id },
@@ -320,25 +367,11 @@ const adminBulkNotifyEmail = () =>
 
 export const sendBulkInquirySellerEmail = async (seller, payload) => {
   if (!seller.email) return;
-  const html = `
-    <h2>New bulk order inquiry</h2>
-    <p>Hi ${seller.firstName || "there"},</p>
-    <p>A buyer submitted a <b>bulk purchase request</b> for one of your products.</p>
-    <ul>
-      <li><b>Product:</b> ${payload.productTitle}</li>
-      <li><b>Buyer name:</b> ${payload.buyerName}</li>
-      <li><b>Email:</b> ${payload.buyerEmail}</li>
-      <li><b>Phone:</b> ${payload.buyerPhone}</li>
-      <li><b>Quantity required:</b> ${payload.quantityRequired}</li>
-      ${payload.message ? `<li><b>Message:</b> ${escapeBulkHtml(payload.message)}</li>` : ""}
-    </ul>
-    <p><a href="${payload.productUrl}">View product page</a></p>
-    <p><b>Inquiry ID:</b> ${payload.inquiryId}</p>
-  `;
+  const html = bulkOrderSeller(seller, payload);
   await dispatchEmail({
     templateType: "seller_bulk_inquiry",
     to: seller.email,
-    subject: `Bulk inquiry: ${payload.productTitle}`,
+    subject: "Bulk Order Alert! You've Got a New Order on Aashansh!",
     html,
     senderType: "seller",
     meta: { inquiryId: payload.inquiryId },

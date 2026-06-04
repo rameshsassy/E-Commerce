@@ -6,8 +6,9 @@ import ReturnRequest from "../models/ReturnRequest.js";
 import Coupon from "../models/Coupon.js";
 import SupportTicket from "../models/SupportTicket.js";
 import BulkInquiry from "../models/BulkInquiry.js";
-import { notifyCustomersNewProduct } from "../services/email.service.js";
+import { notifyCustomersNewProduct, sendKycApprovalEmail, sendKycRejectionEmail, sendWeeklySellerReport } from "../services/email.service.js";
 import { VALID_ADMIN_SECTIONS } from "../middleware/adminAccess.middleware.js";
+import { getWeeklySellerReportData } from "../cron/weeklyReports.js";
 
 // ===============================
 // 📋 GET ALL SELLERS
@@ -94,7 +95,13 @@ export const approveSeller = async (req, res) => {
     }
 
     seller.status = "approved";
+    seller.kycStatus = "approved";
     await seller.save();
+
+    // Send KYC approval email to seller
+    sendKycApprovalEmail(seller).catch((err) =>
+      console.error("[admin] KYC approval email failed:", err?.message || err)
+    );
 
     res.json({ message: "Seller approved successfully" });
   } catch (error) {
@@ -114,7 +121,13 @@ export const rejectSeller = async (req, res) => {
     }
 
     seller.status = "rejected";
+    seller.kycStatus = "rejected";
     await seller.save();
+
+    // Send KYC rejection email to seller
+    sendKycRejectionEmail(seller).catch((err) =>
+      console.error("[admin] KYC rejection email failed:", err?.message || err)
+    );
 
     res.json({ message: "Seller rejected successfully" });
   } catch (error) {
@@ -138,6 +151,11 @@ export const approveKYC = async (req, res) => {
 
     await seller.save();
 
+    // Send KYC approval email to seller
+    sendKycApprovalEmail(seller).catch((err) =>
+      console.error("[admin] KYC approval email failed:", err?.message || err)
+    );
+
     res.json({ message: "KYC approved successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -159,6 +177,11 @@ export const rejectKYC = async (req, res) => {
     seller.status = "rejected";
 
     await seller.save();
+
+    // Send KYC rejection email to seller
+    sendKycRejectionEmail(seller).catch((err) =>
+      console.error("[admin] KYC rejection email failed:", err?.message || err)
+    );
 
     res.json({ message: "KYC rejected successfully" });
   } catch (error) {
@@ -454,6 +477,26 @@ export const deleteAdminStaff = async (req, res) => {
       return res.status(404).json({ message: "Admin role not found" });
     }
     res.json({ message: "Admin role removed" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ===============================
+// 📧 SEND WEEKLY SELLER RECAP
+// ===============================
+export const sendWeeklyRecapAction = async (req, res) => {
+  try {
+    const seller = await User.findById(req.params.id);
+
+    if (!seller || seller.role !== "seller") {
+      return res.status(404).json({ message: "Seller not found" });
+    }
+
+    const stats = await getWeeklySellerReportData(seller);
+    await sendWeeklySellerReport(seller, stats);
+
+    res.json({ message: `Weekly recap recap successfully sent to ${seller.firstName || "seller"}!` });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

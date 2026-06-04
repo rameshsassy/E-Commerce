@@ -25,6 +25,7 @@ import {
   createAdminStaff,
   updateAdminStaff,
   deleteAdminStaff,
+  sendWeeklyRecapAction,
 } from "../controllers/admin.controller.js";
 import {
   listAdminBulkInquiries,
@@ -47,6 +48,7 @@ router.get("/sellers", protect, authorizeAdminRole, requireAdminSection("sellers
 router.get("/pending-sellers", protect, authorizeAdminRole, requireAdminSection("sellers"), getPendingSellers);
 router.put("/approve/:id", protect, authorizeAdminRole, requireAdminSection("sellers"), approveSeller);
 router.put("/reject/:id", protect, authorizeAdminRole, requireAdminSection("sellers"), rejectSeller);
+router.post("/sellers/:id/send-weekly-recap", protect, authorizeAdminRole, requireAdminSection("sellers"), sendWeeklyRecapAction);
 
 // ===============================
 // 📄 KYC MANAGEMENT

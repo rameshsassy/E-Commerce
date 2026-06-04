@@ -1758,6 +1758,8 @@ export const createSubscriptionOrder = async (req, res) => {
       currency: order.currency,
       receipt: order.receipt,
       status: order.status,
+      refundable: false,
+      refundPolicy: "Non-refundable",
     });
   } catch (error) {
     console.error("[seller] createSubscriptionOrder:", error?.message || error);
@@ -1875,6 +1877,8 @@ export const verifySubscriptionPayment = async (req, res) => {
       sellerType: user.sellerType,
       bulkPurchaseEnabled: user.bulkPurchaseEnabled,
       subscriptionActive: user.subscriptionActive,
+      refundable: false,
+      refundPolicy: "Non-refundable",
     });
   } catch (error) {
     console.error("[seller] verifySubscriptionPayment:", error?.message || error);
@@ -1911,6 +1915,8 @@ export const upgradeSellerToPremiumManual = async (req, res) => {
       sellerType: user.sellerType,
       bulkPurchaseEnabled: user.bulkPurchaseEnabled,
       subscriptionActive: user.subscriptionActive,
+      refundable: false,
+      refundPolicy: "Non-refundable",
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

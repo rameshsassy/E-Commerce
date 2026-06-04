@@ -1,5 +1,3 @@
-import { formatShippingAddress } from "../_helpers.js";
-
 const escapeHtml = (str) =>
   String(str || "")
     .replace(/&/g, "&amp;")
@@ -23,30 +21,15 @@ function featureCard(iconUrl, title, description) {
 }
 
 /**
- * Premium "New Order Alert" email for sellers.
- * Matches the Aashansh brand design with yellow banner, product breakdown,
- * CTA button, and "Why Aashansh" feature section.
+ * "KYC Not Approved" email for sellers.
+ * Sent when the admin rejects the seller's KYC documents.
+ *
+ * @param {string} name          - seller's first name
+ * @param {string} dashboardLink - URL to the seller dashboard
  */
-export default function newOrderSeller(seller, customerName, customerPhone, address, order, items) {
-  const firstName = escapeHtml(seller.firstName || "there");
-  const dashboardUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/seller/dashboard`;
+export default function kycRejectionSeller(name, dashboardLink) {
+  const firstName = escapeHtml(name || "there");
 
-  // Build the ordered product list rows
-  const productRows = (items || [])
-    .map((item, idx) => {
-      const title = escapeHtml(item.title || "Product");
-      const qty = Number(item.quantity) || 1;
-      const price = item.price != null ? Number(item.price) : null;
-      const amount = price != null ? `Amount: ₹ ${(price * qty).toLocaleString("en-IN")}/-` : "";
-      return `<tr>
-        <td style="padding: 4px 0; font-size: 14px; color: #333; line-height: 1.6;">
-          ${idx + 1}. ${title} | Quantity: ${qty} | ${amount}
-        </td>
-      </tr>`;
-    })
-    .join("");
-
-  // "Why Aashansh" feature cards matching the design
   const features = [
     {
       icon: "https://img.icons8.com/ios/100/000000/conference-call.png",
@@ -104,7 +87,7 @@ export default function newOrderSeller(seller, customerName, customerPhone, addr
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>New Order Alert - Aashansh</title>
+  <title>KYC Not Approved - Aashansh</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #F6F6F6; font-family: Arial, Helvetica, sans-serif;">
 <center>
@@ -120,13 +103,13 @@ export default function newOrderSeller(seller, customerName, customerPhone, addr
             </td>
           </tr>
 
-          <!-- ===== YELLOW BANNER ===== -->
+          <!-- ===== RED BANNER ===== -->
           <tr>
             <td align="center" style="padding: 0 20px;">
               <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #FFD600; border-radius: 8px;">
                 <tr>
                   <td align="center" style="padding: 14px 20px;">
-                    <div style="font-size: 16px; font-weight: bold; color: #333;">Congratulation! You have a New Order</div>
+                    <div style="font-size: 16px; font-weight: bold; color: #333;">KYC Not Approved</div>
                   </td>
                 </tr>
               </table>
@@ -136,27 +119,27 @@ export default function newOrderSeller(seller, customerName, customerPhone, addr
           <!-- ===== BODY COPY ===== -->
           <tr>
             <td style="padding: 25px 30px 0; color: #333; line-height: 1.7; font-size: 14px;">
-              <p style="margin: 0 0 15px;">Congratulations ${firstName}! your new order just came in on Aashansh!</p>
-              <p style="margin: 0 0 15px;">We're incredibly excited to see your products finding happy customers.</p>
-              <p style="margin: 0 0 10px; font-weight: bold;">Here's what was purchased:</p>
-            </td>
-          </tr>
+              <p style="margin: 0 0 15px;">Hi ${firstName},</p>
 
-          <!-- ===== PRODUCT LIST ===== -->
-          <tr>
-            <td style="padding: 0 30px 15px;">
-              <table width="100%" cellpadding="0" cellspacing="0" border="0">
-                ${productRows}
-              </table>
-            </td>
-          </tr>
+              <p style="margin: 0 0 15px;">Thanks for submitting your KYC details. We're sorry to share that your verification wasn't approved this time. Don't worry - this is common and easy to fix!</p>
 
-          <!-- ===== ENCOURAGEMENT ===== -->
-          <tr>
-            <td style="padding: 0 30px 0; color: #333; line-height: 1.7; font-size: 14px;">
-              <p style="margin: 0 0 15px;">Each item reflects your commitment to quality and sustainability, and we're proud to help you reach more buyers.</p>
-              <p style="margin: 0 0 15px;">Please visit your seller dashboard to view complete order details, shipping address, and next steps.</p>
-              <p style="margin: 0 0 20px;">You're doing amazing work, and we're here to support you every step of the way.</p>
+              <p style="margin: 0 0 10px;">Most rejections happen due to:</p>
+
+              <ul style="margin: 0 0 15px; padding-left: 20px; color: #333; font-size: 14px; line-height: 2;">
+                <li>Blurry or incomplete document photos</li>
+                <li>Name mismatch between documents and your profile</li>
+                <li>Expired ID or missing address proof</li>
+              </ul>
+
+              <p style="margin: 0 0 10px;">Next steps:</p>
+
+              <ol style="margin: 0 0 15px; padding-left: 20px; color: #333; font-size: 14px; line-height: 2;">
+                <li>Review the checklist in your dashboard</li>
+                <li>Upload clear, valid documents in PDF format only</li>
+                <li>Resubmit for verification</li>
+              </ol>
+
+              <p style="margin: 0 0 15px;">Our support team is ready to help if you need guidance. We're excited to welcome you once verified. Let's get you selling soon!</p>
             </td>
           </tr>
 
@@ -175,7 +158,7 @@ export default function newOrderSeller(seller, customerName, customerPhone, addr
               <table cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td align="center" style="background-color: #FFD600; border-radius: 25px;">
-                    <a href="${dashboardUrl}" target="_blank" style="display: inline-block; padding: 12px 35px; font-size: 14px; font-weight: bold; color: #333; text-decoration: none; border-radius: 25px;">Click to visit Dashboard</a>
+                    <a href="${dashboardLink}" target="_blank" style="display: inline-block; padding: 12px 35px; font-size: 14px; font-weight: bold; color: #333; text-decoration: none; border-radius: 25px;">Click to visit Dashboard</a>
                   </td>
                 </tr>
               </table>
