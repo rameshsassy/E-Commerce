@@ -148,11 +148,14 @@ const SellerSubscription = () => {
             <h2 className="text-lg sm:text-xl font-bold mb-2 text-primary pr-8">
               Premium Seller
             </h2>
-            <div className="flex flex-col sm:flex-row sm:items-end gap-1 sm:gap-2 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-end gap-1 sm:gap-2 mb-1">
               <div className="text-3xl sm:text-4xl font-black">₹9,125</div>
               <div className="text-text-muted text-sm pb-0 sm:pb-1">
                 / year (+ 18% GST)
               </div>
+            </div>
+            <div className="text-xs text-error font-semibold mb-5 text-left">
+              (Non-refundable)
             </div>
 
             <div className="flex-1 flex flex-col gap-4 text-sm mb-8">
@@ -190,6 +193,9 @@ const SellerSubscription = () => {
               <div className="flex justify-between font-bold text-lg pt-2 border-t border-primary/20 mt-2">
                 <span>Total</span>
                 <span>₹10,767.50</span>
+              </div>
+              <div className="text-[11px] text-right text-text-muted italic mt-1">
+                * Amount is non-refundable
               </div>
             </div>
 

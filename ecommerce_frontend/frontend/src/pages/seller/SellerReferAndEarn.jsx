@@ -395,6 +395,9 @@ export default function SellerReferAndEarn() {
               <span className="text-3xl sm:text-4xl font-black tracking-tight block mt-1">
                 {formatCurrency(stats.creditsEarned)}
               </span>
+              <span className="text-[10px] text-white/70 block mt-1">
+                (Non-refundable)
+              </span>
               <div className="pt-4 mt-4 border-t border-white/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm font-bold text-white/90">
                 <span>Pending: {formatCurrency(stats.pendingCredits)}</span>
                 {!isPremium && (
@@ -428,6 +431,9 @@ export default function SellerReferAndEarn() {
                     {card.label}
                   </span>
                   <span className="text-sm font-black">{card.value}</span>
+                  {(card.label === 'Credits Earned' || card.label === 'Pending Credits' || card.label === 'Per Approval') && (
+                    <span className="text-[8px] text-error font-medium mt-0.5">Non-refundable</span>
+                  )}
                 </div>
               ))}
             </div>

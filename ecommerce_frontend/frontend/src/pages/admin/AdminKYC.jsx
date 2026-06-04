@@ -44,6 +44,12 @@ const AdminKYC = () => {
   }, []);
 
   const handleAction = async (id, action) => {
+    if (action === 'reject') {
+      const confirmed = window.confirm(
+        'Are you sure you want to reject this KYC?\n\nA rejection email will be sent to the seller with instructions to resubmit.'
+      );
+      if (!confirmed) return;
+    }
     try {
       await api.put(`/admin/kyc/${action}/${id}`);
       fetchKYC();

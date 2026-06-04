@@ -71,9 +71,12 @@ const SellerPremium = () => {
 
         {/* Pricing */}
         <div className="text-center">
-          <div className="inline-block bg-primary/10 text-primary px-4 py-2 rounded-xl mb-4">
+          <div className="inline-block bg-primary/10 text-primary px-4 py-2 rounded-xl mb-2">
             <span className="text-2xl sm:text-3xl font-bold">₹9,125</span>
             <span className="text-sm text-primary/70"> / year (+18% GST)</span>
+          </div>
+          <div className="text-xs text-error font-semibold mb-4">
+            (Non-refundable)
           </div>
           <p className="text-text-muted mb-6">
             One-time annual subscription – includes all premium features.

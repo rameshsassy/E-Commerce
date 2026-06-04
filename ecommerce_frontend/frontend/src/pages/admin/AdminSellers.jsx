@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../utils/api';
-import { Check, X, Search } from 'lucide-react';
+import { Check, X, Search, Mail } from 'lucide-react';
 import ResponsiveTable from '../../components/common/ResponsiveTable';
 
 const AdminSellers = () => {
@@ -24,11 +24,29 @@ const AdminSellers = () => {
   }, []);
 
   const handleAction = async (id, action) => {
+    if (action === 'reject') {
+      const confirmed = window.confirm(
+        'Are you sure you want to reject this seller?\n\nA rejection email will be sent to the seller with instructions to resubmit.'
+      );
+      if (!confirmed) return;
+    }
     try {
       await api.put(`/admin/${action}/${id}`);
       fetchSellers();
     } catch (err) {
       alert(err.response?.data?.message || 'Action failed');
+    }
+  };
+  const handleSendWeeklyRecap = async (id, name) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to send the Weekly Recap email to ${name || 'this seller'}?`
+    );
+    if (!confirmed) return;
+    try {
+      const { data } = await api.post(`/admin/sellers/${id}/send-weekly-recap`);
+      alert(data.message || 'Weekly recap sent successfully');
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to send weekly recap');
     }
   };
 
@@ -73,6 +91,11 @@ const AdminSellers = () => {
                       )}
                     </td>
                     <td className="p-4 flex justify-end gap-2">
+                      {seller.status === 'approved' && (
+                        <button onClick={() => handleSendWeeklyRecap(seller._id, seller.firstName)} className="btn bg-primary/20 text-primary hover:bg-primary hover:text-white p-2 rounded-md" title="Send Weekly Recap">
+                          <Mail size={18} />
+                        </button>
+                      )}
                       {seller.status !== 'approved' && (
                         <button onClick={() => handleAction(seller._id, 'approve')} className="btn bg-success/20 text-success hover:bg-success hover:text-white p-2 rounded-md" title="Approve">
                           <Check size={18} />
