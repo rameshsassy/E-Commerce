@@ -525,9 +525,38 @@ export const bulkUploadProducts = async (req, res) => {
 
     const rows = [];
 
+    // Helper to map flexible CSV headers to our schema keys
+    const mapCsvRow = (row) => {
+      const normalizedRow = {};
+      for (const [key, value] of Object.entries(row)) {
+        const lowerKey = key.toLowerCase().trim();
+        if (lowerKey === 'title' || lowerKey === 'product name' || lowerKey === 'name') {
+          normalizedRow.title = value;
+        } else if (lowerKey === 'price' || lowerKey === 'cost' || lowerKey === 'mrp') {
+          normalizedRow.price = value;
+        } else if (lowerKey === 'description' || lowerKey === 'product description') {
+          normalizedRow.description = value;
+        } else if (lowerKey === 'category' || lowerKey === 'product category') {
+          normalizedRow.category = value;
+        } else if (lowerKey === 'stock' || lowerKey === 'quantity') {
+          normalizedRow.stock = value;
+        } else if (lowerKey === 'keywords' || lowerKey === 'tags') {
+          normalizedRow.keywords = value;
+        } else if (lowerKey === 'discounted' || lowerKey === 'compare at price') {
+          normalizedRow.compareAtPrice = value;
+        } else if (lowerKey === 'imagelinks' || lowerKey === 'image links' || lowerKey === 'images') {
+          normalizedRow.imageLinks = value;
+        } else {
+          normalizedRow[key] = value;
+        }
+      }
+      return normalizedRow;
+    };
+
     fs.createReadStream(req.file.path)
       .pipe(csv())
-      .on("data", (row) => {
+      .on("data", (rawRow) => {
+        const row = mapCsvRow(rawRow);
         if (!row.title || !row.price || !row.category) return;
         rows.push(row);
       })
@@ -618,6 +647,7 @@ export const bulkUploadProducts = async (req, res) => {
         res.json({
           message: "Bulk upload successful",
           count: products.length,
+          products: products, // Return the uploaded products for display
         });
       })
       .on("error", (err) => {
@@ -878,15 +908,6 @@ export const getDeliverySuggestions = async (req, res) => {
   try {
     const { scope, q = "" } = req.query;
     const query = String(q).trim();
-    if (!query) {
-      return res.json({
-        suggestions: [],
-        totalMatches: 0,
-        scope,
-        query: "",
-        matchMode: "startsWith",
-      });
-    }
 
     let sourceList = [];
     let displayLimit = 80;
@@ -906,17 +927,26 @@ export const getDeliverySuggestions = async (req, res) => {
       });
     }
 
-    const allMatches = filterSuggestionsStartsWith(sourceList, query);
-    const suggestions = filterSuggestionsStartsWithLimited(
-      sourceList,
-      query,
-      displayLimit
-    );
+    let suggestions = [];
+    let totalMatches = 0;
+
+    if (!query) {
+      suggestions = sourceList.slice(0, displayLimit);
+      totalMatches = sourceList.length;
+    } else {
+      const allMatches = filterSuggestionsStartsWith(sourceList, query);
+      suggestions = filterSuggestionsStartsWithLimited(
+        sourceList,
+        query,
+        displayLimit
+      );
+      totalMatches = allMatches.length;
+    }
 
     res.json({
       suggestions,
-      totalMatches: allMatches.length,
-      hasMore: allMatches.length > suggestions.length,
+      totalMatches,
+      hasMore: totalMatches > suggestions.length,
       scope,
       query,
       matchMode: "startsWith",

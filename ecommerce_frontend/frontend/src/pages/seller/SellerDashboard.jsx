@@ -3,6 +3,7 @@ import api from '../../utils/api';
 import { Package, TrendingUp, DollarSign, Gift, ArrowRight } from 'lucide-react';
 import BulkInquiriesPanel from '../../components/bulk/BulkInquiriesPanel';
 import SellerRecentActivity from '../../components/seller/SellerRecentActivity';
+import SellerRecentActivityModal from '../../components/seller/SellerRecentActivityModal';
 import LoadErrorMessage from '../../components/common/LoadErrorMessage';
 import { getApiErrorMessage, isNetworkError } from '../../utils/apiErrors';
 import { useAuth } from '../../context/AuthContext';
@@ -23,6 +24,7 @@ const SellerDashboard = () => {
   const [activities, setActivities] = useState([]);
   const [activityError, setActivityError] = useState('');
   const [activityNetworkError, setActivityNetworkError] = useState(false);
+  const [showActivityModal, setShowActivityModal] = useState(false);
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
@@ -42,7 +44,7 @@ const SellerDashboard = () => {
         const [dashboardRes, profileRes, activityRes] = await Promise.all([
           api.get('/seller/dashboard').catch(() => ({ data: { data: { totalProducts: 0, totalValue: 0, referralCreditsEarned: 0, successfulReferrals: 0 } } })),
           api.get('/seller/profile'),
-          api.get('/seller/recent-activity'),
+          api.get('/seller/recent-activity?limit=5'),
         ]);
         
         const dashboardData = dashboardRes.data?.data || { totalProducts: 0, totalValue: 0, referralCreditsEarned: 0, successfulReferrals: 0 };
@@ -193,7 +195,21 @@ const SellerDashboard = () => {
       </div>
 
       <div className="glass-panel p-8 min-h-[200px] mb-8">
-        <h2 className="text-xl font-bold mb-4">Recent Activity</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2
+            className="text-xl font-bold text-white cursor-pointer hover:text-[#ffd401] transition-colors"
+            onClick={() => setShowActivityModal(true)}
+          >
+            Recent Activity
+          </h2>
+          <button
+            type="button"
+            onClick={() => setShowActivityModal(true)}
+            className="text-sm font-semibold text-[#ffd401] hover:text-[#e6be00] transition-colors"
+          >
+            View All
+          </button>
+        </div>
         <LoadErrorMessage
           error={activityError}
           isNetwork={activityNetworkError}
@@ -202,7 +218,7 @@ const SellerDashboard = () => {
               ? async () => {
                   setLoading(true);
                   try {
-                    const { data } = await api.get('/seller/recent-activity');
+                    const { data } = await api.get('/seller/recent-activity?limit=5');
                     setActivities(data?.activities || []);
                     setActivityError('');
                     setActivityNetworkError(false);
@@ -225,6 +241,11 @@ const SellerDashboard = () => {
       </div>
 
       <BulkInquiriesPanel isAdmin={false} title="Bulk order inquiries" />
+
+      <SellerRecentActivityModal
+        open={showActivityModal}
+        onClose={() => setShowActivityModal(false)}
+      />
     </div>
   );
 };

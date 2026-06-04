@@ -50,7 +50,7 @@ export function logSellerActivity(sellerId, payload) {
 export async function getRecentSellerActivities(sellerId, limit = DEFAULT_LIST_LIMIT) {
   const rows = await SellerActivity.find({ sellerId })
     .sort({ createdAt: -1 })
-    .limit(Math.min(Math.max(1, limit), 50))
+    .limit(Math.min(Math.max(1, limit), 200))
     .lean();
 
   return rows.map((row) => ({

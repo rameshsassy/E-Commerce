@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { CheckCircle, ExternalLink } from 'lucide-react';
 import getCroppedImg from '../../utils/cropImage';
@@ -581,7 +582,7 @@ const SellerKYC = () => {
         </div>
       </div>
 
-      {showCropper && (
+      {showCropper && createPortal(
         <div
           style={{
             position: 'fixed',
@@ -695,7 +696,8 @@ const SellerKYC = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

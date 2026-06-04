@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Plus, X, Eye } from 'lucide-react';
 import {
   PRODUCT_IMAGE_MAX_COUNT,
@@ -187,7 +188,8 @@ export default function ProductImageUploader({ images, onChange }) {
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  window.open(img.preview, '_blank');
+                  const url = img.file ? URL.createObjectURL(img.file) : img.preview;
+                  window.open(url, '_blank');
                 }}
                 className="absolute -bottom-2 -left-2 w-6 h-6 rounded-full bg-[#008060] text-white flex items-center justify-center shadow hover:bg-[#006e52]"
                 aria-label="Preview image"
@@ -210,7 +212,7 @@ export default function ProductImageUploader({ images, onChange }) {
         </ul>
       </div>
 
-      {pendingFile && (
+      {pendingFile && createPortal(
         <ImageZoomModal
           file={pendingFile}
           onCancel={() => {
@@ -218,7 +220,8 @@ export default function ProductImageUploader({ images, onChange }) {
             pendingSlotRef.current = null;
           }}
           onSave={handleSaveCropped}
-        />
+        />,
+        document.body
       )}
     </div>
   );

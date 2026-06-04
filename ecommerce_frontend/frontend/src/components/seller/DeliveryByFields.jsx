@@ -36,12 +36,6 @@ export default function DeliveryByFields({ productData, setProductData }) {
       setSuggestions([]);
       return;
     }
-    if (deliveryInput.trim().length < 1) {
-      setSuggestions([]);
-      setTotalMatches(0);
-      setHasMoreSuggestions(false);
-      return;
-    }
 
     const timer = setTimeout(async () => {
       setLoadingSuggestions(true);
@@ -52,7 +46,6 @@ export default function DeliveryByFields({ productData, setProductData }) {
         setSuggestions(data.suggestions || []);
         setTotalMatches(data.totalMatches ?? (data.suggestions || []).length);
         setHasMoreSuggestions(!!data.hasMore);
-        setShowSuggestions(true);
       } catch (err) {
         console.error('Delivery suggestions:', err);
         setSuggestions([]);
@@ -184,25 +177,22 @@ export default function DeliveryByFields({ productData, setProductData }) {
                 onChange={(e) =>
                   setProductData({ ...productData, deliveryInput: e.target.value })
                 }
-                onFocus={() => deliveryInput.trim() && setShowSuggestions(true)}
+                onFocus={() => setShowSuggestions(true)}
+                onClick={() => setShowSuggestions(true)}
               />
-              {deliveryInput.trim().length >= 1 && !loadingSuggestions && totalMatches > 0 && (
+              {!loadingSuggestions && (
                 <p className="text-[11px] text-[#6D7175] mt-1">
-                  Showing {suggestions.length} of {totalMatches} names starting with &quot;{deliveryInput.trim()}&quot;
-                  {hasMoreSuggestions ? ' — scroll the list for more' : ''}
+                  Showing {suggestions.length} of {totalMatches} {deliveryBy === 'city' ? 'cities' : deliveryBy === 'state' ? 'states' : 'regions'}
+                  {deliveryInput.trim() ? ` starting with "${deliveryInput.trim()}"` : ''}
+                  {hasMoreSuggestions ? ' — scroll or type to search' : ''}
                 </p>
               )}
               {showSuggestions && (suggestions.length > 0 || loadingSuggestions) && (
-                <ul className="absolute z-20 w-full mt-1 bg-white border border-[#E1E3E5] rounded-md shadow-lg max-h-64 overflow-y-auto">
+                <ul className="absolute z-30 w-full mt-1 bg-white border border-[#E1E3E5] rounded-md shadow-lg max-h-64 overflow-y-auto">
                   {loadingSuggestions && (
                     <li className="px-3 py-2 text-[13px] text-[#6D7175]">Searching...</li>
                   )}
-                  {!loadingSuggestions && suggestions.length > 0 && (
-                    <li className="px-3 py-1.5 text-[11px] text-[#6D7175] bg-[#F6F6F7] border-b border-[#E1E3E5] sticky top-0">
-                      Suggestions starting with &quot;{deliveryInput.trim()}&quot;
-                    </li>
-                  )}
-                  {suggestions.map((item) => (
+                  {!loadingSuggestions && suggestions.map((item) => (
                     <li key={item}>
                       <button
                         type="button"
@@ -218,14 +208,11 @@ export default function DeliveryByFields({ productData, setProductData }) {
                   ))}
                 </ul>
               )}
-              {showSuggestions &&
-                !loadingSuggestions &&
-                deliveryInput.trim().length >= 1 &&
-                suggestions.length === 0 && (
-                  <p className="text-[12px] text-[#6D7175] mt-1">
-                    No {deliveryBy === 'city' ? 'cities' : deliveryBy === 'state' ? 'states' : 'regions'} start with &quot;{deliveryInput.trim()}&quot;. Try another letter.
-                  </p>
-                )}
+              {showSuggestions && !loadingSuggestions && suggestions.length === 0 && (
+                <p className="text-[12px] text-[#6D7175] mt-1">
+                  No {deliveryBy === 'city' ? 'cities' : deliveryBy === 'state' ? 'states' : 'regions'} {deliveryInput.trim() ? `start with "${deliveryInput.trim()}"` : 'available'}.
+                </p>
+              )}
             </div>
           )}
 

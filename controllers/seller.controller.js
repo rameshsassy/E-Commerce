@@ -1922,7 +1922,7 @@ export const upgradeSellerToPremiumManual = async (req, res) => {
 // ===============================
 export const getRecentActivity = async (req, res) => {
   try {
-    const limit = Math.min(parseInt(String(req.query.limit || "20"), 10) || 20, 50);
+    const limit = Math.min(parseInt(String(req.query.limit || "20"), 10) || 20, 200);
     const activities = await getRecentSellerActivities(req.user._id, limit);
     res.status(200).json({
       message: "Recent activity fetched successfully",

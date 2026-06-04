@@ -14,6 +14,7 @@ import {
   Store,
   MessageCircle,
   Zap,
+  Download,
 } from 'lucide-react';
 import StoreFormFields, { isStoreFormValid } from '../../components/seller/StoreFormFields';
 import useFormAutosave from '../../hooks/useFormAutosave';
@@ -426,6 +427,7 @@ const SellerProducts = () => {
   const [csvFile, setCsvFile] = useState(null);
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkMsg, setBulkMsg] = useState('');
+  const [uploadedProducts, setUploadedProducts] = useState(null);
 
   // My Store
   const [myStore, setMyStore] = useState(null);
@@ -831,8 +833,9 @@ const SellerProducts = () => {
     formData.append('file', csvFile);
 
     try {
-      await api.post('/products/bulk', formData);
+      const res = await api.post('/products/bulk', formData);
       setBulkMsg('Bulk upload successful! Products pending approval.');
+      setUploadedProducts(res.data?.products || []);
       setCsvFile(null);
     } catch (err) {
       const payload = err.response?.data;
@@ -1068,7 +1071,7 @@ const SellerProducts = () => {
             ) : myProducts.length === 0 ? (
               <div className="p-8 text-center text-text-muted">You haven't uploaded any products yet.</div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto pb-28">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-glass-border">
@@ -1120,13 +1123,13 @@ const SellerProducts = () => {
                               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M6 10a2 2 0 114 0 2 2 0 01-4 0zm6 0a2 2 0 114 0 2 2 0 01-4 0z" /></svg>
                             </button>
                             {actionOpenId === product._id && (
-                              <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-glass-bg ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
-                                <div className="py-1">
+                              <div className="origin-top-right absolute right-0 mt-2 w-64 rounded-xl shadow-xl bg-[#1e293b] border border-glass-border ring-1 ring-black ring-opacity-5 focus:outline-none z-20">
+                                <div className="p-2 flex flex-col gap-2">
                                   {product.approvalStatus === 'approved' && (
                                     <button
                                       type="button"
                                       onClick={() => { window.open(getApprovedProductWhatsAppUrl(product.title), '_blank'); }}
-                                      className="w-full text-left px-4 py-2 text-sm text-text-muted hover:bg-surface"
+                                      className="w-full text-left px-4 py-2.5 text-sm font-semibold bg-white text-slate-900 hover:bg-slate-100 rounded-lg transition-colors shadow-sm"
                                     >
                                       Request for edits (On chat)
                                     </button>
@@ -1135,7 +1138,7 @@ const SellerProducts = () => {
                                     <button
                                       type="button"
                                       onClick={() => handleEditInit(product)}
-                                      className="w-full text-left px-4 py-2 text-sm text-text-muted hover:bg-surface"
+                                      className="w-full text-left px-4 py-2.5 text-sm font-semibold bg-white text-slate-900 hover:bg-slate-100 rounded-lg transition-colors shadow-sm"
                                     >
                                       Edit product
                                     </button>
@@ -1143,7 +1146,7 @@ const SellerProducts = () => {
                                   <button
                                     type="button"
                                     onClick={() => handleDeleteProduct(product)}
-                                    className="w-full text-left px-4 py-2 text-sm text-error hover:bg-surface"
+                                    className="w-full text-left px-4 py-2.5 text-sm font-semibold bg-white text-red-600 hover:bg-red-50 rounded-lg transition-colors shadow-sm"
                                   >
                                     Delete product
                                   </button>
@@ -1154,7 +1157,7 @@ const SellerProducts = () => {
                                         await api.patch(`/products/${product._id}/active`, { isActive: false });
                                         fetchMyProducts();
                                       }}
-                                      className="w-full text-left px-4 py-2 text-sm text-text-muted hover:bg-surface"
+                                      className="w-full text-left px-4 py-2.5 text-sm font-semibold bg-white text-slate-900 hover:bg-slate-100 rounded-lg transition-colors shadow-sm"
                                     >
                                       Un-list product
                                     </button>
@@ -1166,7 +1169,7 @@ const SellerProducts = () => {
                                         await api.patch(`/products/${product._id}/active`, { isActive: true });
                                         fetchMyProducts();
                                       }}
-                                      className="w-full text-left px-4 py-2 text-sm text-text-muted hover:bg-surface"
+                                      className="w-full text-left px-4 py-2.5 text-sm font-semibold bg-white text-slate-900 hover:bg-slate-100 rounded-lg transition-colors shadow-sm"
                                     >
                                       Make it live
                                     </button>
@@ -1259,23 +1262,63 @@ const SellerProducts = () => {
             </div>
           </form>
         ) : (
-          <form onSubmit={handleBulkSubmit} className="space-y-6 text-center max-w-md mx-auto py-8">
-            <FileSpreadsheet size={64} className="text-primary mx-auto mb-4" />
-            <h2 className="text-xl font-bold">Upload Products via CSV</h2>
-            <p className="text-text-muted text-sm mb-6">Download our CSV template, fill in your product details, and upload it here to add multiple products at once.</p>
-            
-            <div className="border-2 border-dashed border-glass-border rounded-xl p-8 relative hover:bg-surface/50">
-              <input type="file" accept=".csv" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={e => setCsvFile(e.target.files[0])} />
-              <Upload size={32} className="text-text-muted mx-auto mb-2" />
-              <p className="font-medium">{csvFile ? csvFile.name : 'Select CSV File'}</p>
-            </div>
+          <div className="space-y-6 max-w-4xl mx-auto py-8">
+            <form onSubmit={handleBulkSubmit} className="text-center max-w-md mx-auto">
+              <FileSpreadsheet size={64} className="text-primary mx-auto mb-4" />
+              <h2 className="text-xl font-bold">Upload Products via CSV</h2>
+              <p className="text-text-muted text-sm mb-6">Download our CSV template, fill in your product details, and upload it here to add multiple products at once.</p>
+              
+              <div className="flex justify-center mb-6">
+                <a 
+                  href="/templates/bulk_upload_template.csv" 
+                  download 
+                  className="text-sm font-medium text-primary hover:underline flex items-center gap-1"
+                >
+                  <Download size={16} /> Download CSV Template
+                </a>
+              </div>
 
-            {bulkMsg && <div className={`p-3 rounded-md text-sm ${bulkMsg.includes('success') ? 'bg-success/20 text-success' : 'bg-error/20 text-error'}`}>{bulkMsg}</div>}
+              <div className="border-2 border-dashed border-glass-border rounded-xl p-8 relative hover:bg-surface/50">
+                <input type="file" accept=".csv" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={e => setCsvFile(e.target.files[0])} />
+                <Upload size={32} className="text-text-muted mx-auto mb-2" />
+                <p className="font-medium">{csvFile ? csvFile.name : 'Select CSV File'}</p>
+              </div>
 
-            <button type="submit" className="btn btn-primary w-full" disabled={!csvFile || bulkLoading}>
-              {bulkLoading ? 'Uploading...' : 'Upload CSV'}
-            </button>
-          </form>
+              {bulkMsg && <div className={`mt-4 p-3 rounded-md text-sm ${bulkMsg.includes('success') ? 'bg-success/20 text-success' : 'bg-error/20 text-error'}`}>{bulkMsg}</div>}
+
+              <button type="submit" className="btn btn-primary w-full mt-4" disabled={!csvFile || bulkLoading}>
+                {bulkLoading ? 'Uploading...' : 'Upload CSV'}
+              </button>
+            </form>
+
+            {uploadedProducts && uploadedProducts.length > 0 && (
+              <div className="mt-10 bg-white border border-[#E1E3E5] rounded-xl shadow-sm p-6 overflow-hidden">
+                <h3 className="text-lg font-bold text-[#202223] mb-4">Successfully Uploaded Products ({uploadedProducts.length})</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-[#E1E3E5] text-sm text-[#6D7175]">
+                        <th className="pb-3 px-4 font-semibold">Title</th>
+                        <th className="pb-3 px-4 font-semibold">Category</th>
+                        <th className="pb-3 px-4 font-semibold">Price</th>
+                        <th className="pb-3 px-4 font-semibold">Stock</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {uploadedProducts.map((p, idx) => (
+                        <tr key={idx} className="border-b border-[#E1E3E5] last:border-0 hover:bg-[#F6F6F7]">
+                          <td className="py-3 px-4 text-sm font-medium text-[#202223] max-w-[200px] truncate" title={p.title}>{p.title}</td>
+                          <td className="py-3 px-4 text-sm text-[#6D7175]">{p.category}</td>
+                          <td className="py-3 px-4 text-sm text-[#6D7175]">₹{p.price}</td>
+                          <td className="py-3 px-4 text-sm text-[#6D7175]">{p.stock}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>
