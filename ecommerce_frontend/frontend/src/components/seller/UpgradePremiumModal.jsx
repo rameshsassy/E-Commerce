@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { Zap, X } from 'lucide-react';
 
@@ -64,7 +65,7 @@ export default function UpgradePremiumModal({
 
   const copy = COPY[feature] || COPY.premium;
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50"
       role="dialog"
@@ -125,6 +126,7 @@ export default function UpgradePremiumModal({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

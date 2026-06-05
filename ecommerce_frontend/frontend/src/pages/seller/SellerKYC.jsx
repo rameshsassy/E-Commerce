@@ -307,8 +307,9 @@ const SellerKYC = () => {
     if (!form.orgPanNumber.trim()) return false;
     if (!PAN_REGEX.test(form.orgPanNumber.trim())) return false;
     if (!hasDoc('orgPanImage')) return false;
-    // GST is optional — but if entered, must be valid format
+    // GST is optional — but if entered, must be valid format and have its document uploaded
     if (form.gstNumber.trim() && !GST_REGEX.test(form.gstNumber.trim())) return false;
+    if (form.gstNumber.trim() && !hasDoc('gstImage')) return false;
     if (!form.agreedToTerms) return false;
     return true;
   }, [form, selectedEntityType, hasLogo, documents, existingDocs]);

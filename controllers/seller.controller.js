@@ -184,7 +184,7 @@ export const getAnalytics = async (req, res) => {
     const defaultRowLimit = isPremium ? 10 : 3;
     const rowLimitRaw = parseInt(String(req.query?.rowLimit ?? ""), 10);
     const rowLimit = Number.isFinite(rowLimitRaw)
-      ? Math.min(Math.max(rowLimitRaw, 1), 100)
+      ? Math.min(Math.max(rowLimitRaw, 1), 1000)
       : defaultRowLimit;
 
     const parseYmdOrNull = (value) => {
@@ -1620,11 +1620,13 @@ export const submitKycComplete = async (req, res) => {
       }
     }
 
-    // Optional document: GST Document (only validated if uploaded)
+    // Optional document: GST Document (only validated if uploaded, but compulsory if GST number is provided)
     const gstImageUploaded = req.files?.["gstImage"]?.[0];
     if (gstImageUploaded) {
       assertKycImageUpload(gstImageUploaded, "GST Document");
       user.gstImage = absoluteToWebPath(gstImageUploaded.path);
+    } else if (user.gstNumber?.trim() && !user.gstImage) {
+      return res.status(400).json({ message: "GST Document is required when GST number is provided." });
     }
 
     const missingFields = getKycMissingFields(user);

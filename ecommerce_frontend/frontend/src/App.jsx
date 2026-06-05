@@ -44,6 +44,7 @@ import SellerAboutUs from './pages/seller/SellerAboutUs';
 import SellerPremium from './pages/seller/SellerPremium';
 import SellerChat from './pages/seller/SellerChat';
 import AdminChat from './pages/admin/AdminChat';
+import FloatingChat from './components/chat/FloatingChat';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminSellers from './pages/admin/AdminSellers';
@@ -162,6 +163,7 @@ const App = () => {
   return (
     <Router>
       <AppRoutes />
+      <FloatingChat />
     </Router>
   );
 };

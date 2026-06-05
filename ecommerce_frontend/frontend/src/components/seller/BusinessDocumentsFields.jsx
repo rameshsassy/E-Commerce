@@ -300,13 +300,14 @@ export default function BusinessDocumentsFields({
             message={gstValidation.message}
           />
           <p style={helperTextStyle}>
-            GST is not compulsory.
+            GST is not compulsory. If you are entering GST, GST document is compulsory.
           </p>
         </div>
 
         <div>
           <label style={labelStyle}>
             GST Document
+            {form.gstNumber.trim() && <Required />}
           </label>
           <input
             type="file"

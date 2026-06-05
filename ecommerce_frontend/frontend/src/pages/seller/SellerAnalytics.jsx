@@ -101,7 +101,7 @@ const SellerAnalytics = () => {
       });
       try {
         const res = await api.get('/seller/analytics', {
-          params: { ...getRangeParams(), rowLimit: 100 },
+          params: { ...getRangeParams(), rowLimit: 500 },
         });
         const section = res.data.data?.performanceOverview?.[sectionKey];
         setViewAllModal((prev) =>

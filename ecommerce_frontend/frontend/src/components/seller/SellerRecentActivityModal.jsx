@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import api from '../../utils/api';
 import SellerRecentActivity from './SellerRecentActivity';
@@ -37,7 +38,7 @@ export default function SellerRecentActivityModal({ open, onClose }) {
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
       role="dialog"
@@ -94,6 +95,7 @@ export default function SellerRecentActivityModal({ open, onClose }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

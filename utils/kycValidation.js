@@ -145,8 +145,10 @@ export function getKycMissingFields(user, { requireNewLogo = false } = {}) {
   if (!user.registrationCertificate) missing.push("registrationCertificate");
   if (!user.orgPanNumber?.trim()) missing.push("orgPanNumber");
   if (!user.orgPanImage) missing.push("orgPanImage");
-  // GST is optional — not required for KYC submission
-  // gstNumber and gstImage are NOT checked here
+  // GST is optional — but if gstNumber is entered, gstImage is compulsory
+  if (user.gstNumber?.trim() && !user.gstImage) {
+    missing.push("gstImage");
+  }
 
   if (!user.agreedToTerms) {
     missing.push("agreedToTerms");

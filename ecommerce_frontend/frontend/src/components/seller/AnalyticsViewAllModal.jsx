@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { BASE_URL } from '../../utils/api';
 
@@ -30,7 +31,7 @@ export default function AnalyticsViewAllModal({
 }) {
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
       role="dialog"
@@ -131,6 +132,7 @@ export default function AnalyticsViewAllModal({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
