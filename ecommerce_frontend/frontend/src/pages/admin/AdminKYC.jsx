@@ -185,7 +185,7 @@ const AdminKYC = () => {
                         </div>
                         {seller.orgPanImage && (
                           <a href={`${BASE_URL}/${seller.orgPanImage}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-sm text-primary hover:underline bg-primary/10 px-2 py-1 rounded shrink-0">
-                            <ExternalLink size={14} /> PAN Image
+                            <ExternalLink size={14} /> PAN Document
                           </a>
                         )}
                       </div>
@@ -197,7 +197,7 @@ const AdminKYC = () => {
 
                       <div className="bg-surface p-3 rounded-lg border border-glass-border flex justify-between items-center">
                         <div>
-                          <p className="text-xs text-text-muted uppercase tracking-wider mb-1">GST Image</p>
+                          <p className="text-xs text-text-muted uppercase tracking-wider mb-1">GST Document</p>
                           <p className="font-medium text-text-muted text-sm">
                             {seller.gstImage ? 'Uploaded' : 'Not provided'}
                           </p>

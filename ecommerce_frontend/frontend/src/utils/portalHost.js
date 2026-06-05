@@ -87,11 +87,26 @@ export function isCustomerPortal() {
 
 export function getCustomerPortalOrigin() {
   if (typeof window !== 'undefined' && window.location?.origin) {
+    const h = window.location.hostname.toLowerCase();
+    if (h.endsWith('.vercel.app') || isLocalHostname(h)) {
+      return window.location.origin;
+    }
     if (!isSellerPortal(window.location.hostname, window.location.pathname)) {
       return window.location.origin;
     }
   }
   const fromEnv = import.meta.env.VITE_CUSTOMER_PORTAL_URL;
+  const configured = fromEnv || DEFAULT_CUSTOMER_ORIGIN;
+
+  if (
+    typeof window !== 'undefined' &&
+    window.location?.origin &&
+    !isLocalHostname(window.location.hostname) &&
+    /localhost|127\.0\.0\.1/i.test(configured)
+  ) {
+    return window.location.origin;
+  }
+
   if (fromEnv && !/localhost|127\.0\.0\.1/i.test(fromEnv)) {
     return String(fromEnv).replace(/\/$/, '');
   }

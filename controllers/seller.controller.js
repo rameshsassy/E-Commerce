@@ -1509,8 +1509,8 @@ export const submitKycComplete = async (req, res) => {
 
       const docChecks = [
         ["registrationCertificate", "Registration Certificate", assertKycCertificateUpload],
-        ["orgPanImage", "PAN Image", assertKycImageUpload],
-        ["gstImage", "GST Image", assertKycImageUpload],
+        ["orgPanImage", "PAN Document", assertKycImageUpload],
+        ["gstImage", "GST Document", assertKycImageUpload],
       ];
 
       for (const [field, , assertFn] of docChecks) {
@@ -1604,10 +1604,10 @@ export const submitKycComplete = async (req, res) => {
       return res.status(400).json({ message: "Organization logo is required (PNG or JPG)." });
     }
 
-    // Required documents: Registration Certificate and PAN Image
+    // Required documents: Registration Certificate and PAN Document
     const requiredDocChecks = [
       ["registrationCertificate", "Registration Certificate", assertKycCertificateUpload],
-      ["orgPanImage", "PAN Image", assertKycImageUpload],
+      ["orgPanImage", "PAN Document", assertKycImageUpload],
     ];
 
     for (const [field, label, assertFn] of requiredDocChecks) {
@@ -1620,10 +1620,10 @@ export const submitKycComplete = async (req, res) => {
       }
     }
 
-    // Optional document: GST Image (only validated if uploaded)
+    // Optional document: GST Document (only validated if uploaded)
     const gstImageUploaded = req.files?.["gstImage"]?.[0];
     if (gstImageUploaded) {
-      assertKycImageUpload(gstImageUploaded, "GST Image");
+      assertKycImageUpload(gstImageUploaded, "GST Document");
       user.gstImage = absoluteToWebPath(gstImageUploaded.path);
     }
 

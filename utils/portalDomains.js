@@ -133,19 +133,38 @@ export function portalLoginRedirectUrl(expectedPortal, req) {
 
   if (requestOrigin) {
     try {
-      const host = new URL(requestOrigin).hostname.toLowerCase();
+      const parsed = new URL(requestOrigin);
+      const host = parsed.hostname.toLowerCase();
+
+      if (host.startsWith("seller.")) {
+        if (expectedPortal === "customer") {
+          const customerHost = host.replace(/^seller\./i, "");
+          const portStr = parsed.port ? `:${parsed.port}` : "";
+          return `${parsed.protocol}//${customerHost}${portStr}/login`;
+        }
+        return `${requestOrigin}/login?portal=seller`;
+      }
+
+      // Not starting with seller.
       const useSameOrigin =
         host.endsWith(".vercel.app") ||
-        isDevOnlyHostname(host) ||
-        !host.startsWith("seller.");
+        isDevOnlyHostname(host);
+
       if (useSameOrigin) {
         if (expectedPortal === "seller") {
           return `${requestOrigin}/login?portal=seller`;
         }
         return `${requestOrigin}/login`;
       }
+
+      // Custom domain, expectedPortal is seller, prepends seller.
+      if (expectedPortal === "seller") {
+        const sellerHost = `seller.${host}`;
+        const portStr = parsed.port ? `:${parsed.port}` : "";
+        return `${parsed.protocol}//${sellerHost}${portStr}/login?portal=seller`;
+      }
     } catch {
-      /* ignore */
+      /* ignore and fall back */
     }
   }
 
@@ -153,32 +172,6 @@ export function portalLoginRedirectUrl(expectedPortal, req) {
     expectedPortal === "seller"
       ? getSellerPortalOrigin()
       : getCustomerPortalOrigin();
-
-  if (requestOrigin && /seller\.aashansh\.org/i.test(configured)) {
-    if (expectedPortal === "seller") {
-      return `${requestOrigin}/login?portal=seller`;
-    }
-    return `${requestOrigin}/login`;
-  }
-
-  if (requestOrigin) {
-    try {
-      const cfgHost = new URL(configured).hostname;
-      const reqHost = new URL(requestOrigin).hostname;
-      if (isDevOnlyHostname(cfgHost) && !isDevOnlyHostname(reqHost)) {
-        if (expectedPortal === "seller") {
-          return `${requestOrigin}/login?portal=seller`;
-        }
-        return `${requestOrigin}/login`;
-      }
-    } catch {
-      /* ignore */
-    }
-  }
-
-  if (expectedPortal === "seller" && /seller\.aashansh\.org/i.test(configured)) {
-    return `${getCustomerPortalOrigin()}/login?portal=seller`;
-  }
 
   return `${configured}/login`;
 }

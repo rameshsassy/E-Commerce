@@ -214,7 +214,7 @@ const SellerKYC = () => {
       }
     } else if (name === 'orgPanImage' || name === 'gstImage') {
       if (!imageTypes.includes(file.type)) {
-        setError(`${name === 'orgPanImage' ? 'PAN Image' : 'GST Image'} must be an image (JPG, PNG, or WebP).`);
+        setError(`${name === 'orgPanImage' ? 'PAN Document' : 'GST Document'} must be an image (JPG, PNG, or WebP).`);
         e.target.value = '';
         return;
       }

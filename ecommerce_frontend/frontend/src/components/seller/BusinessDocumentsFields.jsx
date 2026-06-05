@@ -247,13 +247,13 @@ export default function BusinessDocumentsFields({
             message={panValidation.message}
           />
           <p style={helperTextStyle}>
-            Add your personal PAN if you are not a registered business. Max 10 characters including alphanumeric.
+            Add your personal PAN if you are not a registered business.
           </p>
         </div>
 
         <div>
           <label style={labelStyle}>
-            PAN Image
+            PAN Document
             <Required />
           </label>
           <input
@@ -269,7 +269,7 @@ export default function BusinessDocumentsFields({
             file={documents.orgPanImage}
             docPath={existingDocPaths.orgPanImage}
             baseUrl={baseUrl}
-            label="View uploaded PAN image"
+            label="View uploaded PAN document"
           />
         </div>
 
@@ -300,13 +300,13 @@ export default function BusinessDocumentsFields({
             message={gstValidation.message}
           />
           <p style={helperTextStyle}>
-            GST is not compulsory. If you are entering GST, it should be max 15 characters including alphanumeric.
+            GST is not compulsory.
           </p>
         </div>
 
         <div>
           <label style={labelStyle}>
-            GST Image
+            GST Document
           </label>
           <input
             type="file"
@@ -321,7 +321,7 @@ export default function BusinessDocumentsFields({
             file={documents.gstImage}
             docPath={existingDocPaths.gstImage}
             baseUrl={baseUrl}
-            label="View uploaded GST image"
+            label="View uploaded GST document"
           />
         </div>
       </div>
