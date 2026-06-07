@@ -34,7 +34,14 @@ const SellerDashboard = () => {
   }, []);
 
   const sellerName = profile?.firstName || user?.firstName || user?.name || 'Seller';
-  const planLabel = profile?.plan || (user?.sellerType === 'premium' && user?.subscriptionActive ? 'Premium' : 'Free');
+  
+  const planLabel = useMemo(() => {
+    const activePlan = user?.subscriptionPlan || profile?.subscriptionPlan || 'free';
+    if (activePlan === 'premium') return 'Premium';
+    if (activePlan === 'pro') return 'Pro';
+    return 'Free';
+  }, [user?.subscriptionPlan, profile?.subscriptionPlan]);
+
   const isFree = planLabel === 'Free';
 
   useEffect(() => {
@@ -54,6 +61,8 @@ const SellerDashboard = () => {
         mergeUser({
           sellerType: profileData.sellerType,
           subscriptionActive: profileData.subscriptionActive,
+          subscriptionPlan: profileData.subscriptionPlan,
+          subscriptionValidUntil: profileData.subscriptionValidUntil,
         });
 
         setStats({

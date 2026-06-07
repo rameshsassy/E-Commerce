@@ -119,6 +119,15 @@ const userSchema = new mongoose.Schema(
       enum: ["free", "premium"],
       default: "free",
     },
+    subscriptionPlan: {
+      type: String,
+      enum: ["free", "pro", "premium"],
+      default: "free",
+    },
+    subscriptionValidUntil: {
+      type: Date,
+      default: null,
+    },
     bulkPurchaseEnabled: {
       type: Boolean,
       default: false,

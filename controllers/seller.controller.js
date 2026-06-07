@@ -1020,6 +1020,8 @@ export const getSellerProfile = async (req, res) => {
       kycStatus: user.kycStatus,
       sellerType: user.sellerType,
       subscriptionActive: user.subscriptionActive,
+      subscriptionPlan: user.subscriptionPlan || (user.sellerType === "premium" && user.subscriptionActive ? "pro" : "free"),
+      subscriptionValidUntil: user.subscriptionValidUntil || null,
       plan: isPremium ? "Premium" : "Free",
     });
 
@@ -1722,8 +1724,15 @@ export const createSubscriptionOrder = async (req, res) => {
       return res.status(403).json({ message: "Only sellers can subscribe." });
     }
 
+    const plan = req.body.plan || "pro";
+    if (!["pro", "premium"].includes(plan)) {
+      return res.status(400).json({ message: "Invalid plan selection. Choose either pro or premium." });
+    }
+
     if (user.sellerType === "premium" && user.subscriptionActive === true) {
-      return res.status(400).json({ message: "Premium is already active on your account." });
+      if (user.subscriptionPlan === "premium" || plan === "pro") {
+        return res.status(400).json({ message: "You are already subscribed to this or a higher plan." });
+      }
     }
 
     let rzp;
@@ -1733,7 +1742,13 @@ export const createSubscriptionOrder = async (req, res) => {
       return res.status(e.statusCode || 503).json({ message: e.message });
     }
 
-    const amount = getPremiumAmountPaise();
+    let amount;
+    if (plan === "premium") {
+      amount = 23364000; // ₹1,98,000 + 18% GST in paise = ₹2,33,640.00
+    } else {
+      amount = 1076750; // ₹9,125 + 18% GST in paise = ₹10,767.50
+    }
+
     const receipt = `sub_${user._id.toString().slice(-8)}_${Date.now()}`.slice(0, 40);
 
     const order = await rzp.orders.create({
@@ -1743,6 +1758,7 @@ export const createSubscriptionOrder = async (req, res) => {
       notes: {
         purpose: "premium_seller_subscription",
         sellerId: user._id.toString(),
+        plan: plan,
       },
     });
 
@@ -1776,24 +1792,18 @@ export const createSubscriptionOrder = async (req, res) => {
 // ===============================
 export const verifySubscriptionPayment = async (req, res) => {
   try {
-    const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body || {};
-
-    if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
-      return res.status(400).json({
-        message: "Missing payment details (razorpayOrderId, razorpayPaymentId, razorpaySignature).",
-      });
+    const { razorpayPaymentId, razorpayOrderId, razorpaySignature } = req.body;
+    if (!razorpayPaymentId || !razorpayOrderId || !razorpaySignature) {
+      return res.status(400).json({ message: "Missing required Razorpay parameters." });
     }
 
-    const keySecret = process.env.RAZORPAY_KEY_SECRET;
-    if (!keySecret) {
-      return res.status(503).json({ message: "Razorpay is not configured on the server." });
-    }
+    const generated = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET || "")
+      .update(`${razorpayOrderId}|${razorpayPaymentId}`)
+      .digest("hex");
 
-    const sign = `${razorpayOrderId}|${razorpayPaymentId}`;
-    const expectedSign = crypto.createHmac("sha256", keySecret).update(sign).digest("hex");
-
-    if (!safeCompareHex(expectedSign, razorpaySignature)) {
-      return res.status(400).json({ message: "Invalid payment signature." });
+    if (!safeCompareHex(generated, razorpaySignature)) {
+      return res.status(400).json({ message: "Payment signature mismatch. Tampering detected." });
     }
 
     let rzp;
@@ -1822,9 +1832,16 @@ export const verifySubscriptionPayment = async (req, res) => {
       return res.status(400).json({ message: "Invalid or expired order id." });
     }
 
-    const expectedAmount = getPremiumAmountPaise();
+    const notePlan = order?.notes?.plan || "pro";
+    let expectedAmount;
+    if (notePlan === "premium") {
+      expectedAmount = 23364000;
+    } else {
+      expectedAmount = 1076750;
+    }
+
     if (Number(order.amount) !== expectedAmount) {
-      return res.status(400).json({ message: "Order amount does not match the current subscription price." });
+      return res.status(400).json({ message: "Order amount does not match the subscription price." });
     }
 
     const noteSellerId = order?.notes?.sellerId ?? order?.notes?.seller_id;
@@ -1840,11 +1857,14 @@ export const verifySubscriptionPayment = async (req, res) => {
     if (
       user.premiumLastPaymentId === razorpayPaymentId &&
       user.sellerType === "premium" &&
-      user.subscriptionActive
+      user.subscriptionActive &&
+      user.subscriptionPlan === notePlan
     ) {
       return res.json({
         message: "Premium is already active on your account.",
         sellerType: user.sellerType,
+        subscriptionPlan: user.subscriptionPlan,
+        subscriptionValidUntil: user.subscriptionValidUntil,
         bulkPurchaseEnabled: user.bulkPurchaseEnabled,
         subscriptionActive: user.subscriptionActive,
       });
@@ -1859,6 +1879,12 @@ export const verifySubscriptionPayment = async (req, res) => {
       user.sellerType === "premium" && user.subscriptionActive === true;
 
     user.sellerType = "premium";
+    user.subscriptionPlan = notePlan;
+    
+    const validUntil = new Date();
+    validUntil.setFullYear(validUntil.getFullYear() + 1);
+    user.subscriptionValidUntil = validUntil;
+
     user.bulkPurchaseEnabled = true;
     user.subscriptionActive = true;
     user.pendingPremiumOrderId = null;
@@ -1877,6 +1903,8 @@ export const verifySubscriptionPayment = async (req, res) => {
     return res.json({
       message: "Premium Activated Successfully",
       sellerType: user.sellerType,
+      subscriptionPlan: user.subscriptionPlan,
+      subscriptionValidUntil: user.subscriptionValidUntil,
       bulkPurchaseEnabled: user.bulkPurchaseEnabled,
       subscriptionActive: user.subscriptionActive,
       refundable: false,
@@ -1896,10 +1924,21 @@ export const verifySubscriptionPayment = async (req, res) => {
 export const upgradeSellerToPremiumManual = async (req, res) => {
   try {
     const user = req.user;
+    const plan = req.body.plan || "pro";
+
     const already =
-      user.sellerType === "premium" && user.subscriptionActive === true;
+      user.sellerType === "premium" &&
+      user.subscriptionActive === true &&
+      user.subscriptionPlan === plan;
+
     if (!already) {
       user.sellerType = "premium";
+      user.subscriptionPlan = plan;
+      
+      const validUntil = new Date();
+      validUntil.setFullYear(validUntil.getFullYear() + 1);
+      user.subscriptionValidUntil = validUntil;
+
       user.bulkPurchaseEnabled = true;
       user.subscriptionActive = true;
       user.pendingPremiumOrderId = null;
@@ -1912,9 +1951,11 @@ export const upgradeSellerToPremiumManual = async (req, res) => {
     }
     return res.json({
       message: already
-        ? "Premium is already active on your account."
-        : "Premium Activated Successfully (no payment)",
+        ? `Premium (${plan}) is already active on your account.`
+        : `Premium (${plan}) Activated Successfully (no payment)`,
       sellerType: user.sellerType,
+      subscriptionPlan: user.subscriptionPlan,
+      subscriptionValidUntil: user.subscriptionValidUntil,
       bulkPurchaseEnabled: user.bulkPurchaseEnabled,
       subscriptionActive: user.subscriptionActive,
       refundable: false,
@@ -1922,6 +1963,79 @@ export const upgradeSellerToPremiumManual = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+// ===============================
+// 💎 GET PREMIUM PAGE DETAILS (stats, plan details)
+// ===============================
+export const getPremiumPageDetails = async (req, res) => {
+  try {
+    const sellerId = new mongoose.Types.ObjectId(req.user._id);
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({ message: "Seller not found" });
+    }
+
+    // 1. Products Listed
+    const productsListed = await Product.countDocuments({ sellerId, isActive: true });
+
+    // 2. Individual Customers
+    const individualCustomers = await Order.distinct("user", {
+      "items.seller": sellerId,
+      paymentStatus: "completed"
+    }).then(users => users.length);
+
+    // 3. Bulk Orders
+    const bulkOrders = await BulkInquiry.countDocuments({ sellerId });
+
+    // 4. Total Referrals & Referral Rewards
+    let totalReferrals = 0;
+    let totalReferralRewards = 0;
+    try {
+      const referralStats = await getReferralStatsForSeller(sellerId, user);
+      totalReferrals = referralStats.referralSignups || 0;
+      totalReferralRewards = referralStats.creditsEarned || 0;
+    } catch (err) {
+      console.error("Failed to fetch referral stats for premium details:", err);
+    }
+
+    // 5. Total Sales
+    const salesAgg = await Order.aggregate([
+      { $match: { "items.seller": sellerId, paymentStatus: "completed" } },
+      { $unwind: "$items" },
+      { $match: { "items.seller": sellerId } },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: { $multiply: ["$items.price", "$items.quantity"] } }
+        }
+      }
+    ]);
+    const totalSales = salesAgg[0]?.total || 0;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        sellerType: user.sellerType,
+        subscriptionActive: user.subscriptionActive,
+        subscriptionPlan: user.subscriptionPlan || (user.sellerType === "premium" && user.subscriptionActive ? "pro" : "free"),
+        subscriptionValidUntil: user.subscriptionValidUntil || null,
+        stats: {
+          productsListed,
+          individualCustomers,
+          bulkOrders,
+          totalReferrals,
+          totalSales,
+          totalReferralRewards
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error("[seller] getPremiumPageDetails error:", error);
+    res.status(500).json({ message: "Failed to fetch premium page details" });
   }
 };
 
@@ -1963,8 +2077,8 @@ export const getReferAndEarn = async (req, res) => {
     const stats = await getReferralStatsForSeller(user._id, user, {
       limit: referredLimit,
     });
-    const isPremium =
-      user.sellerType === "premium" && user.subscriptionActive === true;
+    const activePlan = user.subscriptionPlan || (isPremium ? "pro" : "free");
+    const currentPlanLabel = activePlan === "premium" ? "Premium" : activePlan === "pro" ? "Pro" : "Free";
     const senderName =
       user.businessName?.trim() ||
       [user.firstName, user.lastName].filter(Boolean).join(" ").trim() ||
@@ -1977,7 +2091,7 @@ export const getReferAndEarn = async (req, res) => {
         planRows: SELLER_REFER_PLAN_ROWS,
         referralCode,
         referralLink: sellerRegisterUrl(frontendBase, referralCode),
-        currentPlan: isPremium ? "Premium" : "Free",
+        currentPlan: currentPlanLabel,
         senderName,
         stats,
         meta: {

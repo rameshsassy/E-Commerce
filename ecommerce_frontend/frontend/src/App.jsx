@@ -43,6 +43,7 @@ import SellerReferAndEarn from './pages/seller/SellerReferAndEarn';
 import SellerAboutUs from './pages/seller/SellerAboutUs';
 import SellerPremium from './pages/seller/SellerPremium';
 import SellerChat from './pages/seller/SellerChat';
+import SellerBuyProducts from './pages/seller/SellerBuyProducts';
 import AdminChat from './pages/admin/AdminChat';
 import FloatingChat from './components/chat/FloatingChat';
 
@@ -84,6 +85,7 @@ function SellerPortalRoutes() {
         <Route path="/seller/refer-and-earn" element={<SellerReferAndEarn />} />
         <Route path="/seller/chat" element={<SellerChat />} />
         <Route path="/seller/about-us" element={<SellerAboutUs />} />
+        <Route path="/seller/buy-products" element={<SellerBuyProducts />} />
         <Route path="/terms" element={<TermsAndConditions />} />
       </Route>
 

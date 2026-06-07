@@ -19,6 +19,7 @@ import {
   createSubscriptionOrder,
   verifySubscriptionPayment,
   upgradeSellerToPremiumManual,
+  getPremiumPageDetails,
   getReferAndEarn,
   sendReferralInvite,
   getAboutUs,
@@ -36,6 +37,10 @@ import {
   checkSubdomainAvailability,
 } from "../controllers/store.controller.js";
 import { listSellerKycEntityTypes } from "../controllers/kycEntityType.controller.js";
+import {
+  getBuyProducts,
+  placeSellerOrder
+} from "../controllers/sellerBuy.controller.js";
 
 const router = express.Router();
 
@@ -140,5 +145,10 @@ router.patch(
 router.post("/subscription/razorpay", protect, authorizeRoles("seller"), createSubscriptionOrder);
 router.post("/subscription/razorpay/verify", protect, authorizeRoles("seller"), verifySubscriptionPayment);
 router.post("/upgrade", protect, authorizeRoles("seller"), upgradeSellerToPremiumManual);
+router.get("/premium/details", protect, authorizeRoles("seller"), getPremiumPageDetails);
+
+// 🛍️ Seller Buy Products Flow
+router.get("/buy-products", protect, authorizeRoles("seller"), getBuyProducts);
+router.post("/buy-products/order", protect, authorizeRoles("seller"), placeSellerOrder);
 
 export default router;
