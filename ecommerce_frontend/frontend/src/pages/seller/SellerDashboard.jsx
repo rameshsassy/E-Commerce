@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import api from '../../utils/api';
-import { Package, TrendingUp, DollarSign, Gift, ArrowRight } from 'lucide-react';
+import { Package, TrendingUp, DollarSign, Gift, ArrowRight, AlertCircle } from 'lucide-react';
 import BulkInquiriesPanel from '../../components/bulk/BulkInquiriesPanel';
 import SellerRecentActivity from '../../components/seller/SellerRecentActivity';
 import SellerRecentActivityModal from '../../components/seller/SellerRecentActivityModal';
@@ -43,6 +43,30 @@ const SellerDashboard = () => {
   }, [user?.subscriptionPlan, profile?.subscriptionPlan]);
 
   const isFree = planLabel === 'Free';
+
+  const daysLeft = useMemo(() => {
+    const validUntil = user?.subscriptionValidUntil || profile?.subscriptionValidUntil;
+    if (!validUntil) return 0;
+    const diffTime = new Date(validUntil) - new Date();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 0;
+  }, [user?.subscriptionValidUntil, profile?.subscriptionValidUntil]);
+
+  const showExpiryAlert = useMemo(() => {
+    const isPremium = (user?.sellerType === 'premium' && user?.subscriptionActive) || 
+                      (profile?.sellerType === 'premium' && profile?.subscriptionActive);
+    return isPremium && daysLeft > 0 && daysLeft <= 30;
+  }, [user?.sellerType, user?.subscriptionActive, profile?.sellerType, profile?.subscriptionActive, daysLeft]);
+
+  const formattedExpiryDate = useMemo(() => {
+    const validUntil = user?.subscriptionValidUntil || profile?.subscriptionValidUntil;
+    if (!validUntil) return '';
+    return new Date(validUntil).toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  }, [user?.subscriptionValidUntil, profile?.subscriptionValidUntil]);
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -113,7 +137,7 @@ const SellerDashboard = () => {
           {isFree && (
             <button
               type="button"
-              onClick={() => navigate('/seller/subscription')}
+              onClick={() => navigate('/seller/premium')}
               className="px-4 py-2 rounded-full bg-[#FFD700] hover:bg-[#F2C400] text-[#202223] font-semibold text-[13px] md:text-[14px] shadow-sm"
             >
               Upgrade
@@ -121,6 +145,29 @@ const SellerDashboard = () => {
           )}
         </div>
       </div>
+
+      {showExpiryAlert && (
+        <div className="mb-6 sm:mb-8 bg-amber-50 border border-amber-200 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-sm animate-fade-in">
+          <div className="flex items-start gap-3">
+            <div className="h-10 w-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+              <AlertCircle size={22} />
+            </div>
+            <div>
+              <h3 className="font-bold text-amber-900 text-sm sm:text-base mb-0.5">Premium Subscription Expiring Soon</h3>
+              <p className="text-amber-800 text-xs sm:text-sm leading-relaxed font-medium">
+                Your Aashansh Premium subscription expires in <span className="font-extrabold text-amber-900">{daysLeft} days</span> (on {formattedExpiryDate}). Please renew now to maintain uninterrupted access to B2B bulk orders, advanced insights, and multiple store locations.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/seller/premium')}
+            className="w-full md:w-auto px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs sm:text-sm shadow-sm transition-all active:scale-95 shrink-0"
+          >
+            Renew Subscription Now
+          </button>
+        </div>
+      )}
 
       <div className="glass-panel p-6 mb-8 rounded-2xl border border-glass-border flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
         <div className="flex items-start gap-4 flex-1">

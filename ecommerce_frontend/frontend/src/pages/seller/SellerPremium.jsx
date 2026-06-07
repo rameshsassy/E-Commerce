@@ -214,6 +214,8 @@ Unlock your seller superpowers and grow your B2B business.
 
   const activePlanName = statsData?.subscriptionPlan || 'free';
   const isCurrentlyPremium = statsData?.sellerType === 'premium' && statsData?.subscriptionActive;
+  const daysLeft = statsData?.subscriptionValidUntil ? calculateDaysLeft(statsData.subscriptionValidUntil) : 0;
+  const showExpiryWarning = isCurrentlyPremium && daysLeft > 0 && daysLeft <= 30;
 
   if (loading) {
     return (
@@ -254,6 +256,32 @@ Unlock your seller superpowers and grow your B2B business.
           </div>
         </div>
       </div>
+
+      {showExpiryWarning && (
+        <div className="bg-amber-50 border border-amber-200 rounded-3xl p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-sm animate-fade-in">
+          <div className="flex items-start gap-3.5">
+            <div className="h-12 w-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+              <AlertCircle size={24} />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-amber-900 text-base mb-1">Your Premium Subscription is Expiring</h3>
+              <p className="text-amber-800 text-sm leading-relaxed font-medium">
+                Your current plan expires in <span className="font-extrabold text-amber-900">{daysLeft} days</span> (on {formatValidUntil(statsData.subscriptionValidUntil)}). Renew your subscription today to ensure uninterrupted B2B/B2C sales tools, multiple addresses, and dedicated support.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              const el = document.getElementById('pricing-matrix');
+              el?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="w-full md:w-auto px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white font-extrabold rounded-2xl text-sm shadow-sm transition-all active:scale-98 shrink-0 text-center"
+          >
+            Renew Now
+          </button>
+        </div>
+      )}
 
       {/* 2. Billing Status Cards */}
       <div className="bg-white border border-slate-100 rounded-3xl p-6 sm:p-8 shadow-sm">
