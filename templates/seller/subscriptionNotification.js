@@ -7,10 +7,77 @@ const escapeHtml = (str) =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 
-/** Premium subscription welcome email template */
-export default function premiumUpgrade(name, dashboardLink) {
+/** Unified subscriber lifecycle notification email template matching the visual 9-box design */
+export default function subscriptionNotification(name, type, dashboardLink) {
   const sellerName = escapeHtml(name || "there");
   const logoUrl = `${appBaseUrl()}/brand/aashansh-logo.png`;
+
+  let bannerText = "Subscription Renewal";
+  let contentHtml = "";
+
+  if (type === "30_days") {
+    bannerText = "30 Days Left";
+    contentHtml = `
+      <p style="margin: 0 0 15px; font-weight: bold; font-size: 15px;">Hi ${sellerName},</p>
+      <p style="margin: 0 0 15px;">A quick heads-up: your Aashansh subscription expires in 30 days.</p>
+      <p style="margin: 0 0 15px;">Thank you for trusting us with your mission — your platform is helping connect businesses, customers, and opportunities more effectively every day.</p>
+      <p style="margin: 0 0 15px;">Before renewal time arrives, we encourage you to review your dashboard performance, sales insights, customer engagement, and business growth metrics.</p>
+      <p style="margin: 0 0 15px;">Renewing early ensures uninterrupted access to all premium features and services available through Aashansh.</p>
+      <p style="margin: 0 0 15px;">If you have any questions regarding renewal options or subscription plans, our support team is always here to help.</p>
+      <p style="margin: 0 0 25px;">Keep growing with Aashansh and continue building meaningful business connections.</p>
+    `;
+  } else if (type === "15_days") {
+    bannerText = "15 Days Left";
+    contentHtml = `
+      <p style="margin: 0 0 15px; font-weight: bold; font-size: 15px;">Hi ${sellerName},</p>
+      <p style="margin: 0 0 15px;">Only 15 days remain before your Aashansh subscription expires.</p>
+      <p style="margin: 0 0 15px;">We appreciate your participation in our growing business community and the trust you place in our platform.</p>
+      <p style="margin: 0 0 15px;">Your subscription remains active, giving you full access to your dashboard, customer analytics, sales tools, and business growth features.</p>
+      <p style="margin: 0 0 15px;">To avoid any interruption in service, we recommend renewing your subscription before the expiry date.</p>
+      <p style="margin: 0 0 15px;">Continue leveraging the tools and opportunities designed to help your business succeed.</p>
+      <p style="margin: 0 0 25px;">Thank you for being part of the Aashansh community.</p>
+    `;
+  } else if (type === "10_days") {
+    bannerText = "10 Days Left";
+    contentHtml = `
+      <p style="margin: 0 0 15px; font-weight: bold; font-size: 15px;">Hi ${sellerName},</p>
+      <p style="margin: 0 0 15px;">Your Aashansh subscription will expire in just 10 days.</p>
+      <p style="margin: 0 0 15px;">This is a great time to review your business performance through your dashboard, including customer engagement, sales trends, and platform activity.</p>
+      <p style="margin: 0 0 15px;">Remember, your subscription provides access to valuable business tools that help increase visibility, streamline operations, and support growth.</p>
+      <p style="margin: 0 0 15px;">Renew now to continue enjoying uninterrupted access to all premium features.</p>
+      <p style="margin: 0 0 25px;">We look forward to supporting your business journey.</p>
+    `;
+  } else if (type === "5_days") {
+    bannerText = "5 Days Left";
+    contentHtml = `
+      <p style="margin: 0 0 15px; font-weight: bold; font-size: 15px;">Hi ${sellerName},</p>
+      <p style="margin: 0 0 15px;">Reminder: your Aashansh subscription expires in 5 days.</p>
+      <p style="margin: 0 0 15px;">Your account is currently active, and you can continue managing your products, sales, customers, and business operations through your dashboard.</p>
+      <p style="margin: 0 0 15px;">To avoid losing access to premium features and business opportunities, we encourage you to renew your subscription today.</p>
+      <p style="margin: 0 0 15px;">A quick renewal ensures your growth momentum continues without interruption.</p>
+      <p style="margin: 0 0 25px;">Renew today and remain part of India's movement toward conscious, inclusive, and impactful business growth.</p>
+    `;
+  } else if (type === "1_day") {
+    bannerText = "1 Day Left";
+    contentHtml = `
+      <p style="margin: 0 0 15px; font-weight: bold; font-size: 15px;">Hi ${sellerName},</p>
+      <p style="margin: 0 0 15px;">Important: your Aashansh subscription expires tomorrow.</p>
+      <p style="margin: 0 0 15px;">To continue enjoying uninterrupted access to your dashboard, analytics, sales tools, and business services, please renew your subscription within the next 24 hours.</p>
+      <p style="margin: 0 0 15px;">After expiry, premium features and platform benefits may become unavailable until your subscription is renewed.</p>
+      <p style="margin: 0 0 15px;">Don't miss out on valuable opportunities to grow your business and connect with customers.</p>
+      <p style="margin: 0 0 25px;">Renew today and keep your business moving forward.</p>
+    `;
+  } else if (type === "expired") {
+    bannerText = "Subscription Ended";
+    contentHtml = `
+      <p style="margin: 0 0 15px; font-weight: bold; font-size: 15px;">Hi ${sellerName},</p>
+      <p style="margin: 0 0 15px;">Your Aashansh subscription has expired.</p>
+      <p style="margin: 0 0 15px;">As a result, access to certain premium features, advanced analytics, business tools, and growth opportunities may now be limited.</p>
+      <p style="margin: 0 0 15px;">The good news is that you can reactivate your subscription at any time and continue where you left off.</p>
+      <p style="margin: 0 0 25px;">Renew your subscription today to restore full access and continue growing your business through the Aashansh platform.</p>
+      <p style="margin: 0 0 25px;">We value your association with us and look forward to supporting your success again.</p>
+    `;
+  }
 
   // 9 Why Aashansh premium features
   const features = [
@@ -66,7 +133,7 @@ export default function premiumUpgrade(name, dashboardLink) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Thank you for subscribing | Aashansh</title>
+  <title>${bannerText} - Aashansh</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #F6F6F6; font-family: Arial, Helvetica, sans-serif;">
 <center>
@@ -88,7 +155,7 @@ export default function premiumUpgrade(name, dashboardLink) {
               <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #FFD600; border-radius: 8px;">
                 <tr>
                   <td align="center" style="padding: 14px 20px;">
-                    <div style="font-size: 18px; font-weight: bold; color: #333; text-transform: uppercase; letter-spacing: 0.5px;">Subscription Successful</div>
+                    <div style="font-size: 18px; font-weight: bold; color: #333; text-transform: uppercase; letter-spacing: 0.5px;">${bannerText}</div>
                   </td>
                 </tr>
               </table>
@@ -98,13 +165,7 @@ export default function premiumUpgrade(name, dashboardLink) {
           <!-- ===== BODY COPY ===== -->
           <tr>
             <td style="padding: 25px 30px 20px; color: #333; line-height: 1.6; font-size: 14px; text-align: left;">
-              <p style="margin: 0 0 15px; font-weight: bold; font-size: 15px;">Dear ${sellerName},</p>
-              <p style="margin: 0 0 15px;">Thank you for subscribing to Aashansh. We are thrilled to have you on board!</p>
-              <p style="margin: 0 0 15px;">Your subscription is active and will remain valid for 365 days, giving you full access to your plan's exciting features mentioned on your dashboard.</p>
-              <p style="margin: 0 0 15px;">Start by visiting your dashboard to track real-time sales performance of your sales — view customer details, analytics and more.</p>
-              <p style="margin: 0 0 15px;">Need a receipt? Download your invoice anytime from the dashboard.</p>
-              <p style="margin: 0 0 15px;">We can't wait to see your business grow — our team is here to help you deliver measurable results.</p>
-              <p style="margin: 0 0 25px; font-style: italic; color: #555;">Welcome India's movement toward conscious, inclusive, and impactful consumption</p>
+              ${contentHtml}
               
               <p style="margin: 0 0 3px;">Warm Regards</p>
               <p style="margin: 0 0 3px; font-weight: bold;">Team Aashansh</p>

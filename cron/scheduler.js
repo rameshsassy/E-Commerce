@@ -6,6 +6,7 @@ import { runMonthlySellerInsights } from "./monthlyInsights.js";
 import { runAbandonedCartReminders } from "./abandonedCart.js";
 import { runThankYouAfterDelivery } from "./thankYouDelay.js";
 import { runFestivalCampaign } from "./festivalCampaign.js";
+import { runSubscriptionReminders } from "./subscriptionReminders.js";
 
 export async function startEmailSchedulers() {
   if (process.env.ENABLE_EMAIL_CRON !== "true") {
@@ -39,6 +40,10 @@ export async function startEmailSchedulers() {
 
   cron.schedule("0 11 * * *", () => {
     runFestivalCampaign().catch((e) => console.error("[cron] festival", e));
+  });
+
+  cron.schedule("30 9 * * *", () => {
+    runSubscriptionReminders().catch((e) => console.error("[cron] subscriptionReminders", e));
   });
 
   console.log("[cron] Email schedulers registered");

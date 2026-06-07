@@ -14,6 +14,7 @@ import {
   sendPremiumUpgradeEmail,
   sendSellerReferralInviteEmail,
 } from "../services/email.service.js";
+import { runSubscriptionReminders } from "../cron/subscriptionReminders.js";
 import { absoluteToWebPath } from "../utils/uploadPaths.js";
 import {
   getPurchaseTypeOptionsForSeller,
@@ -981,11 +982,29 @@ export const getAnalytics = async (req, res) => {
 };
 
 // ===============================
+// Helper: Auto check and handle subscription expiry
+// ===============================
+export const checkAndHandleSubscriptionExpiry = async (user) => {
+  if (
+    user &&
+    user.sellerType === "premium" &&
+    user.subscriptionActive &&
+    user.subscriptionValidUntil &&
+    new Date(user.subscriptionValidUntil) <= new Date()
+  ) {
+    user.subscriptionActive = false;
+    user.bulkPurchaseEnabled = false;
+    await user.save();
+  }
+};
+
+// ===============================
 // 👤 GET SELLER PROFILE
 // ===============================
 export const getSellerProfile = async (req, res) => {
   try {
     const user = req.user;
+    await checkAndHandleSubscriptionExpiry(user);
     const isPremium = user.sellerType === "premium" && user.subscriptionActive === true;
 
     res.json({
@@ -1881,7 +1900,10 @@ export const verifySubscriptionPayment = async (req, res) => {
     user.sellerType = "premium";
     user.subscriptionPlan = notePlan;
     
-    const validUntil = new Date();
+    let validUntil = new Date();
+    if (user.subscriptionValidUntil && user.subscriptionValidUntil > new Date() && user.subscriptionActive) {
+      validUntil = new Date(user.subscriptionValidUntil);
+    }
     validUntil.setFullYear(validUntil.getFullYear() + 1);
     user.subscriptionValidUntil = validUntil;
 
@@ -1893,10 +1915,10 @@ export const verifySubscriptionPayment = async (req, res) => {
 
     await user.save();
 
+    sendPremiumUpgradeEmail(user).catch((e) =>
+      console.error("Premium upgrade email failed:", e?.message || e)
+    );
     if (!wasAlreadyPremium) {
-      sendPremiumUpgradeEmail(user).catch((e) =>
-        console.error("Premium upgrade email failed:", e?.message || e)
-      );
       logPremiumActivity(user._id);
     }
 
@@ -1931,24 +1953,26 @@ export const upgradeSellerToPremiumManual = async (req, res) => {
       user.subscriptionActive === true &&
       user.subscriptionPlan === plan;
 
-    if (!already) {
-      user.sellerType = "premium";
-      user.subscriptionPlan = plan;
-      
-      const validUntil = new Date();
-      validUntil.setFullYear(validUntil.getFullYear() + 1);
-      user.subscriptionValidUntil = validUntil;
-
-      user.bulkPurchaseEnabled = true;
-      user.subscriptionActive = true;
-      user.pendingPremiumOrderId = null;
-      user.pendingPremiumOrderAt = null;
-      await user.save();
-      sendPremiumUpgradeEmail(user).catch((e) =>
-        console.log("Premium upgrade email failed:", e.message)
-      );
-      logPremiumActivity(user._id);
+    user.sellerType = "premium";
+    user.subscriptionPlan = plan;
+    
+    let validUntil = new Date();
+    if (user.subscriptionValidUntil && user.subscriptionValidUntil > new Date() && user.subscriptionActive) {
+      validUntil = new Date(user.subscriptionValidUntil);
     }
+    validUntil.setFullYear(validUntil.getFullYear() + 1);
+    user.subscriptionValidUntil = validUntil;
+
+    user.bulkPurchaseEnabled = true;
+    user.subscriptionActive = true;
+    user.pendingPremiumOrderId = null;
+    user.pendingPremiumOrderAt = null;
+    await user.save();
+    
+    sendPremiumUpgradeEmail(user).catch((e) =>
+      console.log("Premium upgrade email failed:", e.message)
+    );
+    logPremiumActivity(user._id);
     return res.json({
       message: already
         ? `Premium (${plan}) is already active on your account.`
@@ -1977,6 +2001,8 @@ export const getPremiumPageDetails = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "Seller not found" });
     }
+
+    await checkAndHandleSubscriptionExpiry(user);
 
     // 1. Products Listed
     const productsListed = await Product.countDocuments({ sellerId, isActive: true });
@@ -2195,5 +2221,58 @@ export const getAboutUs = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: "Failed to load about us" });
+  }
+};
+
+// ===============================
+// 🧪 TESTING ROUTES FOR SUBSCRIPTION
+// ===============================
+export const setSubscriptionDaysForTest = async (req, res) => {
+  try {
+    const { daysLeft } = req.body;
+    if (daysLeft === undefined) {
+      return res.status(400).json({ message: "Missing daysLeft in request body" });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const validUntil = new Date();
+    validUntil.setDate(validUntil.getDate() + Number(daysLeft));
+    user.subscriptionValidUntil = validUntil;
+    user.sellerType = "premium";
+    user.subscriptionPlan = "premium";
+    user.subscriptionActive = Number(daysLeft) > 0;
+    if (Number(daysLeft) > 0) {
+      user.bulkPurchaseEnabled = true;
+    } else {
+      user.bulkPurchaseEnabled = false;
+    }
+    await user.save();
+
+    return res.json({
+      message: `Subscription successfully set for testing (${daysLeft} days left)`,
+      sellerType: user.sellerType,
+      subscriptionPlan: user.subscriptionPlan,
+      subscriptionValidUntil: user.subscriptionValidUntil,
+      subscriptionActive: user.subscriptionActive,
+      bulkPurchaseEnabled: user.bulkPurchaseEnabled,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const triggerRemindersForTest = async (req, res) => {
+  try {
+    await runSubscriptionReminders();
+    return res.json({
+      success: true,
+      message: "Subscription reminders check triggered and completed successfully.",
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 };

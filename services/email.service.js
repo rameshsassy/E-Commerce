@@ -21,6 +21,7 @@ import bulkOrderSeller from "../templates/seller/bulkOrderSeller.js";
 import kycApprovalSeller from "../templates/seller/kycApprovalSeller.js";
 import kycRejectionSeller from "../templates/seller/kycRejectionSeller.js";
 import passwordReset from "../templates/customer/passwordReset.js";
+import subscriptionNotification from "../templates/seller/subscriptionNotification.js";
 
 
 const base = () => appBaseUrl();
@@ -168,7 +169,35 @@ export const sendPremiumUpgradeEmail = async (user) => {
   await dispatchEmail({
     templateType: "seller_premium_upgrade",
     to: user.email,
-    subject: "Premium Seller activated — welcome to Aashansh Premium",
+    subject: "Thank you for subscribing | Aashansh",
+    html,
+    senderType: "seller",
+    meta: { userId: user._id },
+  });
+};
+
+export const sendSubscriptionReminderEmail = async (user, type) => {
+  const html = subscriptionNotification(user.firstName || "there", type, `${base()}/seller/dashboard`);
+  
+  let subject = "";
+  if (type === "30_days") {
+    subject = "Reminder! 30 days left for Aashansh subscription | Renew Now";
+  } else if (type === "15_days") {
+    subject = "Reminder! 15 days left for Aashansh subscription | Renew Now";
+  } else if (type === "10_days") {
+    subject = "Reminder! 10 days left for Aashansh subscription | Renew Now";
+  } else if (type === "5_days") {
+    subject = "Reminder! 5 days left for Aashansh subscription | Renew Now";
+  } else if (type === "1_day") {
+    subject = "Reminder! 1 day left for Aashansh subscription | Renew Now";
+  } else if (type === "expired") {
+    subject = "Reminder! Subescription Ended - Aashansh | Renew Now";
+  }
+
+  await dispatchEmail({
+    templateType: `seller_subscription_${type}`,
+    to: user.email,
+    subject,
     html,
     senderType: "seller",
     meta: { userId: user._id },

@@ -24,6 +24,8 @@ import {
   sendReferralInvite,
   getAboutUs,
   getRecentActivity,
+  setSubscriptionDaysForTest,
+  triggerRemindersForTest,
 } from "../controllers/seller.controller.js";
 import {
   listSellerBulkInquiries,
@@ -146,6 +148,8 @@ router.post("/subscription/razorpay", protect, authorizeRoles("seller"), createS
 router.post("/subscription/razorpay/verify", protect, authorizeRoles("seller"), verifySubscriptionPayment);
 router.post("/upgrade", protect, authorizeRoles("seller"), upgradeSellerToPremiumManual);
 router.get("/premium/details", protect, authorizeRoles("seller"), getPremiumPageDetails);
+router.post("/test/set-subscription", protect, authorizeRoles("seller"), setSubscriptionDaysForTest);
+router.post("/test/run-reminders", protect, authorizeRoles("seller"), triggerRemindersForTest);
 
 // 🛍️ Seller Buy Products Flow
 router.get("/buy-products", protect, authorizeRoles("seller"), getBuyProducts);
