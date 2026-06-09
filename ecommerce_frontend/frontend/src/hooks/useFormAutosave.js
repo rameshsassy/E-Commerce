@@ -30,11 +30,9 @@ export function useFormAutosave({
 }) {
   const [status, setStatus] = useState('idle');
   const [message, setMessage] = useState('');
-  const hydratedRef = useRef(false);
+  const [hydrated, setHydrated] = useState(false);
   const skipSaveRef = useRef(true);
   const lastSigRef = useRef('');
-  const valueRef = useRef(value);
-  valueRef.current = value;
 
   const clearDraft = useCallback(async () => {
     if (!formKey) return;
@@ -47,7 +45,7 @@ export function useFormAutosave({
 
   useEffect(() => {
     if (!enabled || !formKey || !restore) {
-      hydratedRef.current = true;
+      setHydrated(true);
       skipSaveRef.current = false;
       return undefined;
     }
@@ -66,7 +64,7 @@ export function useFormAutosave({
         /* no draft yet */
       } finally {
         if (!cancelled) {
-          hydratedRef.current = true;
+          setHydrated(true);
           window.setTimeout(() => {
             skipSaveRef.current = false;
           }, 50);
@@ -80,7 +78,7 @@ export function useFormAutosave({
   }, [formKey, enabled, restore, onRestore]);
 
   useEffect(() => {
-    if (!enabled || !formKey || !hydratedRef.current || skipSaveRef.current) {
+    if (!enabled || !formKey || !hydrated || skipSaveRef.current) {
       return undefined;
     }
 
@@ -93,11 +91,11 @@ export function useFormAutosave({
       setMessage('Auto-saving…');
       try {
         if (saveFn) {
-          const result = await saveFn(valueRef.current);
+          const result = await saveFn(value);
           setMessage(result?.message || 'Auto-saved');
         } else {
           const { data } = await api.put(`/form-drafts/${encodeURIComponent(formKey)}`, {
-            data: valueRef.current,
+            data: value,
           });
           setMessage(data?.message || 'Auto-saved');
         }
@@ -110,12 +108,12 @@ export function useFormAutosave({
     }, debounceMs);
 
     return () => window.clearTimeout(timeoutId);
-  }, [value, formKey, enabled, debounceMs, saveFn, isEmpty]);
+  }, [value, formKey, enabled, debounceMs, saveFn, isEmpty, hydrated]);
 
   const markSaved = useCallback((nextValue) => {
-    lastSigRef.current = JSON.stringify(nextValue ?? valueRef.current);
+    lastSigRef.current = JSON.stringify(nextValue ?? value);
     skipSaveRef.current = false;
-  }, []);
+  }, [value]);
 
   const pauseAutosave = useCallback(() => {
     skipSaveRef.current = true;
@@ -132,7 +130,7 @@ export function useFormAutosave({
     markSaved,
     pauseAutosave,
     resumeAutosave,
-    hydrated: hydratedRef.current,
+    hydrated,
   };
 }
 

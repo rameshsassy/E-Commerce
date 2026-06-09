@@ -30,7 +30,7 @@ import {
   buildCategoryProductFilter,
   resolveCategoryParams,
 } from "../utils/categoryPageSeo.js";
-import { PLAN_ERROR_CODE } from "../utils/storePlanLimits.js";
+import { PLAN_ERROR_CODE, createPremiumRequiredError } from "../utils/storePlanLimits.js";
 import {
   logProductCreated,
   logProductUpdated,
@@ -546,6 +546,46 @@ export const bulkUploadProducts = async (req, res) => {
           normalizedRow.compareAtPrice = value;
         } else if (lowerKey === 'imagelinks' || lowerKey === 'image links' || lowerKey === 'images') {
           normalizedRow.imageLinks = value;
+        } else if (lowerKey === 'sku') {
+          normalizedRow.sku = value;
+        } else if (lowerKey === 'barcode') {
+          normalizedRow.barcode = value;
+        } else if (lowerKey === 'min order quantity' || lowerKey === 'minorderquantity') {
+          normalizedRow.minOrderQuantity = value;
+        } else if (lowerKey === 'max order quantity' || lowerKey === 'maxorderquantity') {
+          normalizedRow.maxOrderQuantity = value;
+        } else if (lowerKey === 'bulk purchase enabled' || lowerKey === 'bulkpurchaseenabled') {
+          normalizedRow.bulkPurchaseEnabled = value;
+        } else if (lowerKey === 'bulk purchase min order quantity' || lowerKey === 'bulkpurchaseminorderquantity') {
+          normalizedRow.bulkPurchaseMinOrderQuantity = value;
+        } else if (lowerKey === 'dispatch delivery days' || lowerKey === 'dispatchdeliverydays' || lowerKey === 'delivery days') {
+          normalizedRow.dispatchDeliveryDays = value;
+        } else if (lowerKey === 'purchase type' || lowerKey === 'purchasetype') {
+          normalizedRow.purchaseType = value;
+        } else if (lowerKey === 'is physical product' || lowerKey === 'isphysicalproduct') {
+          normalizedRow.isPhysicalProduct = value;
+        } else if (lowerKey === 'product weight' || lowerKey === 'productweight') {
+          normalizedRow.productWeight = value;
+        } else if (lowerKey === 'product weight unit' || lowerKey === 'productweightunit') {
+          normalizedRow.productWeightUnit = value;
+        } else if (lowerKey === 'package length' || lowerKey === 'packagelength') {
+          normalizedRow.packageLength = value;
+        } else if (lowerKey === 'package width' || lowerKey === 'packagewidth') {
+          normalizedRow.packageWidth = value;
+        } else if (lowerKey === 'package height' || lowerKey === 'packageheight') {
+          normalizedRow.packageHeight = value;
+        } else if (lowerKey === 'package dimensions unit' || lowerKey === 'packagedimensionsunit') {
+          normalizedRow.packageDimensionsUnit = value;
+        } else if (lowerKey === 'delivery by' || lowerKey === 'deliveryby') {
+          normalizedRow.deliveryBy = value;
+        } else if (lowerKey === 'delivery values' || lowerKey === 'deliveryvalues') {
+          normalizedRow.deliveryValues = value;
+        } else if (lowerKey === 'premium type' || lowerKey === 'premiumtype' || lowerKey === 'type') {
+          normalizedRow.premiumType = value;
+        } else if (lowerKey === 'care instructions' || lowerKey === 'careinstructions') {
+          normalizedRow.careInstructions = value;
+        } else if (lowerKey === 'key highlights' || lowerKey === 'keyhighlights') {
+          normalizedRow.keyHighlights = value;
         } else {
           normalizedRow[key] = value;
         }
@@ -562,6 +602,7 @@ export const bulkUploadProducts = async (req, res) => {
       })
       .on("end", async () => {
         if (rows.length === 0) {
+          try { fs.unlinkSync(req.file.path); } catch (_) {}
           return res.status(400).json({
             message: "No valid products found in CSV",
           });
@@ -570,13 +611,31 @@ export const bulkUploadProducts = async (req, res) => {
         try {
           await validateBulkProductCategories(req.user, rows);
         } catch (err) {
+          try { fs.unlinkSync(req.file.path); } catch (_) {}
           if (err.code === PLAN_ERROR_CODE) return sendPlanErrorResponse(res, err);
           throw err;
         }
 
         const products = [];
+        const isPremium =
+          req.user.sellerType === "premium" && req.user.subscriptionActive === true;
 
         for (const row of rows) {
+          // Premium checks
+          const wantsBulk =
+            row.bulkPurchaseEnabled === "true" ||
+            row.bulkPurchaseEnabled === true ||
+            row.bulkPurchaseEnabled === "1" ||
+            row.bulkPurchaseEnabled === 1;
+
+          if (wantsBulk && !isPremium) {
+            try { fs.unlinkSync(req.file.path); } catch (_) {}
+            return sendPlanErrorResponse(res, createPremiumRequiredError(
+              "You need to upgrade to Premium to enable Bulk Purchase / B2B.",
+              "bulk_purchase"
+            ));
+          }
+
           let localImagePaths = [];
 
           if (row.imageLinks) {
@@ -618,11 +677,125 @@ export const bulkUploadProducts = async (req, res) => {
 
           let rowCategory = row.category;
           try {
-            const resolved = await resolveSellerCategory(req.user, row.category, {});
+            const resolved = await resolveSellerCategory(req.user, row.category, {
+              premiumType: row.premiumType || "",
+            });
             rowCategory = resolved.category;
           } catch (err) {
+            try { fs.unlinkSync(req.file.path); } catch (_) {}
             if (err.code === PLAN_ERROR_CODE) return sendPlanErrorResponse(res, err);
             throw err;
+          }
+
+          let minOrderQty = 1;
+          if (row.minOrderQuantity !== undefined && row.minOrderQuantity !== "") {
+            const val = Number(row.minOrderQuantity);
+            if (Number.isFinite(val) && val >= 1) {
+              minOrderQty = Math.floor(val);
+            }
+          }
+
+          let maxOrderQty = 5;
+          if (row.maxOrderQuantity !== undefined && row.maxOrderQuantity !== "") {
+            const val = Number(row.maxOrderQuantity);
+            if (Number.isFinite(val) && val >= 1) {
+              maxOrderQty = Math.floor(val);
+            }
+          }
+
+          let bulkMinQty = 50;
+          if (row.bulkPurchaseMinOrderQuantity !== undefined && row.bulkPurchaseMinOrderQuantity !== "") {
+            const val = Number(row.bulkPurchaseMinOrderQuantity);
+            if (Number.isFinite(val) && val >= 1) {
+              bulkMinQty = Math.floor(val);
+            }
+          }
+
+          let dispatchDays = undefined;
+          if (row.dispatchDeliveryDays !== undefined && row.dispatchDeliveryDays !== "") {
+            const val = Number(row.dispatchDeliveryDays);
+            if (Number.isFinite(val) && val >= 0) {
+              dispatchDays = Math.floor(val);
+            }
+          }
+
+          let isPhysical = true;
+          if (row.isPhysicalProduct !== undefined && row.isPhysicalProduct !== "") {
+            isPhysical =
+              row.isPhysicalProduct === "true" ||
+              row.isPhysicalProduct === true ||
+              row.isPhysicalProduct === "1" ||
+              row.isPhysicalProduct === 1;
+          }
+
+          let weight = 0;
+          if (row.productWeight !== undefined && row.productWeight !== "") {
+            const val = Number(row.productWeight);
+            if (Number.isFinite(val) && val >= 0) {
+              weight = val;
+            }
+          }
+
+          let weightUnit = "g";
+          if (row.productWeightUnit !== undefined && row.productWeightUnit !== "") {
+            const val = String(row.productWeightUnit).trim().toLowerCase();
+            if (["g", "kg", "lb", "oz"].includes(val)) {
+              weightUnit = val;
+            }
+          }
+
+          let pkgLength = undefined;
+          if (row.packageLength !== undefined && row.packageLength !== "") {
+            const val = Number(row.packageLength);
+            if (Number.isFinite(val) && val >= 0) pkgLength = val;
+          }
+          let pkgWidth = undefined;
+          if (row.packageWidth !== undefined && row.packageWidth !== "") {
+            const val = Number(row.packageWidth);
+            if (Number.isFinite(val) && val >= 0) pkgWidth = val;
+          }
+          let pkgHeight = undefined;
+          if (row.packageHeight !== undefined && row.packageHeight !== "") {
+            const val = Number(row.packageHeight);
+            if (Number.isFinite(val) && val >= 0) pkgHeight = val;
+          }
+
+          let pkgDimensionsUnit = "cm";
+          if (row.packageDimensionsUnit !== undefined && row.packageDimensionsUnit !== "") {
+            const val = String(row.packageDimensionsUnit).trim().toLowerCase();
+            if (["cm", "in"].includes(val)) pkgDimensionsUnit = val;
+          }
+
+          let purType = "one_time";
+          if (row.purchaseType !== undefined && row.purchaseType !== "") {
+            const val = String(row.purchaseType).trim().toLowerCase();
+            if (["one_time", "subscription", "custom_order"].includes(val)) {
+              purType = val;
+            }
+          }
+
+          if ((purType === "subscription" || purType === "custom_order") && !isPremium) {
+            try { fs.unlinkSync(req.file.path); } catch (_) {}
+            return sendPlanErrorResponse(res, createPremiumRequiredError(
+              `${purType === "subscription" ? "Subscription" : "Custom Order"} purchase type is only available for subscribed sellers. Upgrade to premium to use this option.`,
+              "premium"
+            ));
+          }
+
+          let delBy = undefined;
+          if (row.deliveryBy !== undefined && row.deliveryBy !== "") {
+            const val = String(row.deliveryBy).trim().toLowerCase();
+            if (["pincode", "city", "state", "all_india"].includes(val)) {
+              delBy = val;
+            }
+          }
+
+          let delValues = [];
+          if (row.deliveryValues !== undefined && row.deliveryValues !== "") {
+            delValues = String(row.deliveryValues)
+              .split(",")
+              .map((v) => v.trim())
+              .filter(Boolean);
           }
 
           products.push({
@@ -630,17 +803,38 @@ export const bulkUploadProducts = async (req, res) => {
             title: row.title,
             description: row.description || "",
             price: Number(row.price),
+            compareAtPrice: row.compareAtPrice ? Number(row.compareAtPrice) : undefined,
             stock: Number(row.stock || 0),
             category: rowCategory,
+            premiumType: row.premiumType || "",
             keywords: row.keywords ? row.keywords.split(",") : [],
             images: localImagePaths,
+            sku: row.sku || "",
+            barcode: row.barcode || "",
+            minOrderQuantity: minOrderQty,
+            maxOrderQuantity: maxOrderQty,
+            bulkPurchaseEnabled: wantsBulk,
+            bulkPurchaseMinOrderQuantity: bulkMinQty,
+            dispatchDeliveryDays: dispatchDays,
+            purchaseType: purType,
+            isPhysicalProduct: isPhysical,
+            productWeight: weight,
+            productWeightUnit: weightUnit,
+            packageLength: pkgLength,
+            packageWidth: pkgWidth,
+            packageHeight: pkgHeight,
+            packageDimensionsUnit: pkgDimensionsUnit,
+            deliveryBy: delBy,
+            deliveryValues: delValues,
+            careInstructions: row.careInstructions || "",
+            keyHighlights: row.keyHighlights || "",
             isDraft: false,
             approvalStatus: "pending",
           });
         }
 
         await Product.insertMany(products);
-        fs.unlinkSync(req.file.path);
+        try { fs.unlinkSync(req.file.path); } catch (_) {}
 
         logBulkProductUpload(req.user._id, products.length);
 
@@ -651,12 +845,16 @@ export const bulkUploadProducts = async (req, res) => {
         });
       })
       .on("error", (err) => {
+        try { fs.unlinkSync(req.file.path); } catch (_) {}
         res.status(500).json({
           message: "CSV processing failed",
           error: err.message,
         });
       });
   } catch (error) {
+    try {
+      if (req.file?.path) fs.unlinkSync(req.file.path);
+    } catch (_) {}
     res.status(500).json({ message: error.message });
   }
 };

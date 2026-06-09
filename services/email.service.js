@@ -13,6 +13,7 @@ import newProductEmail from "../templates/customer/newProductEmail.js";
 import festivalEmail from "../templates/customer/festivalEmail.js";
 import sellerWelcome from "../templates/seller/sellerWelcome.js";
 import sellerReferralInvite from "../templates/seller/sellerReferralInvite.js";
+import sellerReferralFollowUp from "../templates/seller/sellerReferralFollowUp.js";
 import newOrderSeller from "../templates/seller/newOrderSeller.js";
 import weeklyReport from "../templates/seller/weeklyReport.js";
 import monthlyInsights from "../templates/seller/monthlyInsights.js";
@@ -124,6 +125,7 @@ export const sendSellerReferralInviteEmail = async ({
   inviteeContact,
   inviteeDesignation,
   senderName,
+  sellerFirstName,
   referralLink,
   referrerId,
 }) => {
@@ -137,6 +139,7 @@ export const sendSellerReferralInviteEmail = async ({
     inviteeFirstName,
     inviteeVenture,
     senderName,
+    sellerFirstName,
     referralLink,
     logoUrl,
   });
@@ -160,6 +163,51 @@ export const sendSellerReferralInviteEmail = async ({
   if (result?.skipped) return result;
   if (!result?.ok) {
     throw new Error(result?.error || "Referral invitation email failed to send");
+  }
+  return result;
+};
+
+export const sendSellerReferralFollowUpEmail = async ({
+  to,
+  step,
+  inviteeFirstName,
+  inviteeVenture,
+  referralCode,
+  referralLink,
+}) => {
+  const email = to != null ? String(to).trim() : "";
+  if (!email) {
+    return { ok: false, skipped: true };
+  }
+
+  const logoUrl = `${base()}/brand/aashansh-logo.png`;
+  const html = sellerReferralFollowUp({
+    step,
+    inviteeFirstName,
+    inviteeVenture,
+    referralCode,
+    referralLink,
+    logoUrl,
+  });
+
+  const subjects = {
+    1: "Transform your business with Aashansh",
+    2: "Don't miss out on being an early Aashansh seller",
+    3: "Multiply your sales in weeks with Aashansh",
+    4: "Multiply your sales and bulk orders with Aashansh",
+  };
+
+  const result = await dispatchEmail({
+    templateType: `seller_referral_followup_${step}`,
+    to: email,
+    subject: subjects[step] || "Grow your business on Aashansh",
+    html,
+    senderType: "seller",
+  });
+
+  if (result?.skipped) return result;
+  if (!result?.ok) {
+    throw new Error(result?.error || `Referral follow-up ${step} email failed to send`);
   }
   return result;
 };

@@ -1,5 +1,6 @@
 import User from "../models/User.js";
 import RefreshToken from "../models/RefreshToken.js";
+import ReferralInvite from "../models/ReferralInvite.js";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
@@ -166,6 +167,15 @@ export const registerSeller = async (req, res) => {
         $inc: { referralSignups: 1 },
       });
     }
+
+    // Mark referral invite as signed_up so follow ups stop
+    await ReferralInvite.findOneAndUpdate(
+      { inviteeEmail: email },
+      { status: "signed_up" }
+    ).catch((err) => {
+      console.error("[auth] Failed to update ReferralInvite status:", err.message);
+    });
+
     console.log(`[auth] User created successfully: ${user._id}`);
 
     const token = await issueTokensAndSetCookie(user, res, req);

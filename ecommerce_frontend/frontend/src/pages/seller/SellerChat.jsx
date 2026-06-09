@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import ChatPanel from '../../components/chat/ChatPanel';
 import { MessageSquare, ShieldAlert } from 'lucide-react';
 import api from '../../utils/api';
@@ -6,7 +6,7 @@ import api from '../../utils/api';
 const SellerChat = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const chatPanelRef = useRef();
+
 
   const handleStartAdminChat = async () => {
     setLoading(true);

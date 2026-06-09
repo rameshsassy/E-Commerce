@@ -26,6 +26,7 @@ import {
   getRecentActivity,
   setSubscriptionDaysForTest,
   triggerRemindersForTest,
+  triggerReferralFollowUpsForTest,
 } from "../controllers/seller.controller.js";
 import {
   listSellerBulkInquiries,
@@ -150,6 +151,7 @@ router.post("/upgrade", protect, authorizeRoles("seller"), upgradeSellerToPremiu
 router.get("/premium/details", protect, authorizeRoles("seller"), getPremiumPageDetails);
 router.post("/test/set-subscription", protect, authorizeRoles("seller"), setSubscriptionDaysForTest);
 router.post("/test/run-reminders", protect, authorizeRoles("seller"), triggerRemindersForTest);
+router.post("/test/run-referral-followups", protect, authorizeRoles("seller"), triggerReferralFollowUpsForTest);
 
 // 🛍️ Seller Buy Products Flow
 router.get("/buy-products", protect, authorizeRoles("seller"), getBuyProducts);

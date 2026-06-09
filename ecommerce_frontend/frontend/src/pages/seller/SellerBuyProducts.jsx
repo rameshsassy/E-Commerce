@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api, { BASE_URL } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -11,9 +11,7 @@ import {
   AlertCircle,
   Package,
   X,
-  Tag,
   DollarSign,
-  ArrowRight,
 } from 'lucide-react';
 
 export default function SellerBuyProducts() {
@@ -45,12 +43,7 @@ export default function SellerBuyProducts() {
 
   const buyerType = user?.sellerType || 'free';
 
-  // Load products of other sellers on mount
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -64,7 +57,12 @@ export default function SellerBuyProducts() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Load products of other sellers on mount
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
   // Fetch buyer's address to prefill shipping details when opening checkout
   const openCheckout = async (product, mode) => {
@@ -73,7 +71,7 @@ export default function SellerBuyProducts() {
     setOrderSuccess(null);
     setError('');
 
-    const sellerOfProductType = product.sellerId?.sellerType || 'free';
+
 
     // Set default quantities
     if (mode === 'single') {

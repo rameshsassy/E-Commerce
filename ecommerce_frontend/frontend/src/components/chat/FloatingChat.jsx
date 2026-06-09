@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/api';
-import { MessageSquare, Send, X, Shield, Clock, Search, HelpCircle, ArrowRight, User } from 'lucide-react';
+import { MessageSquare, Send, X, Shield, HelpCircle, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const LOCAL_FAQS = [
@@ -166,7 +166,7 @@ const FloatingChat = () => {
 
       setTimeout(() => {
         const match = findLocalFAQMatch(textToSend);
-        let replyText = '';
+        let replyText;
         if (match) {
           replyText = `Based on your question, here is what I found in our FAQ:\n\n**${match.question}**\n${match.answer}`;
         } else {

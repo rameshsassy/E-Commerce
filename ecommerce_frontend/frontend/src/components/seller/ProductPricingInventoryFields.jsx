@@ -1,4 +1,4 @@
-import { XCircle, ChevronDown, Search, Zap } from 'lucide-react';
+import { XCircle, ChevronDown, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import api from '../../utils/api';
@@ -13,6 +13,32 @@ import {
   pathFromApiLocked,
   formatCategoryPathLabel,
 } from '../../utils/sellerCategoryPath';
+
+const PremiumCrownIcon = ({ size = 16, className = "inline-block ml-2 align-middle" }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 100 100"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path
+      d="M20 68 L25 32 L42 52 L50 22 L58 52 L75 32 L80 68 Z"
+      stroke="#B98900"
+      strokeWidth="6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+    <path
+      d="M20 76 H80"
+      stroke="#B98900"
+      strokeWidth="6"
+      strokeLinecap="round"
+    />
+  </svg>
+);
 import {
   CATEGORY_OTHER_LABEL,
   getMainCategoryOptions,
@@ -23,7 +49,6 @@ import {
 } from '../../constants/sellerCategoryTaxonomy';
 import {
   isOtherCategoryLabel,
-  buildCategoryString,
   resolveCategorySegment,
   resolveTypeValue,
 } from '../../utils/sellerCategoryOther';
@@ -58,6 +83,8 @@ export default function ProductPricingInventoryFields({
   const [storeAddressSaving, setStoreAddressSaving] = useState(false);
   const [storeAddressError, setStoreAddressError] = useState('');
   const categoryWrapRef = useRef(null);
+  const purchaseTypeRef = useRef(null);
+  const [purchaseTypeOpen, setPurchaseTypeOpen] = useState(false);
   const [mainOpen, setMainOpen] = useState(false);
   const [subOpen, setSubOpen] = useState(false);
   const [typeOpen, setTypeOpen] = useState(false);
@@ -115,7 +142,7 @@ export default function ProductPricingInventoryFields({
 
   const mainOptionsList = useMemo(() => {
     return taxonomy?.mains?.length ? taxonomy.mains : getMainCategoryOptions();
-  }, [taxonomy?.mains]);
+  }, [taxonomy]);
 
   const subOptionsList = useMemo(() => {
     if (!mainKey) return [];
@@ -167,6 +194,9 @@ export default function ProductPricingInventoryFields({
         setMainOpen(false);
         setSubOpen(false);
         setTypeOpen(false);
+      }
+      if (purchaseTypeRef.current && !purchaseTypeRef.current.contains(e.target)) {
+        setPurchaseTypeOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -458,20 +488,75 @@ export default function ProductPricingInventoryFields({
           <label className="block text-[16px] font-semibold text-[#202223] mb-2">
             Purchase Type
           </label>
-          <select
-            className="w-full border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] outline-none focus:ring-2 focus:ring-[#005bd3] focus:border-[#005bd3] bg-white"
-            value={productData.purchaseType || 'one_time'}
-            onChange={(e) =>
-              setProductData({ ...productData, purchaseType: e.target.value })
-            }
-            disabled={addressesLocked}
-          >
-            {purchaseOptions.map((opt) => (
-              <option key={opt.value} value={opt.value} disabled={opt.available === false}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          <div className="relative" ref={purchaseTypeRef}>
+            <button
+              type="button"
+              disabled={addressesLocked}
+              className={`w-full flex items-center justify-between border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] bg-white outline-none focus:ring-2 focus:ring-[#005bd3] focus:border-[#005bd3] ${
+                addressesLocked ? 'opacity-70 cursor-not-allowed bg-[#F6F6F7]' : 'hover:bg-[#F6F6F7]'
+              }`}
+              onClick={() => setPurchaseTypeOpen((v) => !v)}
+            >
+              <span className="flex items-center">
+                {(() => {
+                  const currentPurchaseType = productData.purchaseType || 'one_time';
+                  const selectedOpt = purchaseOptions.find((o) => o.value === currentPurchaseType) || purchaseOptions[0];
+                  const isSelectedOptPremium = selectedOpt.value === 'subscription' || selectedOpt.value === 'custom_order';
+                  return (
+                    <>
+                      {selectedOpt.label}
+                      {isSelectedOptPremium && (
+                        <PremiumCrownIcon size={16} className="inline-block ml-2 align-middle" />
+                      )}
+                    </>
+                  );
+                })()}
+              </span>
+              <ChevronDown size={18} className="text-[#6D7175]" />
+            </button>
+
+            {purchaseTypeOpen && (
+              <div className="absolute z-50 w-full mt-1 bg-white border border-[#E1E3E5] rounded-md shadow-lg overflow-hidden">
+                <ul className="py-1">
+                  {purchaseOptions.map((opt) => {
+                    const isOptPremium = opt.value === 'subscription' || opt.value === 'custom_order';
+                    const isSelectable = opt.available !== false;
+                    const isSelected = opt.value === (productData.purchaseType || 'one_time');
+                    return (
+                      <li key={opt.value}>
+                        <button
+                          type="button"
+                          className={`w-full text-left px-3 py-2 text-[14px] flex items-center transition-colors ${
+                            isSelected
+                              ? 'bg-[#F2F7FE] text-[#005bd3] font-medium'
+                              : 'text-[#202223] hover:bg-[#F6F6F7]'
+                          } ${!isSelectable ? 'opacity-70' : ''}`}
+                          onClick={() => {
+                            if (!isSelectable) {
+                              onRequestUpgrade?.('premium');
+                            } else {
+                              setProductData({ ...productData, purchaseType: opt.value });
+                            }
+                            setPurchaseTypeOpen(false);
+                          }}
+                        >
+                          {isSelected && (
+                            <span className="text-[#202223] mr-2 font-semibold">✓</span>
+                          )}
+                          <span className={isSelected ? 'font-semibold text-[#202223]' : 'text-[#202223]'}>
+                            {opt.label}
+                          </span>
+                          {isOptPremium && (
+                            <PremiumCrownIcon size={16} className="inline-block ml-2 align-middle" />
+                          )}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+          </div>
         </div>
         {/* Purchase type helper bullets removed as requested */}
       </div>

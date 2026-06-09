@@ -6,18 +6,18 @@ function escapeHtml(value = "") {
     .replace(/"/g, "&quot;");
 }
 
-/** Personal referral invitation — sent from seller Refer and Earn page */
-export default function sellerReferralInvite({
+/** Personal referral follow-up emails - dynamically formats steps 1 to 4 */
+export default function sellerReferralFollowUp({
+  step,
   inviteeFirstName,
   inviteeVenture,
-  senderName,
-  sellerFirstName,
+  referralCode,
   referralLink,
   logoUrl,
 }) {
   const firstName = escapeHtml(inviteeFirstName || "there");
   const venture = escapeHtml(inviteeVenture || "your business");
-  const sellerNameSign = escapeHtml(sellerFirstName || senderName || "Aashansh Seller");
+  const refCode = escapeHtml(referralCode || "");
   const link = escapeHtml(referralLink || "#");
   const logo = escapeHtml(logoUrl || "https://aashansh.org/brand/aashansh-logo.png");
   const banner = "https://aashansh.org/brand/seller-welcome-banner.png";
@@ -86,12 +86,83 @@ export default function sellerReferralInvite({
     .map((f) => featureCard(f.icon, f.title, f.desc))
     .join("");
 
+  let bodyHtml = "";
+
+  if (step === 1) {
+    bodyHtml = `
+      <p style="margin: 0 0 15px;">Hi <strong>${firstName}</strong>,</p>
+      <p style="margin: 0 0 15px;">I'm following up on my last email because I truly believe Aashansh could transform your business.</p>
+      <p style="margin: 0 0 15px;">I believe this is a once-in-a-lifetime opportunity. The best part is that, apart from individual customers PAN India, you get bulk buyer inbound and outbound leads, and get awesome rewards.</p>
+      
+      <p style="margin: 0 0 5px; font-weight: bold;">You're leaving money on idle by not joining:</p>
+      <ol style="margin: 0 0 20px; padding-left: 20px;">
+          <li style="margin-bottom: 5px;">Free brand store (zero setup cost)</li>
+          <li style="margin-bottom: 5px;">Bulk orders that pay 5x more than regular sales</li>
+          <li style="margin-bottom: 5px;">Referral rewards that actually add up</li>
+      </ol>
+
+      <p style="margin: 0 0 15px;">I invite you to grab this once-in-a-lifetime opportunity. Once Aashansh hits millions of sellers, bulk leads get divided—and you'll lose priority access.</p>
+      <p style="margin: 0 0 20px;">Act now: <a href="${link}" style="color: #0066cc; text-decoration: underline;">${link}</a></p>
+      <p style="margin: 0; font-weight: bold;">Let's grow together!</p>
+    `;
+  } else if (step === 2) {
+    bodyHtml = `
+      <p style="margin: 0 0 15px;">Hi <strong>${firstName}</strong>,</p>
+      <p style="margin: 0 0 15px;">I'm sending this because I don't want you to miss out on being an early Aashansh seller.</p>
+      <p style="margin: 0 0 15px;">Right now, Aashansh is hand-picking sellers. Once they hit their seller target, this advantage disappears. No way back.</p>
+      
+      <p style="margin: 0 0 5px; font-weight: bold;">Why wait? You could be:</p>
+      <ol style="margin: 0 0 20px; padding-left: 20px;">
+          <li style="margin-bottom: 5px;">Selling nationwide with zero setup cost</li>
+          <li style="margin-bottom: 5px;">Getting bulk orders that regular sellers miss</li>
+          <li style="margin-bottom: 5px;">Earning referral rewards while helping others join</li>
+      </ol>
+
+      <p style="margin: 0 0 15px;">Don't miss on the fantastic opportunity. Use my referral code <strong>${refCode}</strong></p>
+      <p style="margin: 0 0 20px;">Join now using the referral link: <a href="${link}" style="color: #0066cc; text-decoration: underline;">${link}</a></p>
+      <p style="margin: 0;">I'm here to help if you need setup assistance.</p>
+    `;
+  } else if (step === 3) {
+    bodyHtml = `
+      <p style="margin: 0 0 15px;">Hi <strong>${firstName}</strong>,</p>
+      <p style="margin: 0 0 15px;">I keep thinking about <strong>${venture}</strong> and how Aashansh could multiply your sales in weeks.</p>
+      <p style="margin: 0 0 15px;">Here's the truth: This opportunity won't last. Aashansh is rolling out exclusive bulk buyer programs for early sellers. Once they cap enrollment, you probably lose exclusive access to bulk orders.</p>
+      
+      <p style="margin: 0 0 5px; font-weight: bold;">Dont miss on the wonderful opportunity:</p>
+      <ol style="margin: 0 0 20px; padding-left: 20px;">
+          <li style="margin-bottom: 5px;">Bulk leads/orders worth 10x regular sales</li>
+          <li style="margin-bottom: 5px;">Nationwide Individual customers</li>
+          <li style="margin-bottom: 5px;">Awesome Referral rewards</li>
+      </ol>
+
+      <p style="margin: 0 0 15px;">You're one click away from growth.</p>
+      <p style="margin: 0 0 20px;">Sign up: <a href="${link}" style="color: #0066cc; text-decoration: underline;">${link}</a></p>
+      <p style="margin: 0; font-style: italic;">No pressure - just opportunity.</p>
+    `;
+  } else if (step === 4) {
+    bodyHtml = `
+      <p style="margin: 0 0 15px;">Hi <strong>${firstName}</strong>,</p>
+      <p style="margin: 0 0 15px;">Aashansh is growing rapidly, and I keep thinking that Aashansh is a fantastic opportunity that could multiply your sales not just from individual customers but bulk orders too.</p>
+      
+      <p style="margin: 0 0 5px; font-weight: bold;">Dont miss on the wonderful opportunity:</p>
+      <ul style="margin: 0 0 20px; padding-left: 20px; list-style-type: disc;">
+          <li style="margin-bottom: 5px;">Bulk leads/orders worth 10x regular sales</li>
+          <li style="margin-bottom: 5px;">Nationwide Individual customers</li>
+          <li style="margin-bottom: 5px;">Awesome Referral rewards</li>
+      </ul>
+
+      <p style="margin: 0 0 15px;">You're one click away from growth.</p>
+      <p style="margin: 0 0 20px;">Sign up: <a href="${link}" style="color: #0066cc; text-decoration: underline;">${link}</a></p>
+      <p style="margin: 0; font-style: italic;">No pressure - just opportunity.</p>
+    `;
+  }
+
   return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invitation - Aashansh</title>
+    <title>Follow Up ${step} - Aashansh</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #F6F6F6; font-family: Arial, Helvetica, sans-serif;">
 <center>
@@ -110,27 +181,7 @@ export default function sellerReferralInvite({
                     <!-- ===== BODY CONTENT ===== -->
                     <tr>
                         <td style="padding: 30px 30px 10px; color: #333333; line-height: 1.7; font-size: 14px;">
-                            <p style="margin: 0 0 15px;">Hi <strong>${firstName}</strong>,</p>
-                            
-                            <p style="margin: 0 0 15px;">I hope you are doing well. I was thinking about the work you are doing with <strong>${venture}</strong>, and I believe Aashansh could really accelerate your sales.</p>
-                            
-                            <p style="margin: 0 0 15px;">I'm selling on Aashansh, and it's been a game-changer- free brand store, bulk orders from corporates/NGOs, nationwide B2C sales, and referral rewards that actually pay.</p>
-                            
-                            <p style="margin: 0 0 5px; font-weight: bold;">Why wait? You get:</p>
-                            <ul style="margin: 0 0 20px; padding-left: 20px; list-style-type: disc;">
-                                <li style="margin-bottom: 5px;">Zero setup cost</li>
-                                <li style="margin-bottom: 5px;">Verified bulk buyer leads</li>
-                                <li style="margin-bottom: 5px;">Full policy control and more</li>
-                            </ul>
-
-                            <p style="margin: 0 0 20px;">If you're open, I would be happy to introduce you to Aashansh or help you set up. It's quick and easy to set up.</p>
-
-                            <p style="margin: 0 0 10px;">You can sign up here using my referral link: <a href="${link}" style="color: #0066cc; text-decoration: underline;">${link}</a></p>
-                            
-                            <p style="margin: 20px 0 15px;">I look forward to hearing from you</p>
-                            
-                            <p style="margin: 0 0 3px;">Warm Regards,</p>
-                            <p style="margin: 0; font-weight: bold;">${sellerNameSign}</p>
+                            ${bodyHtml}
                         </td>
                     </tr>
 

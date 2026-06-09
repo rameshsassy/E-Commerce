@@ -8,11 +8,8 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  Edit2,
-  Trash2,
   X,
   Store,
-  MessageCircle,
   Zap,
   Download,
 } from 'lucide-react';
@@ -1302,6 +1299,9 @@ const SellerProducts = () => {
                         <th className="pb-3 px-4 font-semibold">Category</th>
                         <th className="pb-3 px-4 font-semibold">Price</th>
                         <th className="pb-3 px-4 font-semibold">Stock</th>
+                        <th className="pb-3 px-4 font-semibold">SKU</th>
+                        <th className="pb-3 px-4 font-semibold">Min/Max Qty</th>
+                        <th className="pb-3 px-4 font-semibold">Bulk</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1311,6 +1311,11 @@ const SellerProducts = () => {
                           <td className="py-3 px-4 text-sm text-[#6D7175]">{p.category}</td>
                           <td className="py-3 px-4 text-sm text-[#6D7175]">₹{p.price}</td>
                           <td className="py-3 px-4 text-sm text-[#6D7175]">{p.stock}</td>
+                          <td className="py-3 px-4 text-sm text-[#6D7175]">{p.sku || '-'}</td>
+                          <td className="py-3 px-4 text-sm text-[#6D7175]">{p.minOrderQuantity || 1} / {p.maxOrderQuantity || 5}</td>
+                          <td className="py-3 px-4 text-sm text-[#6D7175]">
+                            {p.bulkPurchaseEnabled ? `Yes (min: ${p.bulkPurchaseMinOrderQuantity || 50})` : 'No'}
+                          </td>
                         </tr>
                       ))}
                     </tbody>

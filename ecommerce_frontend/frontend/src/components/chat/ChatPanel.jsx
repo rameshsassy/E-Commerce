@@ -1,9 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import api from '../../utils/api';
 import { Send, User, MessageSquare, Shield, Star, AlertCircle, Clock } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
-const ChatPanel = ({ role = 'customer' }) => {
+const ChatPanel = () => {
   const { user } = useAuth();
   const [conversations, setConversations] = useState([]);
   const [activeConversation, setActiveConversation] = useState(null);
@@ -18,8 +18,23 @@ const ChatPanel = ({ role = 'customer' }) => {
 
   const isAdmin = user?.role === 'admin';
 
+  // Select active conversation
+  const handleSelectConversation = useCallback(async (convo) => {
+    setActiveConversation(convo);
+    setLoadingMessages(true);
+    try {
+      const { data } = await api.get(`/chat/conversations/${convo._id}/messages`);
+      setMessages(data.messages || []);
+    } catch (err) {
+      console.error('Failed to load messages', err);
+      setError('Could not load messages.');
+    } finally {
+      setLoadingMessages(false);
+    }
+  }, []);
+
   // Load conversations
-  const fetchConversations = async (selectFirst = false) => {
+  const fetchConversations = useCallback(async (selectFirst = false) => {
     try {
       const { data } = await api.get('/chat/conversations');
       setConversations(data.conversations || []);
@@ -32,10 +47,10 @@ const ChatPanel = ({ role = 'customer' }) => {
     } finally {
       setLoadingConvos(false);
     }
-  };
+  }, [handleSelectConversation]);
 
   // Load sub-admin staff list for assignment (Admins only)
-  const fetchStaff = async () => {
+  const fetchStaff = useCallback(async () => {
     if (!isAdmin) return;
     try {
       const { data } = await api.get('/admin/roles/staff');
@@ -43,7 +58,7 @@ const ChatPanel = ({ role = 'customer' }) => {
     } catch (err) {
       console.error('Failed to load sub-admin staff', err);
     }
-  };
+  }, [isAdmin]);
 
   useEffect(() => {
     fetchConversations(true);
@@ -55,7 +70,7 @@ const ChatPanel = ({ role = 'customer' }) => {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchConversations, fetchStaff]);
 
   // Poll for messages in active conversation
   useEffect(() => {
@@ -80,20 +95,6 @@ const ChatPanel = ({ role = 'customer' }) => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  const handleSelectConversation = async (convo) => {
-    setActiveConversation(convo);
-    setLoadingMessages(true);
-    try {
-      const { data } = await api.get(`/chat/conversations/${convo._id}/messages`);
-      setMessages(data.messages || []);
-    } catch (err) {
-      console.error('Failed to load messages', err);
-      setError('Could not load messages.');
-    } finally {
-      setLoadingMessages(false);
-    }
-  };
 
   const handleSendMessage = async (e) => {
     e.preventDefault();

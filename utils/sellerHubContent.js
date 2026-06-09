@@ -3,6 +3,7 @@
 export const SELLER_REFER_PROGRAM = {
   title: "Refer and Earn",
   subtitle: "Invite fellow sellers to Aashansh and earn rewards when they join and get approved.",
+  shareTemplate: "Hey! Join me on Aashansh - sell your products to bulk buyers, individual customers, earn rewards, and more. Click to join: {{Link}} Use my code {{CODE}} and get 25% discount on premium plans. Let’s grow together!",
   steps: [
     {
       title: "Share your link or send an invite",
@@ -19,46 +20,65 @@ export const SELLER_REFER_PROGRAM = {
         "Once their seller account is approved and they start listing products, you earn referral credits (program terms apply).",
     },
   ],
+  rewardsTitle: "Existing Rewards",
+  rewardsSubtitle: "Terms of use",
   rewards: [
-    "₹500 platform credit per approved seller referral (Non-refundable)",
-    "Bonus credits when your referral upgrades to Premium (Non-refundable)",
-    "No limit on how many sellers you can refer",
+    "Referrals are valid only when the invited seller successfully completes KYC verification, creates a store, and lists at least 3 products.",
+    "Referrals that are fraudulent, self-referrals, or created using duplicate accounts will not qualify for rewards.",
+    "Aashansh reserves the right to deny rewards, suspend accounts, or take legal action for suspicious activities including fake referrals, bot-generated sign-ups, spamming, or violating platform policies. Multiple accounts by the same user will be disqualified",
+    "This Refer and Earn program is valid until the last date of your subscription or until Aashansh terminates it. Aashansh may modify reward amounts, eligibility criteria, or terminate the program at any time without prior notice. Existing earned rewards will remain valid.",
   ],
-  termsNote:
-    "Rewards are credited after the referred seller completes KYC approval. Aashansh may update reward amounts with notice on this page. All referral credits are non-refundable and non-transferable.",
+  termsNote: "",
 };
 
-/** Plan comparison for referrers — Free vs Premium seller accounts */
 export const SELLER_REFER_PLAN_ROWS = [
   {
-    label: "Reward per approved seller",
-    free: "₹500 platform credit (Non-refundable)",
-    premium: "₹750 platform credit (Non-refundable)",
-  },
-  {
-    label: "Premium upgrade bonus",
-    free: "₹500 bonus (Non-refundable)",
-    premium: "₹1,500 bonus (Non-refundable)",
+    label: "Estimated Referral Earning",
+    basic: "Upto ₹ 300000/- annually*",
+    pro: "Upto ₹ 600000/- annually*",
+    premium: "Upto ₹ 2400000/- annually*",
   },
   {
     label: "Seller invitations",
-    free: "Unlimited",
+    basic: "Unlimited",
+    pro: "Unlimited",
     premium: "Unlimited",
   },
   {
-    label: "Branded email invites",
-    free: "Yes",
+    label: "Seller Subscription Commission",
+    basic: "5%",
+    pro: "10%",
+    premium: "25%",
+  },
+  {
+    label: "Product sale",
+    basic: "5%",
+    pro: "10%",
+    premium: "25%",
+  },
+  {
+    label: "Digital ads",
+    basic: "Payable on actuals",
+    pro: "Payable on actuals",
+    premium: "Payable on actuals",
+  },
+  {
+    label: "Training & Tools",
+    basic: "NA",
+    pro: "Yes",
     premium: "Yes",
   },
   {
-    label: "Referral dashboard",
-    free: "Basic stats",
-    premium: "Full stats + priority support",
+    label: "Inbound seller leads",
+    basic: "NA",
+    pro: "NA",
+    premium: "Upto 5000 leads annually",
   },
   {
-    label: "Payout timing",
-    free: "After KYC approval",
-    premium: "After KYC approval",
+    label: "Outbound seller leads",
+    basic: "NA",
+    pro: "Up to 15000 leads annually",
+    premium: "Upto 15000 leads annually",
   },
 ];
 

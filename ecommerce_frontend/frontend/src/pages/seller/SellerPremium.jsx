@@ -3,18 +3,14 @@ import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/api';
 import { 
-  CheckCircle, 
   BadgeCheck, 
-  ArrowRight, 
   Download, 
   X, 
   ShieldCheck, 
-  Info, 
   Sparkles, 
   Package, 
   Users, 
   ShoppingBag, 
-  HelpCircle, 
   AlertCircle 
 } from 'lucide-react';
 

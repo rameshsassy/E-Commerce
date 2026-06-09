@@ -89,6 +89,8 @@ export function validateInventoryFields(seller, body, { partial = false, require
         `${PURCHASE_TYPE_LABELS[purchaseType]} is only available for subscribed sellers. Upgrade to premium to use this option.`
       );
       err.statusCode = 403;
+      err.code = "PREMIUM_REQUIRED";
+      err.upgradeFeature = "premium";
       throw err;
     }
     result.purchaseType = purchaseType;

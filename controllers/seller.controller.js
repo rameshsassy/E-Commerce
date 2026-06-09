@@ -3,6 +3,8 @@ import Product from "../models/Product.js";
 import Order from "../models/Order.js";
 import Shipment from "../models/Shipment.js";
 import User from "../models/User.js";
+import EmailLog from "../models/EmailLog.js";
+import ReferralInvite from "../models/ReferralInvite.js";
 import BulkInquiry from "../models/BulkInquiry.js";
 import ReturnRequest from "../models/ReturnRequest.js";
 import CartAddEvent from "../models/CartAddEvent.js";
@@ -15,6 +17,7 @@ import {
   sendSellerReferralInviteEmail,
 } from "../services/email.service.js";
 import { runSubscriptionReminders } from "../cron/subscriptionReminders.js";
+import { runReferralFollowUps } from "../cron/referralFollowUps.js";
 import { absoluteToWebPath } from "../utils/uploadPaths.js";
 import {
   getPurchaseTypeOptionsForSeller,
@@ -2093,7 +2096,7 @@ export const getReferAndEarn = async (req, res) => {
     }
 
     const referralCode = await ensureSellerReferralCode(user);
-    const frontendBase = sellerPortalBaseUrl();
+    const frontendBase = sellerPortalBaseUrl(req);
     const deviceType = req.clientDevice || "desktop";
     const referredLimit = capListLimit(deviceType, req.query?.referredLimit, {
       mobile: 15,
@@ -2103,6 +2106,7 @@ export const getReferAndEarn = async (req, res) => {
     const stats = await getReferralStatsForSeller(user._id, user, {
       limit: referredLimit,
     });
+    const isPremium = user.sellerType === "premium" && user.subscriptionActive === true;
     const activePlan = user.subscriptionPlan || (isPremium ? "pro" : "free");
     const currentPlanLabel = activePlan === "premium" ? "Premium" : activePlan === "pro" ? "Pro" : "Free";
     const senderName =
@@ -2144,7 +2148,8 @@ export const sendReferralInvite = async (req, res) => {
       inviteeDesignation,
     } = req.body || {};
 
-    const email = typeof inviteeEmail === "string" ? inviteeEmail.trim() : "";
+    const rawEmail = typeof inviteeEmail === "string" ? inviteeEmail : "";
+    const email = rawEmail.trim().toLowerCase();
     const firstName =
       typeof inviteeFirstName === "string" ? inviteeFirstName.trim() : "";
     const lastName =
@@ -2164,13 +2169,30 @@ export const sendReferralInvite = async (req, res) => {
 
     if (!email || !firstName) {
       return res.status(400).json({
-        message: "Invitee email and first name are required",
+        message: "Please enter a valid email",
       });
     }
 
-    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    if (!emailOk) {
-      return res.status(400).json({ message: "Invalid invitee email address" });
+    // 1. Check for spaces in the email (before trimming/lowercasing)
+    const hasSpace = rawEmail.includes(" ") || /\s/.test(rawEmail);
+    // 2. Check for incomplete email format (e.g. .com is missing or invalid domain suffix)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
+    const isValidFormat = emailRegex.test(rawEmail);
+
+    if (hasSpace || !isValidFormat) {
+      return res.status(400).json({ message: "Please enter a valid email" });
+    }
+
+    // 3. If any email has been sent to this address earlier
+    const emailSentEarlier = await EmailLog.exists({ to: email });
+    if (emailSentEarlier) {
+      return res.status(400).json({ message: "Please enter a valid email" });
+    }
+
+    // 4. If a user with this email already exists
+    const userExists = await User.exists({ email });
+    if (userExists) {
+      return res.status(400).json({ message: "Please enter a valid email" });
     }
 
     const user = await User.findById(req.user._id);
@@ -2179,7 +2201,7 @@ export const sendReferralInvite = async (req, res) => {
     }
 
     const referralCode = await ensureSellerReferralCode(user);
-    const referralLink = sellerRegisterUrl(sellerPortalBaseUrl(), referralCode);
+    const referralLink = sellerRegisterUrl(sellerPortalBaseUrl(req), referralCode);
     const senderName =
       user.businessName?.trim() ||
       [user.firstName, user.lastName].filter(Boolean).join(" ").trim() ||
@@ -2194,8 +2216,26 @@ export const sendReferralInvite = async (req, res) => {
       inviteeContact: contact,
       inviteeDesignation: designation,
       senderName,
+      sellerFirstName: user.firstName || "Aashansh Seller",
       referralLink,
       referrerId: user._id,
+    });
+
+    // Create the ReferralInvite tracking record
+    await ReferralInvite.create({
+      referrerId: user._id,
+      inviteeEmail: email,
+      inviteeFirstName: firstName,
+      inviteeLastName: lastName,
+      inviteeVenture: venture,
+      inviteeContact: contact,
+      inviteeDesignation: designation,
+      inviteeType: inviteeTypeNorm || "",
+      status: "sent",
+      followUpCount: 0,
+      lastFollowUpSentAt: new Date(),
+    }).catch((err) => {
+      console.error("[seller] Failed to create ReferralInvite record:", err.message);
     });
 
     res.status(200).json({
@@ -2271,6 +2311,18 @@ export const triggerRemindersForTest = async (req, res) => {
     return res.json({
       success: true,
       message: "Subscription reminders check triggered and completed successfully.",
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const triggerReferralFollowUpsForTest = async (req, res) => {
+  try {
+    await runReferralFollowUps();
+    return res.json({
+      success: true,
+      message: "Referral follow-ups check triggered and completed successfully.",
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Gift,
@@ -10,14 +10,6 @@ import {
   Share2,
   Mail,
   HelpCircle,
-  UserPlus,
-  UserCheck,
-  TrendingUp,
-  CreditCard,
-  Building2,
-  User,
-  Handshake,
-  Crown,
   Star,
   Minus,
   Send,
@@ -27,8 +19,9 @@ import {
 import api from '../../utils/api';
 import { getApiErrorMessage } from '../../utils/apiErrors';
 import ResponsiveDataList from '../../components/common/ResponsiveDataList';
+import { useAuth } from '../../context/AuthContext';
 
-const INVITE_TYPES = ['Artisan', 'Business'];
+
 
 function formatCurrency(amount) {
   return `₹${Number(amount || 0).toLocaleString('en-IN')}`;
@@ -47,6 +40,10 @@ function statusClass(status) {
 }
 
 export default function SellerReferAndEarn() {
+  const { mergeUser } = useAuth();
+  const [selectedUpgradePlan, setSelectedUpgradePlan] = useState(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgrading, setUpgrading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -89,6 +86,33 @@ export default function SellerReferAndEarn() {
     };
   }, []);
 
+  const handleUpgradePlan = (plan) => {
+    setSelectedUpgradePlan(plan);
+    setShowUpgradeModal(true);
+  };
+
+  const confirmPlanUpgrade = async () => {
+    setError('');
+    setSuccess('');
+    setUpgrading(true);
+    try {
+      const res = await api.post('/seller/upgrade', { plan: selectedUpgradePlan });
+      mergeUser({
+        sellerType: res.data.sellerType,
+        subscriptionActive: res.data.subscriptionActive,
+        subscriptionPlan: res.data.subscriptionPlan,
+        subscriptionValidUntil: res.data.subscriptionValidUntil,
+      });
+      setSuccess(res.data.message || `Successfully upgraded to ${selectedUpgradePlan === 'premium' ? 'Premium' : 'Pro'} Plan!`);
+      setShowUpgradeModal(false);
+      await loadProgram();
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Failed to upgrade plan'));
+    } finally {
+      setUpgrading(false);
+    }
+  };
+
   const copyText = async (label, text) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -103,12 +127,12 @@ export default function SellerReferAndEarn() {
     setInviteForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const openInviteForm = () => {
+  const openInviteForm = useCallback(() => {
     setShowInviteForm(true);
     setTimeout(() => {
       inviteFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 100);
-  };
+  }, []);
 
   const handleSendInvite = async (e) => {
     e.preventDefault();
@@ -118,7 +142,6 @@ export default function SellerReferAndEarn() {
     const {
       inviteeFirstName,
       inviteeLastName,
-      inviteeType,
       inviteeContact,
       inviteeEmail,
       inviteeDesignation,
@@ -128,7 +151,6 @@ export default function SellerReferAndEarn() {
     if (
       !inviteeFirstName ||
       !inviteeLastName ||
-      !inviteeType ||
       !inviteeContact ||
       !inviteeEmail ||
       !inviteeDesignation ||
@@ -138,9 +160,25 @@ export default function SellerReferAndEarn() {
       return;
     }
 
+    // 1. Check for spaces in the email
+    if (inviteeEmail.includes(" ") || /\s/.test(inviteeEmail)) {
+      setError('Please enter a valid email');
+      return;
+    }
+
+    // 2. Check for incomplete email address, like .com is not added
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(inviteeEmail)) {
+      setError('Please enter a valid email');
+      return;
+    }
+
     setSendingInvite(true);
     try {
-      const res = await api.post('/seller/refer-and-earn/invite', inviteForm);
+      const res = await api.post('/seller/refer-and-earn/invite', {
+        ...inviteForm,
+        inviteeType: 'Artisan',
+      });
       setSuccess(res.data?.message || 'Invitation email sent successfully');
       setInviteForm({
         inviteeFirstName: '',
@@ -151,12 +189,93 @@ export default function SellerReferAndEarn() {
         inviteeDesignation: '',
         inviteeVenture: '',
       });
+      setShowInviteForm(false);
     } catch (err) {
       setError(getApiErrorMessage(err, 'Failed to send invitation'));
     } finally {
       setSendingInvite(false);
     }
   };
+
+  const {
+    program,
+    planRows = [],
+    referralCode,
+    referralLink,
+    currentPlan = 'Free',
+    stats = {},
+  } = data || {};
+
+  const isFree = currentPlan === 'Free' || !currentPlan;
+  const isPro = currentPlan === 'Pro';
+  const isPremium = currentPlan === 'Premium';
+  const shareTemplate = program?.shareTemplate || "Hey! Join me on Aashansh - sell your products to bulk buyers, individual customers, earn rewards, and more. Click to join: {{Link}} Use my code {{CODE}} and get 25% discount on premium plans. Let’s grow together!";
+  
+  const getWorkingReferralLink = () => {
+    if (!referralLink) return '';
+    try {
+      const url = new URL(referralLink);
+      let targetOrigin = window.location.origin;
+      if (window.location.hostname.includes('localhost')) {
+        targetOrigin = import.meta.env.VITE_CUSTOMER_PORTAL_URL || 'https://e-commerce-snj1.vercel.app';
+      }
+      const targetUrl = new URL(targetOrigin);
+      url.protocol = targetUrl.protocol;
+      url.host = targetUrl.host;
+      return url.toString();
+    } catch {
+      return referralLink;
+    }
+  };
+
+  const activeReferralLink = getWorkingReferralLink();
+  const shareMessage = shareTemplate
+    .replace('{{Link}}', activeReferralLink)
+    .replace('{{CODE}}', referralCode || '');
+
+  const shareOptions = useMemo(() => [
+    {
+      name: 'WhatsApp',
+      icon: <MessageSquare size={18} />,
+      color: 'bg-[#25D366] hover:bg-[#128C7E]',
+      link: `https://wa.me/?text=${encodeURIComponent(shareMessage)}`,
+    },
+    {
+      name: 'X (Twitter)',
+      icon: <Share2 size={18} />,
+      color: 'bg-[#1DA1F2] hover:bg-[#0c85d0]',
+      link: `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareMessage)}`,
+    },
+    {
+      name: 'LinkedIn',
+      icon: (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width={18}
+          height={18}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="lucide lucide-linkedin"
+        >
+          <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+          <rect width="4" height="12" x="2" y="9" />
+          <circle cx="4" cy="4" r="2" />
+        </svg>
+      ),
+      color: 'bg-[#0077B5] hover:bg-[#005582]',
+      link: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(activeReferralLink)}`,
+    },
+    {
+      name: 'Email',
+      icon: <Mail size={18} />,
+      color: 'bg-slate-700 hover:bg-slate-900',
+      onClick: openInviteForm,
+    },
+  ], [shareMessage, activeReferralLink, openInviteForm]);
 
   if (loading) {
     return (
@@ -176,97 +295,32 @@ export default function SellerReferAndEarn() {
     );
   }
 
-  const {
-    program,
-    planRows = [],
-    referralCode,
-    referralLink,
-    currentPlan = 'Free',
-    stats = {},
-  } = data || {};
 
-  const isPremium = currentPlan === 'Premium';
-  const shareMessage = `Join me on Aashansh — India's marketplace for sellers! Use my referral link to register: ${referralLink}`;
-
-  const shareOptions = [
-    {
-      name: 'WhatsApp',
-      icon: <MessageSquare size={18} />,
-      color: 'bg-[#25D366] hover:bg-[#128C7E]',
-      link: `https://wa.me/?text=${encodeURIComponent(shareMessage)}`,
-    },
-    {
-      name: 'X (Twitter)',
-      icon: <Share2 size={18} />,
-      color: 'bg-[#1DA1F2] hover:bg-[#0c85d0]',
-      link: `https://twitter.com/intent/tweet?text=${encodeURIComponent(
-        `Sell on Aashansh! Use my referral code ${referralCode} or sign up: ${referralLink}`
-      )}`,
-    },
-    {
-      name: 'Email',
-      icon: <Mail size={18} />,
-      color: 'bg-slate-700 hover:bg-slate-900',
-      onClick: openInviteForm,
-    },
-  ];
 
   const statCards = [
     {
-      label: 'Total Invites',
-      value: stats.totalInvites ?? 0,
-      icon: <UserPlus size={16} />,
-      color: 'text-blue-400',
-      bg: 'bg-blue-400/10',
+      label: 'Total Products',
+      value: stats.totalProducts ?? 0,
     },
     {
-      label: 'Approved Sellers',
-      value: stats.totalApproved ?? 0,
-      icon: <UserCheck size={16} />,
-      color: 'text-emerald-400',
-      bg: 'bg-emerald-400/10',
+      label: 'Total Subscribed',
+      value: stats.totalSubscribed ?? 0,
     },
     {
-      label: 'Pending KYC',
-      value: stats.totalPending ?? 0,
-      icon: <Handshake size={16} />,
-      color: 'text-amber-400',
-      bg: 'bg-amber-400/10',
+      label: 'Total Sale',
+      value: `₹ ${Number(stats.totalSale ?? 0).toLocaleString('en-IN')}/-`,
     },
     {
-      label: 'Premium Referrals',
-      value: stats.totalPremium ?? 0,
-      icon: <Crown size={16} />,
-      color: 'text-yellow-400',
-      bg: 'bg-yellow-400/10',
+      label: 'Total Subscription',
+      value: `₹ ${Number(stats.totalSubscription ?? 0).toLocaleString('en-IN')}/-`,
     },
     {
       label: 'Credits Earned',
-      value: formatCurrency(stats.creditsEarned),
-      icon: <TrendingUp size={16} />,
-      color: 'text-green-400',
-      bg: 'bg-green-400/10',
+      value: stats.creditsEarnedCount ?? 0,
     },
     {
-      label: 'Pending Credits',
-      value: formatCurrency(stats.pendingCredits),
-      icon: <CreditCard size={16} />,
-      color: 'text-purple-400',
-      bg: 'bg-purple-400/10',
-    },
-    {
-      label: 'Your Plan',
-      value: currentPlan,
-      icon: <Zap size={16} />,
-      color: isPremium ? 'text-amber-400' : 'text-slate-400',
-      bg: isPremium ? 'bg-amber-400/10' : 'bg-slate-400/10',
-    },
-    {
-      label: 'Per Approval',
-      value: formatCurrency(stats.rewardRates?.approvedCredit),
-      icon: <Award size={16} />,
-      color: 'text-[#ff7a1f]',
-      bg: 'bg-[#ff7a1f]/10',
+      label: 'My Plan',
+      value: stats.myPlan ?? 0,
     },
   ];
 
@@ -321,7 +375,7 @@ export default function SellerReferAndEarn() {
                 <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest block mb-1">
                   Shareable Link
                 </span>
-                <span className="text-sm font-semibold truncate block">{referralLink}</span>
+                <span className="text-sm font-semibold truncate block">{activeReferralLink}</span>
               </div>
             </div>
 
@@ -329,11 +383,11 @@ export default function SellerReferAndEarn() {
               <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Invite Link</label>
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="flex-1 min-w-0 h-12 px-4 rounded-xl bg-white/5 border border-glass-border flex items-center text-xs sm:text-sm font-medium overflow-x-auto">
-                  <span className="truncate">{referralLink}</span>
+                  <span className="truncate">{activeReferralLink}</span>
                 </div>
                 <button
                   type="button"
-                  onClick={() => copyText('link', referralLink)}
+                  onClick={() => copyText('link', activeReferralLink)}
                   className="btn w-full sm:w-auto h-12 px-6 rounded-xl bg-[#ff7a1f] hover:bg-[#e66d1a] text-white font-bold flex items-center justify-center gap-2 shrink-0 border-0"
                 >
                   {copied === 'link' ? <Check size={16} /> : <Copy size={16} />}
@@ -413,27 +467,21 @@ export default function SellerReferAndEarn() {
           </div>
 
           <div className="glass-panel seller-panel rounded-2xl sm:rounded-3xl border border-glass-border">
-            <h3 className="text-xs font-black uppercase tracking-widest mb-4 text-center">
+            <h3 className="text-xs font-black uppercase tracking-widest mb-6 text-center text-[#ff7a1f]">
               Referral Statistics
             </h3>
-            <div className="responsive-stat-grid">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               {statCards.map((card) => (
                 <div
                   key={card.label}
-                  className="border border-glass-border rounded-xl p-3 text-center flex flex-col items-center justify-center min-h-[88px] hover:border-[#ff7a1f]/30 transition-colors"
+                  className="bg-[#f8f9fa] border border-[#dee2e6] rounded-[24px] py-6 px-4 text-center flex flex-col items-center justify-center shadow-sm hover:shadow transition-shadow"
                 >
-                  <div
-                    className={`h-7 w-7 rounded-lg ${card.bg} ${card.color} flex items-center justify-center mb-2`}
-                  >
-                    {card.icon}
-                  </div>
-                  <span className="text-[9px] font-bold text-text-muted uppercase tracking-widest block mb-0.5">
+                  <span className="text-sm sm:text-base font-medium text-slate-500 mb-2">
                     {card.label}
                   </span>
-                  <span className="text-sm font-black">{card.value}</span>
-                  {(card.label === 'Credits Earned' || card.label === 'Pending Credits' || card.label === 'Per Approval') && (
-                    <span className="text-[8px] text-error font-medium mt-0.5">Non-refundable</span>
-                  )}
+                  <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                    {card.value}
+                  </span>
                 </div>
               ))}
             </div>
@@ -506,9 +554,9 @@ export default function SellerReferAndEarn() {
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#ff7a1f]/15 text-[#ff7a1f] text-xs font-black uppercase tracking-widest mb-3">
               <Star size={14} /> Referrer Rewards
             </div>
-            <h2 className="text-2xl font-black mb-2">Free vs Premium Referrer</h2>
+            <h2 className="text-2xl font-black mb-2">Basic vs Pro vs Premium Referrer</h2>
             <p className="text-text-muted text-sm max-w-lg mx-auto">
-              Premium sellers earn higher credits per referral. Upgrade to unlock better rewards.
+              Upgrade your seller plan to unlock higher referral commission limits, product sale percentages, and more.
             </p>
           </div>
 
@@ -520,23 +568,33 @@ export default function SellerReferAndEarn() {
                     Feature
                   </th>
                   <th className="py-4 px-5 text-center">
-                    <span className="font-black">Free Seller</span>
-                    {!isPremium && (
+                    <span className="font-black">Basic Free</span>
+                    {isFree && (
                       <span className="block text-[10px] font-bold text-text-muted uppercase mt-1">
+                        Current Plan
+                      </span>
+                    )}
+                  </th>
+                  <th className="py-4 px-5 text-center relative">
+                    <span className="font-black text-[#ff7a1f]/90">Pro</span>
+                    <span className="block text-[10px] text-text-muted font-bold mt-0.5">
+                      ₹ 9,125/- + 18% GST
+                    </span>
+                    {isPro && (
+                      <span className="block text-[10px] font-bold text-[#ff7a1f] uppercase mt-1">
                         Current Plan
                       </span>
                     )}
                   </th>
                   <th className="py-4 px-5 text-center bg-[#ff7a1f]/5 relative">
                     <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#ff9a44] to-[#ff6200]" />
-                    <span className="font-black text-[#ff7a1f]">Premium Seller</span>
-                    {isPremium ? (
+                    <span className="font-black text-[#ff7a1f]">Premium</span>
+                    <span className="block text-[10px] text-text-muted font-bold mt-0.5">
+                      ₹ 1,98,000/- + 18% GST
+                    </span>
+                    {isPremium && (
                       <span className="block text-[10px] font-bold text-[#ff7a1f] uppercase mt-1">
                         Current Plan
-                      </span>
-                    ) : (
-                      <span className="block text-[10px] font-bold text-[#ff7a1f] uppercase mt-1">
-                        Best Value
                       </span>
                     )}
                   </th>
@@ -549,11 +607,11 @@ export default function SellerReferAndEarn() {
                     className={`border-b border-glass-border/50 ${i === planRows.length - 1 ? 'border-b-0' : ''}`}
                   >
                     <td className="py-3 px-6 text-xs font-bold">{row.label}</td>
-                    {[row.free, row.premium].map((val, ci) => (
+                    {[row.basic, row.pro, row.premium].map((val, ci) => (
                       <td
                         key={ci}
-                        className={`py-3 px-5 text-center text-sm font-semibold ${ci === 1 ? 'bg-[#ff7a1f]/5' : ''} ${
-                          val === 'NA' ? 'text-text-muted/40' : val === 'Unlimited' || val === 'Yes' ? 'text-emerald-400' : ''
+                        className={`py-3 px-5 text-center text-sm font-semibold ${ci === 2 ? 'bg-[#ff7a1f]/5' : ''} ${
+                          val === 'NA' ? 'text-text-muted/40' : val === 'Unlimited' || val === 'Yes' || val?.includes('%') ? 'text-emerald-400' : ''
                         }`}
                       >
                         {val === 'NA' ? <Minus size={14} className="mx-auto opacity-40" /> : val}
@@ -563,40 +621,69 @@ export default function SellerReferAndEarn() {
                 ))}
               </tbody>
             </table>
-            <div className="grid grid-cols-3 border-t border-glass-border bg-white/5">
+            <div className="grid grid-cols-4 border-t border-glass-border bg-white/5">
               <div className="py-4 px-6" />
-              <div className="py-4 px-5 flex justify-center">
-                <span className="text-xs font-bold text-text-muted uppercase">Your current plan</span>
+              <div className="py-4 px-5 flex justify-center items-center">
+                {isFree ? (
+                  <span className="text-xs font-bold text-text-muted uppercase">Your current plan</span>
+                ) : (
+                  <span className="text-xs font-bold text-text-muted/40 uppercase">Basic Free</span>
+                )}
               </div>
-              <div className="py-4 px-5 flex justify-center bg-[#ff7a1f]/5">
-                {!isPremium ? (
-                  <Link
-                    to="/seller/subscription"
+              <div className="py-4 px-5 flex justify-center items-center">
+                {isPro ? (
+                  <span className="text-xs font-bold text-[#ff7a1f] uppercase">Active Plan</span>
+                ) : isFree ? (
+                  <button
+                    type="button"
+                    onClick={() => handleUpgradePlan('pro')}
                     className="h-10 px-6 rounded-full text-xs font-black uppercase bg-gradient-to-r from-[#ff9a44] to-[#ff6200] text-white flex items-center hover:opacity-90 transition-opacity"
                   >
-                    Upgrade to Premium
-                  </Link>
+                    Upgrade Now
+                  </button>
                 ) : (
-                  <span className="text-xs font-bold text-[#ff7a1f] uppercase">Active</span>
+                  <span className="text-xs font-bold text-text-muted/40 uppercase">—</span>
+                )}
+              </div>
+              <div className="py-4 px-5 flex justify-center items-center bg-[#ff7a1f]/5">
+                {isPremium ? (
+                  <span className="text-xs font-bold text-[#ff7a1f] uppercase">Active Plan</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleUpgradePlan('premium')}
+                    className="h-10 px-6 rounded-full text-xs font-black uppercase bg-gradient-to-r from-[#ff9a44] to-[#ff6200] text-white flex items-center hover:opacity-90 transition-opacity"
+                  >
+                    Upgrade Now
+                  </button>
                 )}
               </div>
             </div>
           </div>
 
           {/* Mobile & tablet plan cards */}
-          <div className="lg:hidden grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="lg:hidden grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
               {
-                name: 'Free Seller',
-                badge: !isPremium ? 'Current Plan' : null,
+                name: 'Basic Free',
+                badge: isFree ? 'Current Plan' : null,
                 highlight: false,
-                values: planRows.map((r) => r.free),
+                values: planRows.map((r) => r.basic),
+                code: 'basic',
               },
               {
-                name: 'Premium Seller',
+                name: 'Pro',
+                badge: isPro ? 'Current Plan' : null,
+                highlight: false,
+                values: planRows.map((r) => r.pro),
+                code: 'pro',
+              },
+              {
+                name: 'Premium',
                 badge: isPremium ? 'Current Plan' : 'Best Value',
                 highlight: true,
                 values: planRows.map((r) => r.premium),
+                code: 'premium',
               },
             ].map((plan) => (
               <div
@@ -627,13 +714,28 @@ export default function SellerReferAndEarn() {
                       </div>
                     ))}
                   </div>
-                  {plan.highlight && !isPremium && (
-                    <Link
-                      to="/seller/subscription"
-                      className="btn w-full h-11 rounded-xl bg-gradient-to-r from-[#ff9a44] to-[#ff6200] text-white font-bold text-sm border-0 flex items-center justify-center"
-                    >
-                      Upgrade to Premium
-                    </Link>
+                  {/* Action buttons */}
+                  {plan.code !== 'basic' && (
+                    <>
+                      {plan.code === 'pro' && isFree && (
+                        <button
+                          type="button"
+                          onClick={() => handleUpgradePlan('pro')}
+                          className="btn w-full h-11 rounded-xl bg-gradient-to-r from-[#ff9a44] to-[#ff6200] text-white font-bold text-sm border-0 flex items-center justify-center"
+                        >
+                          Upgrade Now
+                        </button>
+                      )}
+                      {plan.code === 'premium' && !isPremium && (
+                        <button
+                          type="button"
+                          onClick={() => handleUpgradePlan('premium')}
+                          className="btn w-full h-11 rounded-xl bg-gradient-to-r from-[#ff9a44] to-[#ff6200] text-white font-bold text-sm border-0 flex items-center justify-center"
+                        >
+                          Upgrade Now
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -644,7 +746,10 @@ export default function SellerReferAndEarn() {
 
       {/* Rewards list */}
       <div className="glass-panel rounded-3xl p-6 md:p-8">
-        <h2 className="text-lg font-black mb-4">Rewards</h2>
+        <h2 className="text-lg font-black mb-1">{program?.rewardsTitle || 'Existing Rewards'}</h2>
+        {program?.rewardsSubtitle && (
+          <p className="text-sm text-text-muted mb-4">{program.rewardsSubtitle}</p>
+        )}
         <ul className="space-y-2 mb-4">
           {(program?.rewards || []).map((item) => (
             <li key={item} className="flex items-start gap-2 text-sm text-text-muted">
@@ -658,7 +763,7 @@ export default function SellerReferAndEarn() {
         )}
       </div>
 
-      {/* Email invite form */}
+      {/* Email invite form inline card */}
       {showInviteForm && (
         <div ref={inviteFormRef} className="scroll-mt-24">
           <div className="text-center mb-8">
@@ -675,13 +780,13 @@ export default function SellerReferAndEarn() {
             <button
               type="button"
               onClick={() => setShowInviteForm(false)}
-              className="absolute top-4 right-4 h-8 w-8 rounded-full bg-white/10 hover:bg-white/20 text-text-muted flex items-center justify-center"
+              className="absolute top-4 right-4 h-8 w-8 rounded-full bg-white/10 hover:bg-white/20 text-slate-400 hover:text-white flex items-center justify-center transition-colors border-0"
               aria-label="Close"
             >
               <X size={16} />
             </button>
 
-            <form onSubmit={handleSendInvite} className="space-y-4">
+            <form onSubmit={handleSendInvite} className="space-y-4 text-left">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider block mb-1.5">
@@ -693,7 +798,7 @@ export default function SellerReferAndEarn() {
                     value={inviteForm.inviteeFirstName}
                     onChange={(e) => handleInviteChange('inviteeFirstName', e.target.value)}
                     placeholder="Priya"
-                    className="input-field w-full"
+                    className="input-field w-full bg-white/5 border border-glass-border text-white rounded-xl h-11 px-4"
                   />
                 </div>
                 <div>
@@ -706,38 +811,8 @@ export default function SellerReferAndEarn() {
                     value={inviteForm.inviteeLastName}
                     onChange={(e) => handleInviteChange('inviteeLastName', e.target.value)}
                     placeholder="Sharma"
-                    className="input-field w-full"
+                    className="input-field w-full bg-white/5 border border-glass-border text-white rounded-xl h-11 px-4"
                   />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider block mb-1.5">
-                  Seller Type *
-                </label>
-                <div className="flex gap-3">
-                  {INVITE_TYPES.map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => handleInviteChange('inviteeType', t)}
-                      className={`h-11 px-5 rounded-xl text-sm font-bold transition-all ${
-                        inviteForm.inviteeType === t
-                          ? 'bg-[#ff7a1f] text-white'
-                          : 'bg-white/5 border border-glass-border text-text-muted hover:border-[#ff7a1f]/50'
-                      }`}
-                    >
-                      {t === 'Artisan' ? (
-                        <span className="flex items-center gap-2">
-                          <User size={14} /> Artisan
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-2">
-                          <Building2 size={14} /> Business
-                        </span>
-                      )}
-                    </button>
-                  ))}
                 </div>
               </div>
 
@@ -752,7 +827,7 @@ export default function SellerReferAndEarn() {
                     value={inviteForm.inviteeContact}
                     onChange={(e) => handleInviteChange('inviteeContact', e.target.value)}
                     placeholder="9876543210"
-                    className="input-field w-full"
+                    className="input-field w-full bg-white/5 border border-glass-border text-white rounded-xl h-11 px-4"
                   />
                 </div>
                 <div>
@@ -765,7 +840,7 @@ export default function SellerReferAndEarn() {
                     value={inviteForm.inviteeEmail}
                     onChange={(e) => handleInviteChange('inviteeEmail', e.target.value)}
                     placeholder="seller@example.com"
-                    className="input-field w-full"
+                    className="input-field w-full bg-white/5 border border-glass-border text-white rounded-xl h-11 px-4"
                   />
                 </div>
               </div>
@@ -780,7 +855,7 @@ export default function SellerReferAndEarn() {
                   value={inviteForm.inviteeDesignation}
                   onChange={(e) => handleInviteChange('inviteeDesignation', e.target.value)}
                   placeholder="Founder & CEO"
-                  className="input-field w-full"
+                  className="input-field w-full bg-white/5 border border-glass-border text-white rounded-xl h-11 px-4"
                 />
               </div>
 
@@ -794,14 +869,14 @@ export default function SellerReferAndEarn() {
                   value={inviteForm.inviteeVenture}
                   onChange={(e) => handleInviteChange('inviteeVenture', e.target.value)}
                   placeholder="Artisan Crafts Co."
-                  className="input-field w-full"
+                  className="input-field w-full bg-white/5 border border-glass-border text-white rounded-xl h-11 px-4"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={sendingInvite}
-                className="w-full h-12 rounded-xl bg-[#ff7a1f] hover:bg-[#e66d1a] text-white font-bold flex items-center justify-center gap-2 disabled:opacity-50 border-0"
+                className="w-full h-12 rounded-xl bg-[#ffd401] hover:bg-[#e0b900] text-slate-900 font-bold flex items-center justify-center gap-2 disabled:opacity-50 border-0 mt-4 transition-colors"
               >
                 {sendingInvite ? (
                   'Sending…'
@@ -834,6 +909,61 @@ export default function SellerReferAndEarn() {
           Contact Support
         </a>
       </div>
+
+      {/* Plan Upgrade Confirmation Modal */}
+      {showUpgradeModal && selectedUpgradePlan && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-slate-900 border border-glass-border rounded-3xl max-w-md w-full p-6 relative shadow-2xl animate-scale-up text-white overflow-hidden">
+            
+            <button
+              onClick={() => setShowUpgradeModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 transition-colors p-1"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="text-center pb-5 border-b border-glass-border">
+              <h3 className="text-lg sm:text-xl font-extrabold text-white mb-2">
+                Upgrade to {selectedUpgradePlan === 'premium' ? 'Premium' : 'Pro'} Plan
+              </h3>
+              <p className="text-xs text-slate-400 mt-2 font-medium">
+                Unlock higher estimated referral earnings, subscription commissions, product sale commissions, and more!
+              </p>
+            </div>
+
+            <div className="bg-gradient-to-r from-[#ff9a44] to-[#ff6200] rounded-2xl p-4 my-6 text-white text-center">
+              <div className="text-xs uppercase font-semibold text-orange-100">Annual Subscription Price</div>
+              <div className="text-2xl font-black mt-1">
+                {selectedUpgradePlan === 'premium' ? '₹ 1,98,000/-' : '₹ 9,125/-'}
+              </div>
+              <div className="text-[10px] text-orange-200 mt-1">+ 18% GST (Non-refundable)</div>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={confirmPlanUpgrade}
+                disabled={upgrading}
+                className="w-full h-12 rounded-xl bg-[#ff7a1f] hover:bg-[#e66d1a] text-white font-bold flex items-center justify-center gap-2 disabled:opacity-50 border-0 shadow-lg"
+              >
+                {upgrading ? (
+                  'Upgrading...'
+                ) : (
+                  <>
+                    <Zap size={16} /> Confirm Upgrade
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowUpgradeModal(false)}
+                className="w-full h-12 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold border-0 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
