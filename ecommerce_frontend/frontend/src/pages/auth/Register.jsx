@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/api';
@@ -16,7 +16,8 @@ import {
 import { getApiErrorMessage } from '../../utils/apiErrors';
 
 const Register = () => {
-  const searchParams = new URLSearchParams(useLocation().search);
+  const location = useLocation();
+  const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const referralFromUrl = searchParams.get('ref') || searchParams.get('referralCode') || '';
   const sellerPortal = isSellerPortal();
   const customerLabel = getPortalLabelForUi(getCustomerPortalOrigin(), { seller: false });
@@ -35,7 +36,6 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   
   const navigate = useNavigate();
-  const location = useLocation();
   const from = location.state?.from?.pathname || null;
   const { setSession } = useAuth();
 

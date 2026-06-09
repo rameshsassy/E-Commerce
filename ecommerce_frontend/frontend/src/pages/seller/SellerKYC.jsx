@@ -17,6 +17,10 @@ const labelStyle = {
   fontWeight: 'bold',
 };
 
+// PAN format check (mirrors backend)
+const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i;
+const GST_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i;
+
 const SellerKYC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -225,7 +229,7 @@ const SellerKYC = () => {
   };
 
   const hasLogo = Boolean(logo || existingLogoPath);
-  const hasDoc = (key) => Boolean(documents[key] || existingDocs[key]);
+  const hasDoc = useCallback((key) => Boolean(documents[key] || existingDocs[key]), [documents, existingDocs]);
 
   const buildKycFormData = useCallback(
     (includeAgreedTerms = false) => {
@@ -289,10 +293,6 @@ const SellerKYC = () => {
         !String(v.storeAddresses || '').trim(),
     });
 
-  // PAN format check (mirrors backend)
-  const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i;
-  const GST_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i;
-
   const canSubmit = useMemo(() => {
     if (!form.officialName.trim()) return false;
     if (!form.entityType) return false;
@@ -312,7 +312,7 @@ const SellerKYC = () => {
     if (form.gstNumber.trim() && !hasDoc('gstImage')) return false;
     if (!form.agreedToTerms) return false;
     return true;
-  }, [form, selectedEntityType, hasLogo, documents, existingDocs]);
+  }, [form, selectedEntityType, hasLogo, hasDoc]);
 
   const submitKyc = async () => {
     if (!canSubmit) {

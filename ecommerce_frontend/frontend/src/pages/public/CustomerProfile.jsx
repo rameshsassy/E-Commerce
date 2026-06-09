@@ -51,13 +51,13 @@ const CustomerProfile = () => {
       }
     };
     fetchData();
-  }, []);
+  }, [mergeUser]);
 
   useEffect(() => {
     if (!user) return;
     setEmailNewProductAlerts(!!user.emailNewProductAlerts);
     setMarketingEmailsEnabled(user.marketingEmailsEnabled !== false);
-  }, [user?.emailNewProductAlerts, user?.marketingEmailsEnabled]);
+  }, [user]);
 
   const TABS = [
     { id: 'personal', label: 'Personal Information', icon: <User size={20} /> },

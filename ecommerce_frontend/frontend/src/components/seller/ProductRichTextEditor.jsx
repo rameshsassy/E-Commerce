@@ -166,13 +166,6 @@ export default function ProductRichTextEditor({
     lastValueRef.current = next;
   }, [value]);
 
-  useEffect(() => {
-    if (editorRef.current && value) {
-      editorRef.current.innerHTML = value;
-      lastValueRef.current = value;
-    }
-  }, []);
-
   const applyFontSize = useCallback(
     (sizePx) => {
       const editor = editorRef.current;

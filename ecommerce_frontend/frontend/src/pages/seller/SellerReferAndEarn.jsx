@@ -273,9 +273,8 @@ export default function SellerReferAndEarn() {
       name: 'Email',
       icon: <Mail size={18} />,
       color: 'bg-slate-700 hover:bg-slate-900',
-      onClick: openInviteForm,
     },
-  ], [shareMessage, activeReferralLink, openInviteForm]);
+  ], [shareMessage, activeReferralLink]);
 
   if (loading) {
     return (
@@ -401,12 +400,13 @@ export default function SellerReferAndEarn() {
                 Quick Share via
               </span>
               <div className="responsive-share-row">
-                {shareOptions.map((opt) =>
-                  opt.onClick ? (
+                {shareOptions.map((opt) => {
+                  const isEmail = opt.name === 'Email';
+                  return isEmail ? (
                     <button
                       key={opt.name}
                       type="button"
-                      onClick={opt.onClick}
+                      onClick={openInviteForm}
                       className={`h-11 px-4 sm:px-5 rounded-xl text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-transform hover:scale-105 active:scale-95 ${opt.color}`}
                     >
                       {opt.icon}
@@ -423,8 +423,8 @@ export default function SellerReferAndEarn() {
                       {opt.icon}
                       {opt.name}
                     </a>
-                  )
-                )}
+                  );
+                })}
               </div>
             </div>
           </div>

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 
 const SalesChart = ({ data = [] }) => {
-  const safeData = Array.isArray(data) ? data : [];
+  const safeData = useMemo(() => Array.isArray(data) ? data : [], [data]);
 
   const chartWidth = 700;
   const chartHeight = 250;

@@ -123,7 +123,7 @@ const SellerAnalytics = () => {
 
   const makeCacheKey = (params) => JSON.stringify(params || {});
 
-  const fetchAnalytics = async (params = {}, { initial = false } = {}) => {
+  const fetchAnalytics = useCallback(async (params = {}, { initial = false } = {}) => {
     const key = makeCacheKey(params);
     const cached = cacheRef.current.get(key);
     if (cached) {
@@ -154,14 +154,17 @@ const SellerAnalytics = () => {
       if (initial) setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
+
+  const hasLoadedRef = useRef(false);
 
   // Fetch on mount and when date preset changes (except custom — user clicks Apply)
   useEffect(() => {
     setRangeError('');
     if (rangePreset === 'custom') return;
-    fetchAnalytics({ preset: rangePreset }, { initial: !data });
-  }, [rangePreset]);
+    fetchAnalytics({ preset: rangePreset }, { initial: !hasLoadedRef.current });
+    hasLoadedRef.current = true;
+  }, [rangePreset, fetchAnalytics]);
 
   const onApplyCustom = () => {
     setRangeError('');

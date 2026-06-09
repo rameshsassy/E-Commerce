@@ -22,10 +22,10 @@ const AdminDashboard = () => {
     const fetchStats = async () => {
       try {
         const { data } = await api.get('/admin/analytics');
-        setStats({
-          ...stats,
-          ...data
-        });
+        setStats((prev) => ({
+          ...prev,
+          ...data,
+        }));
       } catch (err) {
         console.error("Failed to load analytics", err);
       } finally {

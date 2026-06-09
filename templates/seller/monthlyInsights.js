@@ -19,6 +19,7 @@ export default function monthlyInsights(seller, insights) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Monthly Insights - Aashansh</title>
 </head>
+
 <body style="margin: 0; padding: 0; background-color: #F6F6F6; font-family: Arial, Helvetica, sans-serif;">
 <center>
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #F6F6F6; padding: 20px 0;">

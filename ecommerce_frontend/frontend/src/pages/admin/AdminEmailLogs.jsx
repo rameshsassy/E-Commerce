@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../utils/api';
 import { Mail, Loader2, RefreshCw } from 'lucide-react';
 
@@ -8,7 +8,7 @@ const AdminEmailLogs = () => {
   const [filterType, setFilterType] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -22,11 +22,11 @@ const AdminEmailLogs = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterType, filterStatus]);
 
   useEffect(() => {
     load();
-  }, [filterType, filterStatus]);
+  }, [load]);
 
   return (
     <div className="animate-fade-in max-w-6xl mx-auto space-y-6">

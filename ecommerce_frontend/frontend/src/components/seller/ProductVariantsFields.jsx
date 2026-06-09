@@ -82,7 +82,7 @@ export default function ProductVariantsFields({ productData, setProductData }) {
   const [openType, setOpenType] = useState(null);
   const [draft, setDraft] = useState(() => normalizeVariant({}));
 
-  const variants = Array.isArray(productData.variants) ? productData.variants : [];
+  const variants = useMemo(() => Array.isArray(productData.variants) ? productData.variants : [], [productData.variants]);
 
   const grouped = useMemo(() => {
     const map = {};
