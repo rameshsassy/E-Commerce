@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api, { BASE_URL } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -16,13 +17,13 @@ import {
 
 export default function SellerBuyProducts() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
   // Search and filter state
   const [searchQuery, setSearchQuery] = useState('');
-  const [sellerTypeFilter, setSellerTypeFilter] = useState('all');
 
   // Checkout modal state
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -42,6 +43,7 @@ export default function SellerBuyProducts() {
   const [profileLoading, setProfileLoading] = useState(false);
 
   const buyerType = user?.sellerType || 'free';
+  const activePlan = user?.subscriptionPlan || 'free';
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
@@ -156,11 +158,7 @@ export default function SellerBuyProducts() {
       product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.description.toLowerCase().includes(searchQuery.toLowerCase());
     
-    const ownerType = product.sellerId?.sellerType || 'free';
-    const matchesSellerType =
-      sellerTypeFilter === 'all' || ownerType === sellerTypeFilter;
-
-    return matchesSearch && matchesSellerType;
+    return matchesSearch;
   });
 
   return (
@@ -168,18 +166,30 @@ export default function SellerBuyProducts() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="seller-page-title mb-1">Buy Products</h1>
+          <h1 className="seller-page-title mb-1">Bulk Purchase</h1>
           <p className="text-text-muted text-sm">
-            Purchase products in bulk or individual units directly from fellow marketplace sellers.
+            Purchase products in bulk directly from fellow marketplace sellers.
           </p>
         </div>
 
         {/* Badge showing current user type */}
         <div className="flex items-center gap-2 px-4 py-2 bg-surface border border-glass-border rounded-xl w-fit">
-          <span className="text-xs text-text-muted font-medium">Your Seller Type:</span>
-          {buyerType === 'premium' ? (
+          <span className="text-xs text-text-muted font-medium">
+            {activePlan === 'premium' && user?.subscriptionActive ? (
+              "You are on premium plan"
+            ) : activePlan === 'pro' && user?.subscriptionActive ? (
+              "You are on pro plan"
+            ) : (
+              "You are on free plan . Upgrade now to sell in bulk"
+            )}
+          </span>
+          {activePlan === 'premium' && user?.subscriptionActive ? (
             <span className="badge bg-warning/20 text-warning border border-warning/30 font-bold flex items-center gap-1">
               <Sparkles size={12} className="fill-warning/10" /> Premium Seller
+            </span>
+          ) : activePlan === 'pro' && user?.subscriptionActive ? (
+            <span className="badge bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 font-bold flex items-center gap-1">
+              <Sparkles size={12} className="fill-indigo-500/10" /> Pro Seller
             </span>
           ) : (
             <span className="badge bg-primary/20 text-primary border border-primary/30 font-bold">
@@ -190,36 +200,48 @@ export default function SellerBuyProducts() {
       </div>
 
       {/* Rules Banner (Dynamic & Professional) */}
-      <div className="glass-panel p-5 mb-8 border border-glass-border flex gap-4 items-start bg-[#1e293b]/40">
-        <Info className="text-primary shrink-0 mt-0.5" size={22} />
-        <div>
-          <h4 className="font-bold text-white mb-2">Seller Trading Guidelines</h4>
-          <ul className="text-xs text-text-muted space-y-1.5 list-disc pl-4">
-            <li>
-              <strong>Free Sellers</strong> cannot offer bulk selling. Any product owned by a Free Seller can only be purchased in single quantities.
-            </li>
-            {buyerType === 'premium' ? (
-              <>
-                <li className="text-warning">
-                  You are a <strong>Premium Seller</strong>: You can buy from Premium Sellers in bulk, but your purchases from Free Sellers are restricted to <strong>single items only (quantity = 1)</strong>.
-                </li>
-                <li>You can buy from Premium Sellers in both single and bulk quantities.</li>
-              </>
-            ) : (
-              <>
-                <li className="text-primary">
-                  You are a <strong>Free Seller</strong>: You can buy from Premium Sellers in bulk, but your purchases from Free Sellers are restricted to <strong>individual quantities</strong> (no bulk options).
-                </li>
-                <li>You can buy from Premium Sellers in both single and bulk quantities.</li>
-              </>
-            )}
-          </ul>
+      <div className="glass-panel p-5 mb-8 border border-glass-border flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between bg-[#1e293b]/40">
+        <div className="flex gap-4 items-start">
+          <Info className="text-primary shrink-0 mt-0.5" size={22} />
+          <div>
+            <h4 className="font-bold text-white mb-2">Want to sell in bulk?</h4>
+            <ul className="text-xs text-text-muted space-y-1.5 list-disc pl-4">
+              {activePlan === 'free' ? (
+                <>
+                  <li>
+                    <strong>Free Sellers</strong> cannot offer bulk selling. Any product owned by a Free Seller can only be purchased in single quantities.
+                  </li>
+                  <li className="text-primary">
+                    You are a <strong>Free Seller</strong>: You can buy from Premium and Pro Sellers in bulk, but your purchases from Free Sellers are restricted to <strong>individual quantities</strong> (no bulk options).
+                  </li>
+                  <li>You can buy from Premium and Pro Sellers in both single and bulk quantities.</li>
+                </>
+              ) : (
+                <>
+                  <li>
+                    Display your products for the fellow sellers to request for bulk quantity from you
+                  </li>
+                  <li>
+                    All the bulk buying request from sellers, corporates, schools, colleges, and other instutional buyers can be check on 'Orders & Enquiries' page
+                  </li>
+                </>
+              )}
+            </ul>
+          </div>
         </div>
+        
+        <button
+          type="button"
+          onClick={() => navigate('/seller/premium')}
+          className="px-6 py-2 border border-white/40 hover:border-white/80 text-white hover:bg-white/5 bg-transparent text-sm rounded-lg transition-all shrink-0"
+        >
+          Click to Upgrade
+        </button>
       </div>
 
       {/* Search & Filtering Panel */}
-      <div className="glass-panel p-4 mb-6 flex flex-col sm:flex-row gap-4 items-center justify-between">
-        <div className="relative w-full sm:max-w-md">
+      <div className="glass-panel p-4 mb-6 flex gap-4 items-center">
+        <div className="relative w-full">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
           <input
             type="text"
@@ -228,19 +250,6 @@ export default function SellerBuyProducts() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-        </div>
-
-        <div className="flex items-center gap-3 w-full sm:w-auto shrink-0 justify-end">
-          <span className="text-sm text-text-muted font-medium shrink-0">Seller Type:</span>
-          <select
-            className="input-field py-1.5 px-3 bg-surface max-w-[160px] text-sm"
-            value={sellerTypeFilter}
-            onChange={(e) => setSellerTypeFilter(e.target.value)}
-          >
-            <option value="all">All Sellers</option>
-            <option value="premium">Premium Sellers</option>
-            <option value="free">Free Sellers</option>
-          </select>
         </div>
       </div>
 
@@ -266,14 +275,14 @@ export default function SellerBuyProducts() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProducts.map((product) => {
-            const productOwnerType = product.sellerId?.sellerType || 'free';
-            const isPremiumOwner = productOwnerType === 'premium';
+            const productOwnerPlan = product.sellerId?.subscriptionPlan || 'free';
+            const isSubscribedOwner = productOwnerPlan === 'premium' || productOwnerPlan === 'pro';
             const businessName = product.sellerId?.businessName || 
                                  `${product.sellerId?.firstName || ''} ${product.sellerId?.lastName || ''}`.trim() || 
                                  'Aashansh Seller';
 
             // Rules configuration
-            const isBulkAllowed = isPremiumOwner; // Rule 3: Free sellers cannot sell in bulk
+            const isBulkAllowed = isSubscribedOwner; // Free sellers cannot sell in bulk
 
             return (
               <div key={product._id} className="glass-panel flex flex-col overflow-hidden hover:border-glass-border/40 transition-all hover:-translate-y-0.5">
@@ -293,9 +302,13 @@ export default function SellerBuyProducts() {
 
                   {/* Seller Type Badge on Image */}
                   <div className="absolute top-3 right-3">
-                    {isPremiumOwner ? (
+                    {productOwnerPlan === 'premium' ? (
                       <span className="px-2.5 py-1 text-[10px] bg-[#ffd401] text-black font-extrabold rounded-lg shadow-md flex items-center gap-1">
                         <Sparkles size={10} className="fill-black" /> PREMIUM SELLER
+                      </span>
+                    ) : productOwnerPlan === 'pro' ? (
+                      <span className="px-2.5 py-1 text-[10px] bg-indigo-500 text-white font-extrabold rounded-lg shadow-md flex items-center gap-1">
+                        <Sparkles size={10} className="fill-white" /> PRO SELLER
                       </span>
                     ) : (
                       <span className="px-2.5 py-1 text-[10px] bg-[#334155] text-white font-extrabold rounded-lg shadow-md border border-white/10">
@@ -332,7 +345,7 @@ export default function SellerBuyProducts() {
                     <p className="truncate">
                       <strong>Seller:</strong> {businessName}
                     </p>
-                    {isPremiumOwner && (
+                    {isSubscribedOwner && (
                       <p>
                         <strong>Min Bulk Qty:</strong> {product.bulkPurchaseMinOrderQuantity || 50} units
                       </p>
@@ -439,9 +452,9 @@ export default function SellerBuyProducts() {
                       Purchase Quantity
                     </label>
 
-                    {/* Rules restriction for Premium Buyer buying from Free Seller */}
+                    {/* Rules restriction for Premium/Pro Buyer buying from Free Seller */}
                     {checkoutMode === 'single' &&
-                    buyerType === 'premium' &&
+                    (activePlan === 'premium' || activePlan === 'pro') &&
                     (selectedProduct.sellerId?.sellerType || 'free') === 'free' ? (
                       <div className="flex flex-col gap-1">
                         <input
@@ -451,7 +464,7 @@ export default function SellerBuyProducts() {
                           className="input-field bg-surface-hover/50 text-text-muted cursor-not-allowed font-bold"
                         />
                         <span className="text-[10px] text-warning flex items-center gap-1 font-semibold">
-                          <AlertCircle size={10} /> Locked to 1 unit per rules
+                          <AlertCircle size={10} /> Locked to 1 unit per rules (Premium/Pro Buyer)
                         </span>
                       </div>
                     ) : (

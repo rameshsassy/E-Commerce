@@ -19,7 +19,7 @@ export const getBuyProducts = async (req, res) => {
       isActive: true,
       approvalStatus: "approved"
     })
-      .populate("sellerId", "firstName lastName businessName sellerType")
+      .populate("sellerId", "firstName lastName businessName sellerType subscriptionPlan")
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -50,7 +50,7 @@ export const placeSellerOrder = async (req, res) => {
     }
 
     // 1. Fetch and validate product
-    const product = await Product.findById(productId).populate("sellerId", "firstName lastName businessName sellerType");
+    const product = await Product.findById(productId).populate("sellerId", "firstName lastName businessName sellerType subscriptionPlan");
     if (!product) {
       return res.status(404).json({
         success: false,
@@ -97,17 +97,17 @@ export const placeSellerOrder = async (req, res) => {
     const isBulk = quantity >= minBulkQty;
 
     // Rules:
-    // - Free sellers can buy from premium sellers (bulk and single allowed)
-    // - Premium sellers can buy from premium sellers (bulk and single allowed)
+    // - Free sellers can buy from premium/pro sellers (bulk and single allowed)
+    // - Premium/pro sellers can buy from premium/pro sellers (bulk and single allowed)
     // - Free sellers are not giving option for bulk selling (so no bulk purchases from free sellers, neither by free nor premium)
-    // - Premium seller can't buy bulk products from free seller, he can buy only single product (quantity = 1)
+    // - Premium/pro seller can't buy bulk products from free seller, he can buy only single product (quantity = 1)
     
     if (sellerType === "free") {
       if (buyerType === "premium") {
         if (quantity !== 1) {
           return res.status(400).json({
             success: false,
-            message: "Premium sellers can only buy a single product (quantity = 1) from Free sellers."
+            message: "Premium and Pro sellers can only buy a single product (quantity = 1) from Free sellers."
           });
         }
       } else {

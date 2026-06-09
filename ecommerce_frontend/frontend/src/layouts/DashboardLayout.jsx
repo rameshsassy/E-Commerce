@@ -31,7 +31,7 @@ const SELLER_NAV = [
   { to: '/seller/orders-enquiries', label: 'Orders & Enquiries', icon: ClipboardList, iconAccent: true },
   { to: '/seller/analytics', label: 'Analytics', icon: 'chart' },
   { to: '/seller/products', label: 'My products', icon: Package },
-  { to: '/seller/buy-products', label: 'Buy Products', icon: ShoppingCart },
+  { to: '/seller/buy-products', label: 'Bulk Purchase', icon: ShoppingCart },
   { to: '/seller/kyc', label: 'Profile & KYC', icon: FileCheck },
   { to: '/seller/invoices', label: 'Invoices', icon: Receipt },
   { to: '/seller/raise-funds', label: 'Raise funds', icon: HandCoins },
