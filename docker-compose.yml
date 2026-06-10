@@ -40,20 +40,57 @@ services:
     networks:
       - ecom_network
 
-  # 3. React Frontend Service
-  frontend:
+  # 3. Customer React Client
+  customer:
     build:
-      context: ./ecommerce_frontend/frontend
+      context: ./ecommerce_frontend/customer
       dockerfile: Dockerfile
-    container_name: aashansh_frontend
+    container_name: aashansh_customer
     restart: always
     ports:
       - "5173:5173"
     volumes:
-      - ./ecommerce_frontend/frontend:/app
+      - ./ecommerce_frontend/customer:/app
       - /app/node_modules
     environment:
-      # Tell Vite's dev proxy to forward /api and /uploads to the backend service container
+      - VITE_API_PROXY_URL=http://backend:5000
+    depends_on:
+      - backend
+    networks:
+      - ecom_network
+
+  # 4. Seller React Client
+  seller:
+    build:
+      context: ./ecommerce_frontend/seller
+      dockerfile: Dockerfile
+    container_name: aashansh_seller
+    restart: always
+    ports:
+      - "5174:5174"
+    volumes:
+      - ./ecommerce_frontend/seller:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_PROXY_URL=http://backend:5000
+    depends_on:
+      - backend
+    networks:
+      - ecom_network
+
+  # 5. Admin React Client
+  admin:
+    build:
+      context: ./ecommerce_frontend/admin
+      dockerfile: Dockerfile
+    container_name: aashansh_admin
+    restart: always
+    ports:
+      - "5175:5175"
+    volumes:
+      - ./ecommerce_frontend/admin:/app
+      - /app/node_modules
+    environment:
       - VITE_API_PROXY_URL=http://backend:5000
     depends_on:
       - backend
