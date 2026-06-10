@@ -104,11 +104,11 @@ const DashboardLayout = ({ variant }) => {
   }
 
   if (isSeller && user.role !== 'seller') {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   if (isAdmin && user.role !== 'admin' && user.role !== 'admin_staff') {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   if (isAdmin) {
