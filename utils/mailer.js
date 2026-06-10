@@ -27,6 +27,7 @@ export function resolveSmtpCredentials(senderType = "customer") {
         port: Number(process.env[`SMTP_${prefix}_PORT`] || process.env.SMTP_PORT || 587),
         user,
         pass,
+        from: process.env[`SMTP_${prefix}_FROM`] || process.env.SMTP_FROM || user,
         profile: prefix,
       };
     }
@@ -40,6 +41,7 @@ export function resolveSmtpCredentials(senderType = "customer") {
       port: Number(process.env.SMTP_PORT || 587),
       user: gu,
       pass: gp,
+      from: process.env.SMTP_FROM || gu,
       profile: "SMTP_USER",
     };
   }
@@ -114,7 +116,8 @@ export const sendEmail = async ({ to, subject, html, senderType = "customer" }) 
 
   const transporter = await getOrCreateTransporter(creds);
   const fromName = displayNames[senderType] || "Aashansh";
-  const from = `"${fromName}" <${creds.user}>`;
+  const fromEmail = creds.from || creds.user;
+  const from = fromEmail.includes('<') ? fromEmail : `"${fromName}" <${fromEmail}>`;
 
   try {
     const info = await transporter.sendMail({
