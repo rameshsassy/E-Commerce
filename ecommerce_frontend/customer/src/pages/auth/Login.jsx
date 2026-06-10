@@ -26,25 +26,7 @@ const Login = () => {
   const customerLabel = getPortalLabelForUi(getCustomerPortalOrigin(), { seller: false });
   const sellerLabel = getPortalLabelForUi(getSellerPortalOrigin(), { seller: true });
 
-  const [loginAs, setLoginAs] = useState(() =>
-    isSellerPortal() ? 'seller' : 'customer'
-  );
-
-  useEffect(() => {
-    const q = new URLSearchParams(location.search).get('portal');
-    if (q === 'seller') setLoginAs('seller');
-    else if (q === 'customer') setLoginAs('customer');
-    else if (isSellerPortal()) setLoginAs('seller');
-  }, [location.search]);
-
-  const setPortalMode = (mode) => {
-    setLoginAs(mode);
-    const params = new URLSearchParams(location.search);
-    if (mode === 'seller') params.set('portal', 'seller');
-    else params.delete('portal');
-    const qs = params.toString();
-    navigate({ pathname: '/login', search: qs ? `?${qs}` : '' }, { replace: true });
-  };
+  const [loginAs] = useState('customer');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -94,48 +76,12 @@ const Login = () => {
       <div className="glass-panel w-full max-w-md p-8 animate-fade-in">
         <div className="text-center mb-6">
           <h1 className="text-3xl font-bold text-primary mb-2" style={{ color: 'var(--color-primary)' }}>
-            Sign in
+            Sign In
           </h1>
           <p className="text-text-muted text-sm" style={{ color: 'var(--color-text-muted)' }}>
-            Choose how you want to sign in, then enter your details.
+            Enter your credentials to access your shopping account.
           </p>
         </div>
-
-        <div
-          className="flex rounded-lg p-1 mb-6 border border-white/10"
-          style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
-          role="tablist"
-          aria-label="Login type"
-        >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={loginAs === 'customer'}
-            className={`flex-1 py-2.5 text-sm font-medium rounded-md transition-colors ${
-              loginAs === 'customer' ? 'btn btn-primary' : 'text-text-muted hover:text-white'
-            }`}
-            onClick={() => setPortalMode('customer')}
-          >
-            Customer
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={loginAs === 'seller'}
-            className={`flex-1 py-2.5 text-sm font-medium rounded-md transition-colors ${
-              loginAs === 'seller' ? 'btn btn-primary' : 'text-text-muted hover:text-white'
-            }`}
-            onClick={() => setPortalMode('seller')}
-          >
-            Seller
-          </button>
-        </div>
-
-        <p className="text-center text-xs text-text-muted mb-6 -mt-2" style={{ color: 'var(--color-text-muted)' }}>
-          {loginAs === 'seller'
-            ? `Seller account · ${sellerLabel}`
-            : `Shopping · ${customerLabel}`}
-        </p>
 
         {error && (
           <div className="bg-error/20 border border-error text-error p-3 rounded-md mb-6 text-sm text-center" style={{ color: 'var(--color-error)', borderColor: 'var(--color-error)', backgroundColor: 'rgba(239, 68, 68, 0.1)' }}>
@@ -186,41 +132,13 @@ const Login = () => {
         <p className="text-center mt-6 text-sm text-text-muted" style={{ color: 'var(--color-text-muted)' }}>
           Don&apos;t have an account?{' '}
           <Link
-            to={loginAs === 'seller' ? '/register?portal=seller' : '/register'}
+            to="/register"
             className="text-primary font-medium hover:underline"
             style={{ color: 'var(--color-primary)' }}
           >
-            {loginAs === 'seller' ? 'Create seller account' : 'Sign up'}
+            Sign up
           </Link>
         </p>
-        {loginAs === 'seller' && (
-          <p className="text-center mt-3 text-xs text-text-muted">
-            Shopping as a customer?{' '}
-            <button
-              type="button"
-              className="text-primary hover:underline"
-              onClick={() => setPortalMode('customer')}
-            >
-              Switch to customer sign in
-            </button>
-          </p>
-        )}
-        {loginAs === 'customer' && (
-          <p className="text-center mt-3 text-xs text-text-muted">
-            Selling on Aashansh?{' '}
-            <a href={getOtherPortalRegisterUrl()} className="text-primary hover:underline">
-              Seller sign up
-            </a>
-            {' · '}
-            <button
-              type="button"
-              className="text-primary hover:underline"
-              onClick={() => setPortalMode('seller')}
-            >
-              Seller sign in
-            </button>
-          </p>
-        )}
       </div>
     </div>
   );
