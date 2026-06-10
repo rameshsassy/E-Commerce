@@ -30,6 +30,9 @@ import RefundPolicy from './pages/public/RefundPolicy';
 import ShippingPolicy from './pages/public/ShippingPolicy';
 import ContactInformation from './pages/public/ContactInformation';
 import PublicStorePage from './pages/public/PublicStorePage';
+import ReturnPolicy from './pages/public/ReturnPolicy';
+import ReplacementPolicy from './pages/public/ReplacementPolicy';
+import SellerAgreement from './pages/public/SellerAgreement';
 
 import FloatingChat from './components/chat/FloatingChat';
 
@@ -60,6 +63,9 @@ function AppRoutes() {
           <Route path="/about-us" element={<AboutUs />} />
           <Route path="/refund-policy" element={<RefundPolicy />} />
           <Route path="/shipping-policy" element={<ShippingPolicy />} />
+          <Route path="/return-policy" element={<ReturnPolicy />} />
+          <Route path="/replacement-policy" element={<ReplacementPolicy />} />
+          <Route path="/seller-agreement" element={<SellerAgreement />} />
           <Route path="/contact-info" element={<ContactInformation />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />

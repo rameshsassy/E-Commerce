@@ -20,6 +20,7 @@ import categoryRoutes from "./routes/category.routes.js";
 import publicStoreRoutes from "./routes/publicStore.routes.js";
 import formDraftRoutes from "./routes/formDraft.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
+import websiteRequestRoutes from "./routes/websiteRequest.routes.js";
 
 import { errorHandler } from "./middleware/error.middleware.js";
 import { clientDeviceMiddleware } from "./middleware/clientDevice.middleware.js";
@@ -91,6 +92,18 @@ function corsOriginCallback(origin, callback) {
 }
 
 const app = express();
+
+// Google Drive URL compatibility rewriter
+app.use((req, res, next) => {
+  const match = req.url.match(/^\/(https?):\/+(.*)$/);
+  if (match) {
+    const protocol = match[1];
+    const rest = match[2];
+    const targetUrl = `${protocol}://${rest}`;
+    return res.redirect(302, targetUrl);
+  }
+  next();
+});
 
 // Request Logger
 if (process.env.NODE_ENV !== 'production') {
@@ -184,6 +197,7 @@ app.use("/api/support", supportRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/public", publicStoreRoutes);
 app.use("/api/chat", chatRoutes);
+app.use("/api/website-requests", websiteRequestRoutes);
 
 // ===============================
 // 🏠 ROOT ROUTE

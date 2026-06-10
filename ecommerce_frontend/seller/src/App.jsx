@@ -24,6 +24,7 @@ import SellerAboutUs from './pages/seller/SellerAboutUs';
 import SellerPremium from './pages/seller/SellerPremium';
 import SellerChat from './pages/seller/SellerChat';
 import SellerBuyProducts from './pages/seller/SellerBuyProducts';
+import SellerRequestWebsite from './pages/seller/SellerRequestWebsite';
 
 // Footer links displayed in dashboard layouts
 import TermsAndConditions from './pages/public/TermsAndConditions';
@@ -32,6 +33,9 @@ import AboutUs from './pages/public/AboutUs';
 import RefundPolicy from './pages/public/RefundPolicy';
 import ShippingPolicy from './pages/public/ShippingPolicy';
 import ContactInformation from './pages/public/ContactInformation';
+import ReturnPolicy from './pages/public/ReturnPolicy';
+import ReplacementPolicy from './pages/public/ReplacementPolicy';
+import SellerAgreement from './pages/public/SellerAgreement';
 
 import FloatingChat from './components/chat/FloatingChat';
 
@@ -60,11 +64,15 @@ function AppRoutes() {
         <Route path="/seller/chat" element={<SellerChat />} />
         <Route path="/seller/about-us" element={<SellerAboutUs />} />
         <Route path="/seller/buy-products" element={<SellerBuyProducts />} />
+        <Route path="/seller/request-website" element={<SellerRequestWebsite />} />
         <Route path="/terms" element={<TermsAndConditions />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/about-us" element={<AboutUs />} />
         <Route path="/refund-policy" element={<RefundPolicy />} />
         <Route path="/shipping-policy" element={<ShippingPolicy />} />
+        <Route path="/return-policy" element={<ReturnPolicy />} />
+        <Route path="/replacement-policy" element={<ReplacementPolicy />} />
+        <Route path="/seller-agreement" element={<SellerAgreement />} />
         <Route path="/contact-info" element={<ContactInformation />} />
       </Route>
 

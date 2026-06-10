@@ -34,6 +34,11 @@ const productSchema = new mongoose.Schema(
       default: [],
     },
 
+    csvOriginalImageLinks: {
+      type: [String],
+      default: [],
+    },
+
     /**
      * Product variants (e.g., same shirt different color/size/etc).
      * Each variant can optionally carry its own image and pricing fields.

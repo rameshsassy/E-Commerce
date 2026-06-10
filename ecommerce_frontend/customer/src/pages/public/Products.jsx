@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, SlidersHorizontal, ShoppingCart, Heart } from 'lucide-react';
 import { Link, useSearchParams, useNavigate, useParams } from 'react-router-dom';
-import api, { BASE_URL } from '../../utils/api';
+import api, { BASE_URL, getImageUrl } from '../../utils/api';
 import SortDropdown from '../../components/filters/SortDropdown';
 import ProductFilters from '../../components/filters/ProductFilters';
 import CategoryPageMeta from '../../components/common/CategoryPageMeta';
@@ -324,13 +324,13 @@ const Products = () => {
                         {product.images && product.images.length > 0 ? (
                           <>
                             <img
-                              src={`${BASE_URL}/${product.images[0].replace(/\\/g, '/')}`}
+                              src={getImageUrl(product.images[0])}
                               alt={product.title}
                               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                             />
                             {product.images.length > 1 && (
                               <img
-                                src={`${BASE_URL}/${product.images[1].replace(/\\/g, '/')}`}
+                                src={getImageUrl(product.images[1])}
                                 alt={product.title}
                                 className="w-full h-full object-cover absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700"
                               />

@@ -16,6 +16,7 @@ import {
   getDeliverySuggestions,
   getDeliveryOptions,
   updateProductActiveStatus,
+  downloadBulkUploadTemplate,
 } from "../controllers/product.controller.js";
 import { createBulkInquiry } from "../controllers/bulkInquiry.controller.js";
 
@@ -25,6 +26,7 @@ import {
   markReviewHelpful
 } from "../controllers/review.controller.js";
 import { renameUploadedProductImages } from "../middleware/renameProductImages.middleware.js";
+import { uploadProductImagesToGoogleDrive } from "../middleware/googleDrive.middleware.js";
 
 const router = express.Router();
 
@@ -44,6 +46,13 @@ router.get("/shipping/delivery-options", getDeliveryOptions);
 router.get("/shipping/suggestions", getDeliverySuggestions);
 
 // Bulk CSV (must be before /:id)
+router.get(
+  "/bulk/template",
+  protect,
+  authorizeRoles("seller"),
+  downloadBulkUploadTemplate
+);
+
 router.post(
   "/bulk",
   protect,
@@ -80,6 +89,7 @@ router.patch(
   authorizeRoles("seller"),
   ...sellerImageUpload,
   renameUploadedProductImages,
+  uploadProductImagesToGoogleDrive,
   autoSaveProduct
 );
 
@@ -89,6 +99,7 @@ router.patch(
   authorizeRoles("seller"),
   ...sellerImageUpload,
   renameUploadedProductImages,
+  uploadProductImagesToGoogleDrive,
   autoSaveProduct
 );
 
@@ -101,6 +112,7 @@ router.post(
   authorizeRoles("seller"),
   ...sellerImageUpload,
   renameUploadedProductImages,
+  uploadProductImagesToGoogleDrive,
   addProduct
 );
 
@@ -110,6 +122,7 @@ router.put(
   authorizeRoles("seller"),
   ...sellerImageUpload,
   renameUploadedProductImages,
+  uploadProductImagesToGoogleDrive,
   updateProduct
 );
 

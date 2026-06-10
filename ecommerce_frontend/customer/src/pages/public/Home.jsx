@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, ShoppingBag, ShieldCheck, HeartHandshake, Truck, Star, Heart } from 'lucide-react';
-import api, { BASE_URL } from '../../utils/api';
+import api, { BASE_URL, getImageUrl } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import AuthModal from '../../components/auth/AuthModal';
 import { buildCategoryBrowsePath } from '../../utils/categoryPageSeo';
@@ -168,7 +168,7 @@ const Home = () => {
                     {product.images && product.images.length > 0 ? (
                       <div className="w-full h-full relative">
                         <img 
-                          src={`${BASE_URL}/${product.images[0].replace(/\\/g, '/')}`} 
+                          src={getImageUrl(product.images[0])} 
                           alt={product.title}
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                         />

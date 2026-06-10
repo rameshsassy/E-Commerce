@@ -3,6 +3,7 @@ import { Mail, MessageCircle, FileText, ChevronDown, CheckCircle, HelpCircle, Se
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import api from '../../utils/api';
+import { compressAndStandardizeImage } from '../../utils/imageCompression';
 import useFormAutosave from '../../hooks/useFormAutosave';
 import FormAutosaveStatus from '../../components/common/FormAutosaveStatus';
 import { getSupportWhatsAppUrl } from '../../utils/supportContact';
@@ -22,6 +23,7 @@ const Support = () => {
     orderId: ''
   });
   const [attachments, setAttachments] = useState([]);
+  const [compressing, setCompressing] = useState(false);
 
   const { status: ticketAutosaveStatus, message: ticketAutosaveMessage, clearDraft: clearTicketDraft } =
     useFormAutosave({
@@ -49,9 +51,26 @@ const Support = () => {
     }
   }, [user, activeTab]);
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     if (e.target.files) {
-      setAttachments(Array.from(e.target.files));
+      const selectedFiles = Array.from(e.target.files);
+      try {
+        setCompressing(true);
+        const processedFiles = [];
+        for (const file of selectedFiles) {
+          if (file.type.startsWith('image/')) {
+            const compressed = await compressAndStandardizeImage(file);
+            processedFiles.push(compressed);
+          } else {
+            processedFiles.push(file);
+          }
+        }
+        setAttachments(processedFiles);
+      } catch (err) {
+        alert(err.message || 'Image could not be optimized. Please upload a different image.');
+      } finally {
+        setCompressing(false);
+      }
     }
   };
 
@@ -293,6 +312,12 @@ const Support = () => {
           )}
         </div>
       </div>
+      {compressing && (
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/70 text-white gap-3">
+          <div className="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+          <p className="text-sm font-medium">Compressing and optimizing attachment...</p>
+        </div>
+      )}
     </div>
   );
 };

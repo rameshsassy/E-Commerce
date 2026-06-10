@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Plus, X, Image as ImageIcon } from 'lucide-react';
 import { HexColorInput, HexColorPicker } from 'react-colorful';
 import { BASE_URL } from '../../utils/api';
+import { compressAndStandardizeImage } from '../../utils/imageCompression';
 
 const VARIANT_TYPES = [
   { key: 'color', label: 'Add Color Variant' },
@@ -81,6 +82,7 @@ function VariantImage({ variant, onPickFile }) {
 export default function ProductVariantsFields({ productData, setProductData }) {
   const [openType, setOpenType] = useState(null);
   const [draft, setDraft] = useState(() => normalizeVariant({}));
+  const [compressing, setCompressing] = useState(false);
 
   const variants = useMemo(() => Array.isArray(productData.variants) ? productData.variants : [], [productData.variants]);
 
@@ -136,19 +138,36 @@ export default function ProductVariantsFields({ productData, setProductData }) {
     setProductData((prev) => ({ ...prev, variants: next }));
   };
 
-  const onPickFile = (file) => {
+  const onPickFile = async (file) => {
     if (!file) {
       setDraft((d) => ({ ...d, imageFile: null, imagePreview: '' }));
       return;
     }
-    const ok = ['image/jpeg', 'image/png', 'image/jpg'].includes(file.type);
-    if (!ok) return;
-    const url = URL.createObjectURL(file);
-    setDraft((d) => ({ ...d, imageFile: file, imagePreview: url }));
+    const ok = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'].includes(file.type);
+    if (!ok) {
+      window.alert('Only JPG, PNG and WebP images are allowed.');
+      return;
+    }
+    try {
+      setCompressing(true);
+      const compressed = await compressAndStandardizeImage(file);
+      const url = URL.createObjectURL(compressed);
+      setDraft((d) => ({ ...d, imageFile: compressed, imagePreview: url }));
+    } catch (err) {
+      window.alert(err.message || 'Image could not be optimized. Please upload a different image.');
+    } finally {
+      setCompressing(false);
+    }
   };
 
   return (
     <div className="mt-8 border-t border-[#E1E3E5] pt-6">
+      {compressing && (
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/70 text-white gap-3">
+          <div className="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+          <p className="text-sm font-medium">Compressing and optimizing variant image...</p>
+        </div>
+      )}
       <div className="space-y-4">
         {VARIANT_TYPES.map((t) => (
           <div key={t.key} className="border border-[#E1E3E5] rounded-md overflow-hidden">

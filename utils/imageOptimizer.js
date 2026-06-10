@@ -126,12 +126,47 @@ export async function optimizeUploadedImages(req, res, next) {
     const files = collectUploadedFiles(req).filter(isImageUpload);
     for (const file of files) {
       if (file.path && fs.existsSync(file.path)) {
-        const { path: outPath, size } = await optimizeImageFile(file.path);
+        let outPath, size;
+        try {
+          const result = await optimizeImageFile(file.path);
+          outPath = result.path;
+          size = result.size;
+        } catch (optimizeError) {
+          console.error("Optimization failed:", optimizeError);
+          return res.status(400).json({
+            message: "Image could not be optimized. Please upload a different image.",
+          });
+        }
+
+        // Validate final format is JPG/JPEG
+        const ext = path.extname(outPath).toLowerCase();
+        if (ext !== ".jpg" && ext !== ".jpeg") {
+          if (fs.existsSync(outPath)) {
+            fs.unlinkSync(outPath);
+          }
+          return res.status(400).json({
+            message: "Image could not be optimized. Please upload a different image.",
+          });
+        }
+
+        // Reject images larger than 100 KB
+        if (size > 100 * 1024) {
+          if (fs.existsSync(outPath)) {
+            fs.unlinkSync(outPath);
+          }
+          return res.status(400).json({
+            message: "Image size must be less than 100 KB.",
+          });
+        }
+
         applyOptimizedFileMeta(file, outPath, size);
       }
     }
     next();
   } catch (err) {
-    next(err);
+    console.error("Uploaded image optimization error:", err);
+    return res.status(400).json({
+      message: "Image could not be optimized. Please upload a different image.",
+    });
   }
 }

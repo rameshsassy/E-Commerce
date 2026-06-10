@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import api, { BASE_URL } from '../../utils/api';
+import api, { BASE_URL, getImageUrl } from '../../utils/api';
 import {
   Upload,
   FileSpreadsheet,
@@ -202,7 +202,7 @@ const SellerProducts = () => {
           setProductImages(
             (d.images || []).map((imgPath, i) => ({
               id: `existing-${i}`,
-              preview: `${BASE_URL}/${String(imgPath).replace(/\\/g, '/')}`,
+              preview: getImageUrl(imgPath),
               existingPath: imgPath,
             }))
           );
@@ -707,7 +707,7 @@ const SellerProducts = () => {
     setProductImages(
       (product.images || []).map((path, i) => ({
         id: `existing-${i}`,
-        preview: `${BASE_URL}/${path.replace(/\\/g, '/')}`,
+        preview: getImageUrl(path),
         existingPath: path,
       }))
     );
@@ -844,6 +844,22 @@ const SellerProducts = () => {
       setBulkMsg(payload?.message || 'Bulk upload failed');
     } finally {
       setBulkLoading(false);
+    }
+  };
+
+  const handleDownloadTemplate = async () => {
+    try {
+      const response = await api.get('/products/bulk/template', { responseType: 'blob' });
+      const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'bulk_upload_template.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+    } catch (err) {
+      alert('Failed to download template: ' + (err.response?.data?.message || err.message));
     }
   };
 
@@ -1086,7 +1102,7 @@ const SellerProducts = () => {
                         <td className="p-4">
                           <div className="w-12 h-12 rounded-lg bg-surface flex items-center justify-center overflow-hidden">
                             {product.images && product.images.length > 0 ? (
-                              <img src={`${BASE_URL}/${product.images[0].replace(/\\/g, '/')}`} alt={product.title} className="w-full h-full object-cover" />
+                              <img src={getImageUrl(product.images[0])} alt={product.title} className="w-full h-full object-cover" />
                             ) : (
                               <ImageIcon size={20} className="text-text-muted" />
                             )}
@@ -1263,9 +1279,17 @@ const SellerProducts = () => {
             <form onSubmit={handleBulkSubmit} className="text-center max-w-md mx-auto">
               <FileSpreadsheet size={64} className="text-primary mx-auto mb-4" />
               <h2 className="text-xl font-bold">Upload Products via CSV</h2>
-              <p className="text-text-muted text-sm mb-6">Download our CSV template, fill in your product details, and upload it here to add multiple products at once.</p>
+              <p className="text-text-muted text-sm mb-6">Download our Excel template (natively supporting dropdown lists) or the raw CSV template, fill in your product details, and upload the exported CSV here to add multiple products at once.</p>
               
-              <div className="flex justify-center mb-6">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
+                <button 
+                  type="button"
+                  onClick={handleDownloadTemplate}
+                  className="text-sm font-medium text-primary hover:underline flex items-center gap-1 bg-transparent border-0 cursor-pointer p-0"
+                >
+                  <Download size={16} /> Download Excel Template (with dropdowns)
+                </button>
+                <span className="hidden sm:inline text-text-muted">|</span>
                 <a 
                   href="/templates/bulk_upload_template.csv" 
                   download 
@@ -1288,13 +1312,14 @@ const SellerProducts = () => {
               </button>
             </form>
 
-            {uploadedProducts && uploadedProducts.length > 0 && (
+             {uploadedProducts && uploadedProducts.length > 0 && (
               <div className="mt-10 bg-white border border-[#E1E3E5] rounded-xl shadow-sm p-6 overflow-hidden">
                 <h3 className="text-lg font-bold text-[#202223] mb-4">Successfully Uploaded Products ({uploadedProducts.length})</h3>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="border-b border-[#E1E3E5] text-sm text-[#6D7175]">
+                        <th className="pb-3 px-4 font-semibold">Preview</th>
                         <th className="pb-3 px-4 font-semibold">Title</th>
                         <th className="pb-3 px-4 font-semibold">Category</th>
                         <th className="pb-3 px-4 font-semibold">Price</th>
@@ -1302,11 +1327,21 @@ const SellerProducts = () => {
                         <th className="pb-3 px-4 font-semibold">SKU</th>
                         <th className="pb-3 px-4 font-semibold">Min/Max Qty</th>
                         <th className="pb-3 px-4 font-semibold">Bulk</th>
+                        <th className="pb-3 px-4 font-semibold">Drive Links</th>
                       </tr>
                     </thead>
                     <tbody>
                       {uploadedProducts.map((p, idx) => (
                         <tr key={idx} className="border-b border-[#E1E3E5] last:border-0 hover:bg-[#F6F6F7]">
+                          <td className="py-3 px-4 text-sm">
+                            <div className="w-10 h-10 rounded bg-[#F1F2F3] flex items-center justify-center overflow-hidden border border-[#E1E3E5]">
+                              {p.images && p.images.length > 0 ? (
+                                <img src={getImageUrl(p.images[0])} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                <span className="text-[10px] text-gray-400">No Img</span>
+                              )}
+                            </div>
+                          </td>
                           <td className="py-3 px-4 text-sm font-medium text-[#202223] max-w-[200px] truncate" title={p.title}>{p.title}</td>
                           <td className="py-3 px-4 text-sm text-[#6D7175]">{p.category}</td>
                           <td className="py-3 px-4 text-sm text-[#6D7175]">₹{p.price}</td>
@@ -1315,6 +1350,26 @@ const SellerProducts = () => {
                           <td className="py-3 px-4 text-sm text-[#6D7175]">{p.minOrderQuantity || 1} / {p.maxOrderQuantity || 5}</td>
                           <td className="py-3 px-4 text-sm text-[#6D7175]">
                             {p.bulkPurchaseEnabled ? `Yes (min: ${p.bulkPurchaseMinOrderQuantity || 50})` : 'No'}
+                          </td>
+                          <td className="py-3 px-4 text-sm text-[#6D7175]">
+                            {p.images && p.images.length > 0 ? (
+                              <div className="flex flex-col gap-1 max-w-[220px]">
+                                {p.images.map((imgUrl, i) => (
+                                  <a
+                                    key={i}
+                                    href={getImageUrl(imgUrl)}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-primary hover:underline truncate text-xs block"
+                                    title={imgUrl}
+                                  >
+                                    Image {i + 1}
+                                  </a>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-gray-400">-</span>
+                            )}
                           </td>
                         </tr>
                       ))}

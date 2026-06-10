@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ShoppingCart, ShieldCheck, MapPin, Package, Heart, Share2, Star, MessageSquare, Plus, Minus, Boxes } from 'lucide-react';
-import api, { BASE_URL } from '../../utils/api';
+import api, { BASE_URL, getImageUrl } from '../../utils/api';
 import RatingSummary from '../../components/reviews/RatingSummary';
 import ReviewForm from '../../components/reviews/ReviewForm';
 import ReviewCard from '../../components/reviews/ReviewCard';
@@ -178,7 +178,7 @@ const ProductDetail = () => {
           <div className="space-y-4">
             <div className="aspect-square bg-surface rounded-2xl overflow-hidden shadow-lg border border-glass-border">
               <img 
-                src={product.images?.[activeImage] ? `${BASE_URL}/${product.images[activeImage].replace(/\\/g, '/')}` : 'https://placehold.co/800x800/1e293b/f8fafc?text=No+Image'} 
+                src={product.images?.[activeImage] ? getImageUrl(product.images[activeImage]) : 'https://placehold.co/800x800/1e293b/f8fafc?text=No+Image'} 
                 alt={product.title}
                 className="w-full h-full object-cover transition-opacity duration-300"
               />
@@ -191,7 +191,7 @@ const ProductDetail = () => {
                     onClick={() => setActiveImage(idx)}
                     className={`w-20 h-20 shrink-0 rounded-lg overflow-hidden border-2 transition-all ${activeImage === idx ? 'border-primary shadow-glow' : 'border-transparent opacity-50 hover:opacity-100'}`}
                   >
-                    <img src={`${BASE_URL}/${img.replace(/\\/g, '/')}`} className="w-full h-full object-cover" alt="thumbnail" />
+                    <img src={getImageUrl(img)} className="w-full h-full object-cover" alt="thumbnail" />
                   </button>
                 ))}
               </div>

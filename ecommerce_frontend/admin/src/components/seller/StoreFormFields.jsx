@@ -1,6 +1,7 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Plus, XCircle, Zap, ExternalLink } from 'lucide-react';
 import { BASE_URL } from '../../utils/api';
+import { compressAndStandardizeImage } from '../../utils/imageCompression';
 import StoreSeoPreview from './StoreSeoPreview';
 
 export const STORE_NAME_MAX = 1500;
@@ -81,6 +82,7 @@ export default function StoreFormFields({
 }) {
   const logoInputRef = useRef(null);
   const faviconInputRef = useRef(null);
+  const [compressing, setCompressing] = useState(false);
   const nameValidation = getTextFieldValidation(storeForm.storeName, STORE_NAME_MAX);
   const addressValidation = getTextFieldValidation(storeForm.detailedAddress, STORE_ADDRESS_MAX);
   const keywordList = parseKeywordsInput(storeForm.keywordsInput);
@@ -100,20 +102,36 @@ export default function StoreFormFields({
     return true;
   };
 
-  const handleLogoChange = (e) => {
+  const handleLogoChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!validateStoreImage(file, 'Logo')) return;
-    setLogoFile(file);
-    setLogoPreview(URL.createObjectURL(file));
+    try {
+      setCompressing(true);
+      const compressed = await compressAndStandardizeImage(file);
+      setLogoFile(compressed);
+      setLogoPreview(URL.createObjectURL(compressed));
+    } catch (err) {
+      alert(err.message || 'Image could not be optimized. Please upload a different image.');
+    } finally {
+      setCompressing(false);
+    }
   };
 
-  const handleFaviconChange = (e) => {
+  const handleFaviconChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!validateStoreImage(file, 'Favicon')) return;
-    setFaviconFile(file);
-    setFaviconPreview(URL.createObjectURL(file));
+    try {
+      setCompressing(true);
+      const compressed = await compressAndStandardizeImage(file);
+      setFaviconFile(compressed);
+      setFaviconPreview(URL.createObjectURL(compressed));
+    } catch (err) {
+      alert(err.message || 'Image could not be optimized. Please upload a different image.');
+    } finally {
+      setCompressing(false);
+    }
   };
 
   const updateAdditionalAddress = (index, value) => {
@@ -370,6 +388,13 @@ export default function StoreFormFields({
           </div>
         </label>
       </div>
+
+      {compressing && (
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/70 text-white gap-3">
+          <div className="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+          <p className="text-sm font-medium">Compressing and optimizing image...</p>
+        </div>
+      )}
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { CheckCircle, ExternalLink } from 'lucide-react';
 import getCroppedImg from '../../utils/cropImage';
+import { compressAndStandardizeImage } from '../../utils/imageCompression';
 import api, { BASE_URL } from '../../utils/api';
 import BusinessDocumentsFields from '../../components/seller/BusinessDocumentsFields';
 import useFormAutosave from '../../hooks/useFormAutosave';
@@ -26,6 +27,7 @@ const SellerKYC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [submitted, setSubmitted] = useState(false);
+  const [compressing, setCompressing] = useState(false);
 
   const [entityTypes, setEntityTypes] = useState([]);
   const [entityTypesLoading, setEntityTypesLoading] = useState(true);
@@ -173,6 +175,7 @@ const SellerKYC = () => {
 
   const showCroppedImage = async () => {
     try {
+      setCompressing(true);
       const img = new Image();
       img.src = logoSrc;
       await new Promise((r) => {
@@ -184,13 +187,18 @@ const SellerKYC = () => {
       const y = (img.height - height) / 2;
       const croppedImageBlob = await getCroppedImg(logoSrc, { x, y, width, height }, 0);
       const croppedFile = new File([croppedImageBlob], 'logo.jpg', { type: 'image/jpeg' });
-      setLogo(croppedFile);
-      setLogoPreview(URL.createObjectURL(croppedImageBlob));
+      
+      const compressed = await compressAndStandardizeImage(croppedFile);
+      setLogo(compressed);
+      setLogoPreview(URL.createObjectURL(compressed));
       setShowCropper(false);
       setError(null);
     } catch (e) {
       console.error(e);
+      setError(e.message || 'Image could not be optimized. Please upload a different image.');
       setShowCropper(false);
+    } finally {
+      setCompressing(false);
     }
   };
 
@@ -202,7 +210,7 @@ const SellerKYC = () => {
     }));
   };
 
-  const handleDocumentChange = (e) => {
+  const handleDocumentChange = async (e) => {
     const file = e.target.files?.[0];
     const name = e.target.name;
     if (!file) return;
@@ -224,8 +232,22 @@ const SellerKYC = () => {
       }
     }
 
-    setDocuments((prev) => ({ ...prev, [name]: file }));
-    setError(null);
+    if (imageTypes.includes(file.type)) {
+      try {
+        setCompressing(true);
+        const compressed = await compressAndStandardizeImage(file);
+        setDocuments((prev) => ({ ...prev, [name]: compressed }));
+        setError(null);
+      } catch (err) {
+        setError(err.message || 'Image could not be optimized. Please upload a different image.');
+        e.target.value = '';
+      } finally {
+        setCompressing(false);
+      }
+    } else {
+      setDocuments((prev) => ({ ...prev, [name]: file }));
+      setError(null);
+    }
   };
 
   const hasLogo = Boolean(logo || existingLogoPath);
@@ -699,6 +721,13 @@ const SellerKYC = () => {
           </div>
         </div>,
         document.body
+      )}
+
+      {compressing && (
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/70 text-white gap-3">
+          <div className="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+          <p className="text-sm font-medium">Compressing and optimizing document...</p>
+        </div>
       )}
     </div>
   );

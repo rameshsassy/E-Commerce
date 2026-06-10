@@ -25,6 +25,7 @@ import {
   Menu,
   X,
   MessageSquare,
+  Globe,
 } from 'lucide-react';
 
 const SELLER_NAV = [
@@ -39,12 +40,14 @@ const SELLER_NAV = [
   { to: '/seller/premium', label: 'Premium', icon: Zap, premium: true },
   { to: '/seller/refer-and-earn', label: 'Refer and Earn', icon: Gift },
   { to: '/seller/chat', label: 'Chat', icon: MessageSquare },
+  { to: '/seller/request-website', label: 'Request Brand Website', icon: Globe },
   { to: '/seller/about-us', label: 'About Us', icon: Info },
 ];
 
 const ADMIN_PATH_SECTIONS = [
   [/^\/admin\/dashboard/, 'dashboard'],
   [/^\/admin\/sellers/, 'sellers'],
+  [/^\/admin\/website-requests/, 'sellers'],
   [/^\/admin\/kyc/, 'kyc'],
   [/^\/admin\/products/, 'products'],
   [/^\/admin\/orders/, 'orders'],
@@ -262,6 +265,16 @@ const DashboardLayout = ({ variant }) => {
                 >
                   <Users size={20} className="text-text-muted" />
                   Manage Sellers
+                </Link>
+              )}
+
+              {showAdminLink('sellers') && (
+                <Link
+                  to="/admin/website-requests"
+                  className={adminNavLinkClass(location.pathname, location.hash, '/admin/website-requests')}
+                >
+                  <Globe size={20} className="text-text-muted" />
+                  Website Requests
                 </Link>
               )}
 

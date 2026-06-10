@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api, { BASE_URL } from '../../utils/api';
+import api, { BASE_URL, getImageUrl } from '../../utils/api';
 import { Check, X, Package } from 'lucide-react';
 
 const AdminProducts = () => {
@@ -48,7 +48,7 @@ const AdminProducts = () => {
               <div className="flex gap-4 items-center">
                 <div className="w-20 h-20 bg-surface rounded-lg overflow-hidden shrink-0">
                   <a
-                    href={product.images?.[0] ? `${BASE_URL}/${product.images[0].replace(/\\/g, '/')}` : '#'}
+                    href={product.images?.[0] ? getImageUrl(product.images[0]) : '#'}
                     target="_blank"
                     rel="noreferrer"
                     title={product.images?.[0] ? "Click to view full image" : ""}
@@ -58,7 +58,7 @@ const AdminProducts = () => {
                     }}
                   >
                     <img 
-                      src={product.images?.[0] ? `${BASE_URL}/${product.images[0].replace(/\\/g, '/')}` : 'https://placehold.co/100x100/1e293b/f8fafc?text=Img'} 
+                      src={product.images?.[0] ? getImageUrl(product.images[0]) : 'https://placehold.co/100x100/1e293b/f8fafc?text=Img'} 
                       alt={product.title}
                       className="w-full h-full object-cover"
                     />

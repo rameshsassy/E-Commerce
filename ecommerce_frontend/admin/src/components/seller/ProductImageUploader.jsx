@@ -5,6 +5,7 @@ import {
   PRODUCT_IMAGE_MAX_COUNT,
   PRODUCT_IMAGE_MAX_BYTES,
 } from '../../utils/productContentValidation';
+import { compressAndStandardizeImage } from '../../utils/imageCompression';
 
 function ImageZoomModal({ file, onSave, onCancel }) {
   const [zoom, setZoom] = useState(1);
@@ -101,6 +102,7 @@ export default function ProductImageUploader({ images, onChange }) {
   const fileInputRef = useRef(null);
   const pendingSlotRef = useRef(null);
   const [pendingFile, setPendingFile] = useState(null);
+  const [compressing, setCompressing] = useState(false);
 
   const openPicker = (slotIndex) => {
     if (images.length >= PRODUCT_IMAGE_MAX_COUNT && slotIndex >= images.length) {
@@ -124,20 +126,30 @@ export default function ProductImageUploader({ images, onChange }) {
     setPendingFile(file);
   };
 
-  const handleSaveCropped = (file, preview) => {
-    const slot = pendingSlotRef.current;
-    const id = `img-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    const entry = { id, preview, file };
+  const handleSaveCropped = async (file, preview) => {
+    try {
+      setCompressing(true);
+      const compressedFile = await compressAndStandardizeImage(file);
+      const compressedPreview = URL.createObjectURL(compressedFile);
 
-    if (slot != null && slot < images.length) {
-      const next = [...images];
-      next[slot] = entry;
-      onChange(next);
-    } else {
-      onChange([...images, entry].slice(0, PRODUCT_IMAGE_MAX_COUNT));
+      const slot = pendingSlotRef.current;
+      const id = `img-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      const entry = { id, preview: compressedPreview, file: compressedFile };
+
+      if (slot != null && slot < images.length) {
+        const next = [...images];
+        next[slot] = entry;
+        onChange(next);
+      } else {
+        onChange([...images, entry].slice(0, PRODUCT_IMAGE_MAX_COUNT));
+      }
+      setPendingFile(null);
+      pendingSlotRef.current = null;
+    } catch (err) {
+      window.alert(err.message || 'Image could not be optimized. Please upload a different image.');
+    } finally {
+      setCompressing(false);
     }
-    setPendingFile(null);
-    pendingSlotRef.current = null;
   };
 
   const removeAt = (index) => {
@@ -211,6 +223,13 @@ export default function ProductImageUploader({ images, onChange }) {
           <li>Maximum {PRODUCT_IMAGE_MAX_COUNT} images</li>
         </ul>
       </div>
+
+      {compressing && (
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/70 text-white gap-3">
+          <div className="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+          <p className="text-sm font-medium">Compressing and optimizing image...</p>
+        </div>
+      )}
 
       {pendingFile && createPortal(
         <ImageZoomModal

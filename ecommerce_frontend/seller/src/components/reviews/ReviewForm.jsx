@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Star, Image as ImageIcon, Send, X, Eye } from 'lucide-react';
 import api from '../../utils/api';
+import { compressAndStandardizeImage } from '../../utils/imageCompression';
 import { useAuth } from '../../context/AuthContext';
 
 const ReviewForm = ({ productId, onReviewAdded }) => {
@@ -12,12 +13,28 @@ const ReviewForm = ({ productId, onReviewAdded }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [compressing, setCompressing] = useState(false);
 
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => {
     if (e.target.files) {
-      // Limit to 3 images
       const selectedFiles = Array.from(e.target.files).slice(0, 3);
-      setImages(selectedFiles);
+      try {
+        setCompressing(true);
+        const compressedFiles = [];
+        for (const file of selectedFiles) {
+          if (file.type.startsWith('image/')) {
+            const compressed = await compressAndStandardizeImage(file);
+            compressedFiles.push(compressed);
+          } else {
+            compressedFiles.push(file);
+          }
+        }
+        setImages(compressedFiles);
+      } catch (err) {
+        alert(err.message || 'Image could not be optimized. Please upload a different image.');
+      } finally {
+        setCompressing(false);
+      }
     }
   };
 
@@ -152,6 +169,13 @@ const ReviewForm = ({ productId, onReviewAdded }) => {
           {loading ? 'Submitting...' : <><Send size={18} /> Submit Review</>}
         </button>
       </form>
+
+      {compressing && (
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/70 text-white gap-3">
+          <div className="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+          <p className="text-sm font-medium">Compressing and optimizing images...</p>
+        </div>
+      )}
     </div>
   );
 };

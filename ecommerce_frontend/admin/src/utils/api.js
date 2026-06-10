@@ -21,6 +21,15 @@ const baseUrlHolder = {
 /** Use in templates: `${BASE_URL}/uploads/...` — resolves at read time in the browser. */
 export const BASE_URL = baseUrlHolder;
 
+export function getImageUrl(path) {
+  if (!path) return '';
+  const cleanPath = String(path).trim();
+  if (cleanPath.startsWith('http://') || cleanPath.startsWith('https://')) {
+    return cleanPath;
+  }
+  return `${BASE_URL}/${cleanPath.replace(/\\/g, '/')}`;
+}
+
 /** Custom headers that need CORS allow-list on cross-origin APIs (e.g. Render). */
 
 const api = axios.create({

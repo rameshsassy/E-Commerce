@@ -38,6 +38,11 @@ import {
   updateKycEntityType,
   deleteKycEntityType,
 } from "../controllers/kycEntityType.controller.js";
+import {
+  getAllWebsiteRequests,
+  updateWebsiteRequestStatus,
+  deleteWebsiteRequest,
+} from "../controllers/websiteRequest.controller.js";
 
 const router = express.Router();
 
@@ -111,5 +116,12 @@ router.get("/roles/staff", protect, authorizeSuperAdmin, listAdminStaff);
 router.post("/roles/staff", protect, authorizeSuperAdmin, createAdminStaff);
 router.patch("/roles/staff/:id", protect, authorizeSuperAdmin, updateAdminStaff);
 router.delete("/roles/staff/:id", protect, authorizeSuperAdmin, deleteAdminStaff);
+
+// ===============================
+// 🌐 WEBSITE REQUESTS MANAGEMENT
+// ===============================
+router.get("/website-requests", protect, authorizeAdminRole, getAllWebsiteRequests);
+router.put("/website-requests/:id/status", protect, authorizeAdminRole, updateWebsiteRequestStatus);
+router.delete("/website-requests/:id", protect, authorizeAdminRole, deleteWebsiteRequest);
 
 export default router;

@@ -3,6 +3,9 @@ import fs from "fs";
 import path from "path";
 import csv from "csv-parser";
 import crypto from "crypto";
+import ExcelJS from "exceljs";
+import { SELLER_MAIN_CATEGORIES } from "../data/sellerMainCategories.js";
+import { getCategoryTaxonomyForApi } from "../data/sellerCategoryTaxonomy.js";
 import { ensureUploadsRoot, absoluteToWebPath, getUploadsRoot } from "../utils/uploadPaths.js";
 import { optimizeImageBuffer } from "../utils/imageOptimizer.js";
 import ProductViewEvent from "../models/ProductViewEvent.js";
@@ -37,6 +40,7 @@ import {
   logProductDeleted,
   logBulkProductUpload,
 } from "../services/sellerActivity.service.js";
+import { isGoogleDriveConfigured, uploadFileToDrive } from "../services/googleDrive.service.js";
 
 const MAX_PRODUCT_IMAGES = 5;
 import {
@@ -530,66 +534,90 @@ export const bulkUploadProducts = async (req, res) => {
       const normalizedRow = {};
       for (const [key, value] of Object.entries(row)) {
         const lowerKey = key.toLowerCase().trim();
-        if (lowerKey === 'title' || lowerKey === 'product name' || lowerKey === 'name') {
-          normalizedRow.title = value;
+        const strVal = String(value || '').trim();
+
+        if (lowerKey === 'product title' || lowerKey === 'title' || lowerKey === 'product name' || lowerKey === 'name') {
+          normalizedRow.title = strVal;
+        } else if (lowerKey === 'product description' || lowerKey === 'description') {
+          normalizedRow.description = strVal;
+        } else if (lowerKey === 'image link' || lowerKey === 'imagelinks' || lowerKey === 'image links' || lowerKey === 'images') {
+          normalizedRow.imageLinks = strVal;
+        } else if (lowerKey === 'return') {
+          normalizedRow.returnEnabled = strVal;
+        } else if (lowerKey === 'terms of return') {
+          normalizedRow.returnTerms = strVal;
+        } else if (lowerKey === 'refund') {
+          normalizedRow.refundEnabled = strVal;
+        } else if (lowerKey === 'terms of refund') {
+          normalizedRow.refundTerms = strVal;
+        } else if (lowerKey === 'replacement') {
+          normalizedRow.replacementEnabled = strVal;
+        } else if (lowerKey === 'terms of replacement') {
+          normalizedRow.replacementTerms = strVal;
+        } else if (lowerKey === 'care instructions' || lowerKey === 'care instructions ') {
+          normalizedRow.careInstructions = strVal;
+        } else if (lowerKey === 'key highlight/usp' || lowerKey === 'key highlight' || lowerKey === 'keyhighlights' || lowerKey === 'key highlights') {
+          normalizedRow.keyHighlights = strVal;
         } else if (lowerKey === 'price' || lowerKey === 'cost' || lowerKey === 'mrp') {
-          normalizedRow.price = value;
-        } else if (lowerKey === 'description' || lowerKey === 'product description') {
-          normalizedRow.description = value;
-        } else if (lowerKey === 'category' || lowerKey === 'product category') {
-          normalizedRow.category = value;
-        } else if (lowerKey === 'stock' || lowerKey === 'quantity') {
-          normalizedRow.stock = value;
-        } else if (lowerKey === 'keywords' || lowerKey === 'tags') {
-          normalizedRow.keywords = value;
-        } else if (lowerKey === 'discounted' || lowerKey === 'compare at price') {
-          normalizedRow.compareAtPrice = value;
-        } else if (lowerKey === 'imagelinks' || lowerKey === 'image links' || lowerKey === 'images') {
-          normalizedRow.imageLinks = value;
-        } else if (lowerKey === 'sku') {
-          normalizedRow.sku = value;
-        } else if (lowerKey === 'barcode') {
-          normalizedRow.barcode = value;
-        } else if (lowerKey === 'min order quantity' || lowerKey === 'minorderquantity') {
-          normalizedRow.minOrderQuantity = value;
-        } else if (lowerKey === 'max order quantity' || lowerKey === 'maxorderquantity') {
-          normalizedRow.maxOrderQuantity = value;
-        } else if (lowerKey === 'bulk purchase enabled' || lowerKey === 'bulkpurchaseenabled') {
-          normalizedRow.bulkPurchaseEnabled = value;
-        } else if (lowerKey === 'bulk purchase min order quantity' || lowerKey === 'bulkpurchaseminorderquantity') {
-          normalizedRow.bulkPurchaseMinOrderQuantity = value;
-        } else if (lowerKey === 'dispatch delivery days' || lowerKey === 'dispatchdeliverydays' || lowerKey === 'delivery days') {
-          normalizedRow.dispatchDeliveryDays = value;
+          normalizedRow.price = strVal;
+        } else if (lowerKey === 'discounted price' || lowerKey === 'discounted' || lowerKey === 'compare at price') {
+          normalizedRow.compareAtPrice = strVal;
+        } else if (lowerKey === 'sku (stock keeping unit)' || lowerKey === 'sku') {
+          normalizedRow.sku = strVal;
+        } else if (lowerKey === 'dispatch and delivery time' || lowerKey === 'dispatch delivery days' || lowerKey === 'delivery days') {
+          normalizedRow.dispatchDeliveryDays = strVal;
+        } else if (lowerKey === 'minimum order quantity' || lowerKey === 'min order quantity' || lowerKey === 'minorderquantity') {
+          normalizedRow.minOrderQuantity = strVal;
+        } else if (lowerKey === 'maximum order quantity' || lowerKey === 'max order quantity' || lowerKey === 'maxorderquantity') {
+          normalizedRow.maxOrderQuantity = strVal;
         } else if (lowerKey === 'purchase type' || lowerKey === 'purchasetype') {
-          normalizedRow.purchaseType = value;
-        } else if (lowerKey === 'is physical product' || lowerKey === 'isphysicalproduct') {
-          normalizedRow.isPhysicalProduct = value;
-        } else if (lowerKey === 'product weight' || lowerKey === 'productweight') {
-          normalizedRow.productWeight = value;
-        } else if (lowerKey === 'product weight unit' || lowerKey === 'productweightunit') {
-          normalizedRow.productWeightUnit = value;
-        } else if (lowerKey === 'package length' || lowerKey === 'packagelength') {
-          normalizedRow.packageLength = value;
-        } else if (lowerKey === 'package width' || lowerKey === 'packagewidth') {
-          normalizedRow.packageWidth = value;
-        } else if (lowerKey === 'package height' || lowerKey === 'packageheight') {
-          normalizedRow.packageHeight = value;
-        } else if (lowerKey === 'package dimensions unit' || lowerKey === 'packagedimensionsunit') {
-          normalizedRow.packageDimensionsUnit = value;
-        } else if (lowerKey === 'delivery by' || lowerKey === 'deliveryby') {
-          normalizedRow.deliveryBy = value;
-        } else if (lowerKey === 'delivery values' || lowerKey === 'deliveryvalues') {
-          normalizedRow.deliveryValues = value;
-        } else if (lowerKey === 'premium type' || lowerKey === 'premiumtype' || lowerKey === 'type') {
-          normalizedRow.premiumType = value;
-        } else if (lowerKey === 'care instructions' || lowerKey === 'careinstructions') {
-          normalizedRow.careInstructions = value;
-        } else if (lowerKey === 'key highlights' || lowerKey === 'keyhighlights') {
-          normalizedRow.keyHighlights = value;
+          normalizedRow.purchaseType = strVal;
+        } else if (lowerKey === 'store address') {
+          normalizedRow.shipFromStoreAddresses = strVal;
+        } else if (lowerKey === 'bulk purchase available' || lowerKey === 'bulk purchase enabled' || lowerKey === 'bulkpurchaseenabled') {
+          normalizedRow.bulkPurchaseEnabled = strVal;
+        } else if (lowerKey === 'minimum order quantity of bulk purchase' || lowerKey === 'minimum order quantity of bulk purchase ' || lowerKey === 'bulk purchase min order quantity' || lowerKey === 'bulkpurchaseminorderquantity') {
+          normalizedRow.bulkPurchaseMinOrderQuantity = strVal;
+        } else if (lowerKey === 'main category' || lowerKey === 'maincategory') {
+          normalizedRow.mainCategory = strVal;
+        } else if (lowerKey === 'sub-category' || lowerKey === 'subcategory') {
+          normalizedRow.subCategory = strVal;
+        } else if (lowerKey === 'product type' || lowerKey === 'producttype' || lowerKey === 'premium type' || lowerKey === 'premiumtype' || lowerKey === 'type') {
+          normalizedRow.premiumType = strVal;
+        } else if (lowerKey === 'color variant') {
+          normalizedRow.colorVariant = strVal;
+        } else if (lowerKey === 'size variant') {
+          normalizedRow.sizeVariant = strVal;
+        } else if (lowerKey === 'material/fabric variant') {
+          normalizedRow.materialVariant = strVal;
+        } else if (lowerKey === 'pattern/design variant') {
+          normalizedRow.patternVariant = strVal;
+        } else if (lowerKey === 'weight variant') {
+          normalizedRow.weightVariant = strVal;
+        } else if (lowerKey === 'weight of the product with packaging' || lowerKey === 'product weight' || lowerKey === 'productweight') {
+          normalizedRow.productWeightWithPackaging = strVal;
+        } else if (lowerKey === 'delivery type' || lowerKey === 'delivery by' || lowerKey === 'deliveryby') {
+          normalizedRow.deliveryType = strVal;
+        } else if (lowerKey === 'seo page title' || lowerKey === 'page title' || lowerKey === 'pagetitle') {
+          normalizedRow.pageTitle = strVal;
+        } else if (lowerKey === 'seo page description' || lowerKey === 'meta description' || lowerKey === 'metadescription') {
+          normalizedRow.metaDescription = strVal;
+        } else if (lowerKey === 'keywords (separated by comma)' || lowerKey === 'keywords' || lowerKey === 'tags') {
+          normalizedRow.keywords = strVal;
         } else {
-          normalizedRow[key] = value;
+          normalizedRow[key] = strVal;
         }
       }
+
+      if (normalizedRow.mainCategory) {
+        normalizedRow.category = normalizedRow.mainCategory;
+        if (normalizedRow.subCategory) {
+          normalizedRow.category += " / " + normalizedRow.subCategory;
+        }
+      } else if (row.category) {
+        normalizedRow.category = row.category;
+      }
+
       return normalizedRow;
     };
 
@@ -626,7 +654,8 @@ export const bulkUploadProducts = async (req, res) => {
             row.bulkPurchaseEnabled === "true" ||
             row.bulkPurchaseEnabled === true ||
             row.bulkPurchaseEnabled === "1" ||
-            row.bulkPurchaseEnabled === 1;
+            row.bulkPurchaseEnabled === 1 ||
+            String(row.bulkPurchaseEnabled).trim().toLowerCase() === "yes";
 
           if (wantsBulk && !isPremium) {
             try { fs.unlinkSync(req.file.path); } catch (_) {}
@@ -637,13 +666,18 @@ export const bulkUploadProducts = async (req, res) => {
           }
 
           let localImagePaths = [];
+          let originalUrls = [];
 
           if (row.imageLinks) {
-            const urls = row.imageLinks
+            originalUrls = row.imageLinks
               .split(",")
               .map((url) => url.trim())
               .filter((url) => url);
-            for (const url of urls) {
+            
+            // Limit processing to the first 5 images
+            const urlsToProcess = originalUrls.slice(0, 5);
+
+            for (const url of urlsToProcess) {
               try {
                 const response = await fetch(url);
                 if (!response.ok) {
@@ -664,7 +698,15 @@ export const bulkUploadProducts = async (req, res) => {
 
                 const processedBuffer = await optimizeImageBuffer(inputBuffer);
                 fs.writeFileSync(absPath, processedBuffer);
-                localImagePaths.push(absoluteToWebPath(absPath));
+
+                let savedPath = absoluteToWebPath(absPath);
+                if (isGoogleDriveConfigured()) {
+                  const uploadResult = await uploadFileToDrive(absPath, "image/jpeg", filename);
+                  if (uploadResult) {
+                    savedPath = uploadResult.url;
+                  }
+                }
+                localImagePaths.push(savedPath);
               } catch (err) {
                 console.error(
                   "Failed to process image from URL:",
@@ -725,51 +767,47 @@ export const bulkUploadProducts = async (req, res) => {
               row.isPhysicalProduct === "true" ||
               row.isPhysicalProduct === true ||
               row.isPhysicalProduct === "1" ||
-              row.isPhysicalProduct === 1;
+              row.isPhysicalProduct === 1 ||
+              String(row.isPhysicalProduct).trim().toLowerCase() === "yes";
           }
 
           let weight = 0;
-          if (row.productWeight !== undefined && row.productWeight !== "") {
-            const val = Number(row.productWeight);
-            if (Number.isFinite(val) && val >= 0) {
-              weight = val;
-            }
-          }
-
           let weightUnit = "g";
-          if (row.productWeightUnit !== undefined && row.productWeightUnit !== "") {
-            const val = String(row.productWeightUnit).trim().toLowerCase();
-            if (["g", "kg", "lb", "oz"].includes(val)) {
-              weightUnit = val;
+          const rawWeight = row.productWeightWithPackaging;
+          if (rawWeight !== undefined && rawWeight !== null && String(rawWeight).trim() !== "") {
+            const match = String(rawWeight).trim().match(/^([\d.]+)\s*([a-zA-Z]*)$/);
+            if (match) {
+              const val = Number(match[1]);
+              if (Number.isFinite(val) && val >= 0) {
+                weight = val;
+              }
+              const unit = match[2].toLowerCase();
+              if (["g", "kg", "lb", "oz"].includes(unit)) {
+                weightUnit = unit;
+              }
+            } else {
+              const val = Number(rawWeight);
+              if (Number.isFinite(val) && val >= 0) {
+                weight = val;
+              }
             }
           }
 
           let pkgLength = undefined;
-          if (row.packageLength !== undefined && row.packageLength !== "") {
-            const val = Number(row.packageLength);
-            if (Number.isFinite(val) && val >= 0) pkgLength = val;
-          }
           let pkgWidth = undefined;
-          if (row.packageWidth !== undefined && row.packageWidth !== "") {
-            const val = Number(row.packageWidth);
-            if (Number.isFinite(val) && val >= 0) pkgWidth = val;
-          }
           let pkgHeight = undefined;
-          if (row.packageHeight !== undefined && row.packageHeight !== "") {
-            const val = Number(row.packageHeight);
-            if (Number.isFinite(val) && val >= 0) pkgHeight = val;
-          }
-
           let pkgDimensionsUnit = "cm";
-          if (row.packageDimensionsUnit !== undefined && row.packageDimensionsUnit !== "") {
-            const val = String(row.packageDimensionsUnit).trim().toLowerCase();
-            if (["cm", "in"].includes(val)) pkgDimensionsUnit = val;
-          }
 
           let purType = "one_time";
           if (row.purchaseType !== undefined && row.purchaseType !== "") {
             const val = String(row.purchaseType).trim().toLowerCase();
-            if (["one_time", "subscription", "custom_order"].includes(val)) {
+            if (val.includes("one_time") || val.includes("one-time")) {
+              purType = "one_time";
+            } else if (val.includes("subscription")) {
+              purType = "subscription";
+            } else if (val.includes("custom")) {
+              purType = "custom_order";
+            } else if (["one_time", "subscription", "custom_order"].includes(val)) {
               purType = val;
             }
           }
@@ -782,20 +820,125 @@ export const bulkUploadProducts = async (req, res) => {
             ));
           }
 
-          let delBy = undefined;
-          if (row.deliveryBy !== undefined && row.deliveryBy !== "") {
-            const val = String(row.deliveryBy).trim().toLowerCase();
-            if (["pincode", "city", "state", "all_india"].includes(val)) {
-              delBy = val;
+          let delBy = "all_india";
+          let delValues = [];
+
+          if (row.deliveryType) {
+            const typeStr = String(row.deliveryType).trim().toLowerCase();
+            if (typeStr.includes("all_india") || typeStr.includes("all india") || typeStr.includes("india")) {
+              delBy = "all_india";
+            } else if (typeStr.includes("state")) {
+              delBy = "state";
+              const parts = typeStr.split(/[:\-]/);
+              if (parts.length > 1) {
+                delValues = parts[1].split(",").map(v => v.trim()).filter(Boolean);
+              }
+            } else if (typeStr.includes("city")) {
+              delBy = "city";
+              const parts = typeStr.split(/[:\-]/);
+              if (parts.length > 1) {
+                delValues = parts[1].split(",").map(v => v.trim()).filter(Boolean);
+              }
+            } else if (typeStr.includes("pincode")) {
+              delBy = "pincode";
+              const parts = typeStr.split(/[:\-]/);
+              if (parts.length > 1) {
+                delValues = parts[1].split(",").map(v => v.trim()).filter(Boolean);
+              }
+            } else {
+              const vals = typeStr.split(",").map(v => v.trim()).filter(Boolean);
+              if (vals.length > 0) {
+                const isPincode = vals.every(v => /^\d+$/.test(v));
+                if (isPincode) {
+                  delBy = "pincode";
+                  delValues = vals;
+                } else {
+                  delBy = "state";
+                  delValues = vals;
+                }
+              }
             }
           }
 
-          let delValues = [];
-          if (row.deliveryValues !== undefined && row.deliveryValues !== "") {
-            delValues = String(row.deliveryValues)
-              .split(",")
-              .map((v) => v.trim())
-              .filter(Boolean);
+          const sellerAddresses = (req.user.storeAddresses || [])
+            .map((a) => String(a).trim())
+            .filter(Boolean);
+
+          let storeAddrs = [];
+          if (row.shipFromStoreAddresses) {
+            storeAddrs = row.shipFromStoreAddresses.split(",").map(v => v.trim()).filter(Boolean);
+          }
+          if (storeAddrs.length === 0 && sellerAddresses.length > 0) {
+            storeAddrs = [sellerAddresses[0]];
+          }
+
+          for (const addr of storeAddrs) {
+            if (!sellerAddresses.includes(addr)) {
+              try { fs.unlinkSync(req.file.path); } catch (_) {}
+              return res.status(400).json({
+                message: `Store address "${addr}" in CSV is not registered on your seller profile. Please add it in KYC first.`,
+              });
+            }
+          }
+
+          if (storeAddrs.length > 1 && !isPremium) {
+            try { fs.unlinkSync(req.file.path); } catch (_) {}
+            return res.status(400).json({
+              message: "Only one store address allowed for free users. Subscribe to Premium to select multiple addresses.",
+            });
+          }
+
+          const parseBool = (val) => {
+            if (!val) return false;
+            const s = String(val).trim().toLowerCase();
+            return s === "true" || s === "yes" || s === "1" || s === "y" || s === "enabled";
+          };
+
+          const policies = {
+            return: {
+              enabled: parseBool(row.returnEnabled),
+              terms: row.returnTerms || "",
+            },
+            refund: {
+              enabled: parseBool(row.refundEnabled),
+              terms: row.refundTerms || "",
+            },
+            replacement: {
+              enabled: parseBool(row.replacementEnabled),
+              terms: row.replacementTerms || "",
+            },
+          };
+
+          const variants = [];
+          if (row.colorVariant) {
+            row.colorVariant.split(",").map(v => v.trim()).filter(Boolean).forEach(val => {
+              variants.push({ type: "color", value: val });
+            });
+          }
+          if (row.sizeVariant) {
+            row.sizeVariant.split(",").map(v => v.trim()).filter(Boolean).forEach(val => {
+              variants.push({ type: "size", value: val });
+            });
+          }
+          if (row.materialVariant) {
+            row.materialVariant.split(",").map(v => v.trim()).filter(Boolean).forEach(val => {
+              variants.push({ type: "material", value: val });
+            });
+          }
+          if (row.patternVariant) {
+            row.patternVariant.split(",").map(v => v.trim()).filter(Boolean).forEach(val => {
+              variants.push({ type: "pattern", value: val });
+            });
+          }
+          if (row.weightVariant) {
+            row.weightVariant.split(",").map(v => v.trim()).filter(Boolean).forEach(val => {
+              variants.push({ type: "weight", value: val });
+            });
+          }
+
+          let keywordArray = [];
+          if (row.keywords) {
+            keywordArray = row.keywords.split(",").map(k => k.trim()).filter(Boolean);
           }
 
           products.push({
@@ -807,8 +950,9 @@ export const bulkUploadProducts = async (req, res) => {
             stock: Number(row.stock || 0),
             category: rowCategory,
             premiumType: row.premiumType || "",
-            keywords: row.keywords ? row.keywords.split(",") : [],
+            keywords: keywordArray,
             images: localImagePaths,
+            csvOriginalImageLinks: originalUrls,
             sku: row.sku || "",
             barcode: row.barcode || "",
             minOrderQuantity: minOrderQty,
@@ -826,8 +970,17 @@ export const bulkUploadProducts = async (req, res) => {
             packageDimensionsUnit: pkgDimensionsUnit,
             deliveryBy: delBy,
             deliveryValues: delValues,
+            shipFromStoreAddresses: storeAddrs,
+            policies: policies,
+            variants: variants,
             careInstructions: row.careInstructions || "",
             keyHighlights: row.keyHighlights || "",
+            pageTitle: row.pageTitle || row.title.substring(0, 70),
+            metaDescription: row.metaDescription || "",
+            urlHandle: row.title
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/(^-|-$)+/g, ""),
             isDraft: false,
             approvalStatus: "pending",
           });
@@ -1157,4 +1310,228 @@ export const getDeliverySuggestions = async (req, res) => {
 // GET /api/products/shipping/delivery-options
 export const getDeliveryOptions = async (req, res) => {
   res.json({ options: DELIVERY_BY_OPTIONS });
+};
+
+// GET /api/products/bulk/template
+export const downloadBulkUploadTemplate = async (req, res) => {
+  try {
+    const workbook = new ExcelJS.Workbook();
+    
+    // 1. Create main sheet
+    const productsSheet = workbook.addWorksheet("Products");
+    
+    // 2. Create metadata sheet
+    const metadataSheet = workbook.addWorksheet("Metadata");
+    metadataSheet.state = "hidden"; // Hide metadata sheet to keep it clean
+
+    // 3. Populate Metadata
+    const taxonomy = getCategoryTaxonomyForApi();
+    
+    // Main Categories in col A
+    const mainCats = SELLER_MAIN_CATEGORIES;
+    mainCats.forEach((val, idx) => {
+      metadataSheet.getCell(`A${idx + 1}`).value = val;
+    });
+
+    // Unique Subcategories in col B
+    const subCatsSet = new Set();
+    Object.values(taxonomy.subcategoriesByMain || {}).forEach((list) => {
+      list.forEach((sub) => subCatsSet.add(sub));
+    });
+    const subCats = Array.from(subCatsSet).filter(Boolean);
+    subCats.forEach((val, idx) => {
+      metadataSheet.getCell(`B${idx + 1}`).value = val;
+    });
+
+    // Unique Product Types in col C
+    const pTypesSet = new Set();
+    Object.values(taxonomy.typesByMainSub || {}).forEach((subMap) => {
+      Object.values(subMap || {}).forEach((types) => {
+        types.forEach((t) => pTypesSet.add(t));
+      });
+    });
+    const pTypes = Array.from(pTypesSet).filter(Boolean);
+    pTypes.forEach((val, idx) => {
+      metadataSheet.getCell(`C${idx + 1}`).value = val;
+    });
+
+    // Store Addresses in col D
+    const sellerAddresses = (req.user.storeAddresses || [])
+      .map((a) => String(a).trim())
+      .filter(Boolean);
+    
+    if (sellerAddresses.length === 0) {
+      sellerAddresses.push("Main Shop Location"); // Fallback if no store address registered
+    }
+    sellerAddresses.forEach((val, idx) => {
+      metadataSheet.getCell(`D${idx + 1}`).value = val;
+    });
+
+    // Yes/No in col E
+    const yesNoOptions = ["Yes", "No"];
+    yesNoOptions.forEach((val, idx) => {
+      metadataSheet.getCell(`E${idx + 1}`).value = val;
+    });
+
+    // Purchase Types in col F
+    const purchaseTypes = ["One-time purchase", "Subscription", "Custom Order"];
+    purchaseTypes.forEach((val, idx) => {
+      metadataSheet.getCell(`F${idx + 1}`).value = val;
+    });
+
+    // Delivery Types in col G
+    const deliveryTypes = ["All India", "State", "City", "Pincode"];
+    deliveryTypes.forEach((val, idx) => {
+      metadataSheet.getCell(`G${idx + 1}`).value = val;
+    });
+
+    // 4. Setup headers in Products Sheet
+    const headers = [
+      "Product title", "Product Description", "Image link", "Return", "Terms of return", 
+      "Refund", "Terms of refund", "Replacement", "Terms of replacement", "Care instructions ", 
+      "Key highlight/USP", "Price", "Discounted Price", "SKU (Stock Keeping Unit)", 
+      "Dispatch and delivery time", "Minimum Order Quantity", "Maximum order Quantity", 
+      "Purchase Type", "Store Address", "Bulk Purchase Available", "Minimum Order Quantity of bulk purchase ", 
+      "Main Category", "Sub-Category", "Product Type", "Color Variant", "Size Variant", 
+      "Material/Fabric Variant", "Pattern/Design Variant", "Weight Variant", 
+      "Weight of the product with packaging", "Delivery Type", "SEO Page title", 
+      "SEO Page Description", "Keywords (Separated by comma)"
+    ];
+
+    productsSheet.addRow(headers);
+
+    // Style the header row
+    const headerRow = productsSheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
+    headerRow.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF4F46E5" } // Sleek Indigo color
+    };
+    headerRow.height = 25;
+    headerRow.commit();
+
+    // Auto-fit columns roughly
+    headers.forEach((h, idx) => {
+      const col = productsSheet.getColumn(idx + 1);
+      col.width = Math.max(h.length + 5, 15);
+    });
+
+    // Add empty rows for data validation (apply to rows 2 to 200)
+    for (let r = 2; r <= 200; r++) {
+      // Return validation (Col D -> Yes/No)
+      productsSheet.getCell(`D${r}`).dataValidation = {
+        type: "list",
+        allowBlank: true,
+        formulae: ['"Yes,No"'],
+        showErrorMessage: true,
+        errorTitle: "Invalid Value",
+        error: "Please select Yes or No from the list."
+      };
+
+      // Refund validation (Col F -> Yes/No)
+      productsSheet.getCell(`F${r}`).dataValidation = {
+        type: "list",
+        allowBlank: true,
+        formulae: ['"Yes,No"'],
+        showErrorMessage: true,
+        errorTitle: "Invalid Value",
+        error: "Please select Yes or No from the list."
+      };
+
+      // Replacement validation (Col H -> Yes/No)
+      productsSheet.getCell(`H${r}`).dataValidation = {
+        type: "list",
+        allowBlank: true,
+        formulae: ['"Yes,No"'],
+        showErrorMessage: true,
+        errorTitle: "Invalid Value",
+        error: "Please select Yes or No from the list."
+      };
+
+      // Purchase Type validation (Col R)
+      productsSheet.getCell(`R${r}`).dataValidation = {
+        type: "list",
+        allowBlank: true,
+        formulae: ['"One-time purchase,Subscription,Custom Order"'],
+        showErrorMessage: true,
+        errorTitle: "Invalid Value",
+        error: "Please select a purchase type from the list."
+      };
+
+      // Store Address validation (Col S)
+      productsSheet.getCell(`S${r}`).dataValidation = {
+        type: "list",
+        allowBlank: true,
+        formulae: [`=Metadata!$D$1:$D$${sellerAddresses.length}`],
+        showErrorMessage: true,
+        errorTitle: "Invalid Value",
+        error: "Please select one of your registered store addresses."
+      };
+
+      // Bulk Purchase Available validation (Col T -> Yes/No)
+      productsSheet.getCell(`T${r}`).dataValidation = {
+        type: "list",
+        allowBlank: true,
+        formulae: ['"Yes,No"'],
+        showErrorMessage: true,
+        errorTitle: "Invalid Value",
+        error: "Please select Yes or No."
+      };
+
+      // Main Category validation (Col V)
+      productsSheet.getCell(`V${r}`).dataValidation = {
+        type: "list",
+        allowBlank: true,
+        formulae: [`=Metadata!$A$1:$A$${mainCats.length}`],
+        showErrorMessage: true,
+        errorTitle: "Invalid Value",
+        error: "Please select a valid Main Category from the list."
+      };
+
+      // Sub-Category validation (Col W)
+      productsSheet.getCell(`W${r}`).dataValidation = {
+        type: "list",
+        allowBlank: true,
+        formulae: [`=Metadata!$B$1:$B$${subCats.length}`],
+        showErrorMessage: true,
+        errorTitle: "Invalid Value",
+        error: "Please select a valid Sub-Category."
+      };
+
+      // Product Type validation (Col X)
+      productsSheet.getCell(`X${r}`).dataValidation = {
+        type: "list",
+        allowBlank: true,
+        formulae: [`=Metadata!$C$1:$C$${pTypes.length}`],
+        showErrorMessage: true,
+        errorTitle: "Invalid Value",
+        error: "Please select a valid Product Type."
+      };
+
+      // Delivery Type validation (Col AE)
+      productsSheet.getCell(`AE${r}`).dataValidation = {
+        type: "list",
+        allowBlank: true,
+        formulae: ['"All India,State,City,Pincode"'],
+        showErrorMessage: true,
+        errorTitle: "Invalid Value",
+        error: "Please select a delivery scope option."
+      };
+    }
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=bulk_upload_template.xlsx"
+    );
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    res.status(500).json({ message: "Failed to generate Excel template", error: error.message });
+  }
 };
