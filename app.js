@@ -166,7 +166,7 @@ app.use(
 // ✅ ROUTES
 // ===============================
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, service: "aashansh-api" });
+  res.json({ ok: true, service: "aashansh-api", message: "Server is healthy" });
 });
 
 app.use("/api/auth", authRoutes);
