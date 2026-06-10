@@ -10,7 +10,8 @@
     "build:web": "npm run build:customer && npm run build:seller && npm run build:admin",
     "build:customer": "cd ecommerce_frontend/customer && npm run build",
     "build:seller": "cd ecommerce_frontend/seller && npm run build",
-    "build:admin": "cd ecommerce_frontend/admin && npm run build"
+    "build:admin": "cd ecommerce_frontend/admin && npm run build",
+    "seed": "node scripts/seed-db.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
