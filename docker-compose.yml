@@ -28,7 +28,7 @@ services:
       - .:/app
       - /app/node_modules
       - uploads_data:/app/uploads
-    environment:g
+    environment:
       # Use local mongo service container on the docker network.
       # Comment out MONGO_URI line below to fall back to the Atlas connection string in your .env file.
       - MONGO_URI=mongodb://mongo:27017/aashansh
