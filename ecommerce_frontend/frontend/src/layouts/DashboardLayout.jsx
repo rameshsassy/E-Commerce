@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Footer from '../components/common/Footer';
 import {
   LogOut,
   LayoutDashboard,
@@ -421,8 +422,11 @@ const DashboardLayout = ({ variant }) => {
         </div>
       </aside>
 
-      <main className="flex-1 w-full min-w-0 p-3 sm:p-6 lg:p-8 overflow-y-auto overflow-x-hidden safe-area-bottom">
-        <Outlet />
+      <main className="flex-1 w-full min-w-0 p-3 sm:p-6 lg:p-8 overflow-y-auto overflow-x-hidden safe-area-bottom flex flex-col">
+        <div className="flex-1">
+          <Outlet />
+        </div>
+        {isSeller && <Footer />}
       </main>
     </div>
   );

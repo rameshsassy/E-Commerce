@@ -28,6 +28,11 @@ import Notifications from './pages/public/Notifications';
 import Support from './pages/public/Support';
 import FAQ from './pages/public/FAQ';
 import TermsAndConditions from './pages/public/TermsAndConditions';
+import AboutUs from './pages/public/AboutUs';
+import PrivacyPolicy from './pages/public/PrivacyInfo';
+import RefundPolicy from './pages/public/RefundPolicy';
+import ShippingPolicy from './pages/public/ShippingPolicy';
+import ContactInformation from './pages/public/ContactInformation';
 import PublicStorePage from './pages/public/PublicStorePage';
 
 import SellerDashboard from './pages/seller/SellerDashboard';
@@ -87,6 +92,11 @@ function SellerPortalRoutes() {
         <Route path="/seller/about-us" element={<SellerAboutUs />} />
         <Route path="/seller/buy-products" element={<SellerBuyProducts />} />
         <Route path="/terms" element={<TermsAndConditions />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/about-us" element={<AboutUs />} />
+        <Route path="/refund-policy" element={<RefundPolicy />} />
+        <Route path="/shipping-policy" element={<ShippingPolicy />} />
+        <Route path="/contact-info" element={<ContactInformation />} />
       </Route>
 
       <Route path="/" element={<SellerPortalHome />} />
@@ -118,6 +128,11 @@ function CustomerPortalRoutes() {
           <Route path="/support" element={<Support />} />
           <Route path="/faq" element={<FAQ />} />
           <Route path="/terms" element={<TermsAndConditions />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/about-us" element={<AboutUs />} />
+          <Route path="/refund-policy" element={<RefundPolicy />} />
+          <Route path="/shipping-policy" element={<ShippingPolicy />} />
+          <Route path="/contact-info" element={<ContactInformation />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/admin-setup" element={<AdminRegister />} />

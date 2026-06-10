@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import SearchBar from '../components/search/SearchBar';
 import NotificationBell from '../components/notifications/NotificationBell';
 import { getSellerPortalOrigin } from '../utils/portalHost';
+import Footer from '../components/common/Footer';
 
 const CATEGORIES = ['Bags', 'Jewellery', 'Snacks', 'Women Hygiene', 'Books', 'Lifestyle'];
 
@@ -166,53 +167,7 @@ const PublicLayout = () => {
         <Outlet />
       </main>
 
-      <footer className="bg-surface py-10 sm:py-12 px-4 sm:px-6 lg:px-8 mt-12 sm:mt-20 border-t border-glass-border safe-area-bottom">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          <div className="sm:col-span-2 lg:col-span-1">
-            <h3 className="font-bold text-xl mb-4 text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">AASHANSH</h3>
-            <p className="text-text-muted text-sm leading-relaxed max-w-md">
-              Empowering women and promoting handcrafted, eco-friendly products. Every purchase makes a difference.
-            </p>
-          </div>
-          <div>
-            <h4 className="font-bold mb-4">Shop</h4>
-            <ul className="space-y-2 text-text-muted text-sm">
-              <li><Link to="/products" className="hover:text-primary">All Products</Link></li>
-              <li><Link to="/products?category=Bags" className="hover:text-primary">Bags</Link></li>
-              <li><Link to="/products?category=Jewellery" className="hover:text-primary">Jewellery</Link></li>
-              <li><Link to="/products?category=Snacks" className="hover:text-primary">Snacks</Link></li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-bold mb-4">Support</h4>
-            <ul className="space-y-2 text-text-muted text-sm">
-              <li><Link to="/support" className="hover:text-primary">Contact Us</Link></li>
-              <li><Link to="/returns" className="hover:text-primary">Returns & Refunds</Link></li>
-              <li><Link to="/track" className="hover:text-primary">Track Order</Link></li>
-              <li><Link to="/faq" className="hover:text-primary">FAQs</Link></li>
-              <li className="pt-2 border-t border-glass-border mt-2">
-                <a
-                  href={`${getSellerPortalOrigin()}/register`}
-                  className="text-secondary font-bold hover:text-primary flex items-center gap-2"
-                >
-                  <Store size={14} /> Sell on Aashansh
-                </a>
-              </li>
-            </ul>
-          </div>
-          <div className="sm:col-span-2 lg:col-span-1">
-            <h4 className="font-bold mb-4">Newsletter</h4>
-            <p className="text-text-muted text-sm mb-4">Get updates on new collections and special offers.</p>
-            <div className="flex flex-col xs:flex-row sm:flex-row gap-0 max-w-md">
-              <input type="email" placeholder="Your email" className="input-field rounded-b-none sm:rounded-r-none sm:rounded-b-md border-b-0 sm:border-b sm:border-r-0 flex-1 min-h-[44px]" />
-              <button type="button" className="btn btn-primary rounded-t-none sm:rounded-l-none sm:rounded-t-md min-h-[44px]">Subscribe</button>
-            </div>
-          </div>
-        </div>
-        <div className="mt-10 sm:mt-12 pt-6 sm:pt-8 border-t border-glass-border text-center text-text-muted text-sm">
-          &copy; {new Date().getFullYear()} Aashansh Marketplace. All rights reserved.
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };

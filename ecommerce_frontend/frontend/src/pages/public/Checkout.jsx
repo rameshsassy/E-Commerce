@@ -4,6 +4,7 @@ import { ShieldCheck, Truck, CreditCard } from 'lucide-react';
 import api, { BASE_URL } from '../../utils/api';
 import useFormAutosave from '../../hooks/useFormAutosave';
 import FormAutosaveStatus from '../../components/common/FormAutosaveStatus';
+import { loadScript } from '../../utils/loadScript';
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -115,6 +116,12 @@ const Checkout = () => {
   const handlePayment = async () => {
     setProcessing(true);
     try {
+      // Load Razorpay checkout script dynamically
+      const loaded = await loadScript('https://checkout.razorpay.com/v1/checkout.js');
+      if (!loaded) {
+        throw new Error('Failed to load payment gateway script. Please check your internet connection.');
+      }
+
       // 1. Create Razorpay Order
       const { data: rzpOrder } = await api.post('/customer/order/razorpay', { amount: total, shippingAddress: address });
 
