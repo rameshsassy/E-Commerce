@@ -180,7 +180,7 @@ export default function SellerBuyProducts() {
             ) : activePlan === 'pro' && user?.subscriptionActive ? (
               "You are on pro plan"
             ) : (
-              "You are on free plan . Upgrade now to sell in bulk"
+              "You are on free plan"
             )}
           </span>
           {activePlan === 'premium' && user?.subscriptionActive ? (
@@ -192,9 +192,12 @@ export default function SellerBuyProducts() {
               <Sparkles size={12} className="fill-indigo-500/10" /> Pro Seller
             </span>
           ) : (
-            <span className="badge bg-primary/20 text-primary border border-primary/30 font-bold">
-              Free Seller
-            </span>
+            <button
+              onClick={() => navigate('/seller/premium')}
+              className="badge bg-primary/20 hover:bg-primary/35 text-primary border border-primary/30 hover:border-primary/50 font-bold flex items-center gap-1 cursor-pointer transition-all py-1 px-3 rounded-full text-xs"
+            >
+              Upgrade Now
+            </button>
           )}
         </div>
       </div>
@@ -206,26 +209,12 @@ export default function SellerBuyProducts() {
           <div>
             <h4 className="font-bold text-white mb-2">Want to sell in bulk?</h4>
             <ul className="text-xs text-text-muted space-y-1.5 list-disc pl-4">
-              {activePlan === 'free' ? (
-                <>
-                  <li>
-                    <strong>Free Sellers</strong> cannot offer bulk selling. Any product owned by a Free Seller can only be purchased in single quantities.
-                  </li>
-                  <li className="text-primary">
-                    You are a <strong>Free Seller</strong>: You can buy from Premium and Pro Sellers in bulk, but your purchases from Free Sellers are restricted to <strong>individual quantities</strong> (no bulk options).
-                  </li>
-                  <li>You can buy from Premium and Pro Sellers in both single and bulk quantities.</li>
-                </>
-              ) : (
-                <>
-                  <li>
-                    Display your products for the fellow sellers to request for bulk quantity from you
-                  </li>
-                  <li>
-                    All the bulk buying request from sellers, corporates, schools, colleges, and other instutional buyers can be check on 'Orders & Enquiries' page
-                  </li>
-                </>
-              )}
+              <li>
+                Display your products for the fellow sellers to request for bulk quantity from you
+              </li>
+              <li>
+                All the bulk buying request from sellers, corporates, schools, colleges, and other instutional buyers can be check on 'Orders & Enquiries' page
+              </li>
             </ul>
           </div>
         </div>

@@ -159,12 +159,12 @@ const DashboardLayout = ({ variant }) => {
           <Menu size={22} />
         </button>
         {isSeller ? (
-          <div className="flex-1 flex items-center justify-center gap-2">
+          <Link to="/seller/dashboard" className="flex-1 flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
             <img src="/brand/aashansh-logo.png" alt="Aashansh Logo" className="h-6 w-auto object-contain" />
             <h2 className="text-base font-bold text-white truncate">
               {panelTitle}
             </h2>
-          </div>
+          </Link>
         ) : (
           <h2 className="text-base font-bold text-primary truncate flex-1 text-center" style={{ color: 'var(--color-primary)' }}>
             {panelTitle}
@@ -204,12 +204,12 @@ const DashboardLayout = ({ variant }) => {
       >
         <div className="p-4 lg:p-6 border-b flex items-center justify-between gap-2" style={{ borderColor: 'var(--glass-border)' }}>
           {isSeller ? (
-            <div className="flex items-center gap-2">
+            <Link to="/seller/dashboard" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
               <img src="/brand/aashansh-logo.png" alt="Aashansh Logo" className="h-8 w-auto object-contain" />
               <h2 className="text-lg lg:text-xl font-bold text-white">
                 {panelTitle}
               </h2>
-            </div>
+            </Link>
           ) : (
             <h2 className="text-lg lg:text-xl font-bold text-primary" style={{ color: 'var(--color-primary)' }}>
               {panelTitle}
