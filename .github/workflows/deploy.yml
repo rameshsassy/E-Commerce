@@ -18,17 +18,7 @@ jobs:
           key: ${{ secrets.GCP_SSH_KEY }}
           script: |
             cd ${{ secrets.APP_DIR }}
-            echo "=== System Disk Space ==="
-            df -h
-            echo "=== Docker Containers ==="
-            docker ps -a
-            echo "=== Docker Disk Usage ==="
-            docker system df
-            echo "=== Container Logs (Backend) ==="
-            docker compose logs backend --tail 100
-            echo "=== Container Logs (Customer) ==="
-            docker compose logs customer --tail 100
-            echo "=== Container Logs (Seller) ==="
-            docker compose logs seller --tail 100
-            echo "=== Container Logs (Admin) ==="
-            docker compose logs admin --tail 100
+            git pull origin main
+            docker compose down
+            docker compose up -d --build
+            docker image prune -f
