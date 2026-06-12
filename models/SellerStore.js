@@ -75,6 +75,19 @@ const sellerStoreSchema = new mongoose.Schema(
       default: "",
     },
 
+    storeSlug: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      default: "",
+    },
+
+    storeUrl: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
     isActive: {
       type: Boolean,
       default: true,
@@ -86,6 +99,11 @@ const sellerStoreSchema = new mongoose.Schema(
 sellerStoreSchema.index(
   { subdomain: 1 },
   { unique: true, sparse: true, partialFilterExpression: { subdomain: { $type: "string", $ne: "" } } }
+);
+
+sellerStoreSchema.index(
+  { storeSlug: 1 },
+  { unique: true, sparse: true, partialFilterExpression: { storeSlug: { $type: "string", $ne: "" } } }
 );
 
 sellerStoreSchema.index(

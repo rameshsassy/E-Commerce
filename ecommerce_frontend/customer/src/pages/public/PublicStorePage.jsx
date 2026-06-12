@@ -11,8 +11,9 @@ function assetUrl(path) {
   return `${BASE_URL}/${String(path).replace(/\\/g, '/')}`;
 }
 
-export default function PublicStorePage() {
-  const { subdomain } = useParams();
+export default function PublicStorePage({ subdomain: propSubdomain }) {
+  const { subdomain: paramSubdomain } = useParams();
+  const subdomain = propSubdomain || paramSubdomain;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [store, setStore] = useState(null);
@@ -25,7 +26,10 @@ export default function PublicStorePage() {
       setLoading(true);
       setError('');
       try {
-        const { data } = await api.get(`/public/stores/${subdomain}`);
+        const url = propSubdomain
+          ? `/public/store/current`
+          : `/public/stores/${subdomain}`;
+        const { data } = await api.get(url);
         if (cancelled) return;
         setStore(data.store);
         setSeo(data.seo || data.store?.seo);
@@ -42,7 +46,7 @@ export default function PublicStorePage() {
     return () => {
       cancelled = true;
     };
-  }, [subdomain]);
+  }, [subdomain, propSubdomain]);
 
   if (loading) {
     return (

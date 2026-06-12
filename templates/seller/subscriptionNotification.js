@@ -135,9 +135,9 @@ export default function subscriptionNotification(name, type, dashboardLink) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${bannerText} - Aashansh</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #F6F6F6; font-family: Arial, Helvetica, sans-serif;">
+<body style="margin: 0; padding: 0; background-color: #FFFFFF; font-family: Arial, Helvetica, sans-serif;">
 <center>
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #F6F6F6; padding: 20px 0;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #FFFFFF; padding: 20px 0;">
     <tr>
       <td align="center">
         <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #FFFFFF; border-radius: 4px; overflow: hidden; max-width: 600px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
@@ -200,7 +200,7 @@ export default function subscriptionNotification(name, type, dashboardLink) {
                 ${features.map(f => `
                 <tr>
                   <td align="center" style="padding: 10px 0;">
-                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border: 1px solid #FFD600; border-radius: 8px; background-color: #FFFFFF;">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border: 1px solid #FFD600; border-radius: 8px; background-color: #FFD600;">
                       <tr>
                         <td align="center" style="padding: 15px 20px;">
                           <div style="font-size: 24px; margin-bottom: 6px;">${f.emoji}</div>

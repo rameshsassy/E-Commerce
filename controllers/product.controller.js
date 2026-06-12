@@ -464,7 +464,9 @@ export const getAllProducts = async (req, res) => {
       if (maxPrice) query.price.$lte = Number(maxPrice);
     }
 
-    if (seller) {
+    if (req.subdomainStore) {
+      query.sellerId = req.subdomainStore.sellerId;
+    } else if (seller) {
       query.sellerId = seller;
     }
 
@@ -1033,6 +1035,14 @@ export const getProductById = async (req, res) => {
       product.approvalStatus !== "approved"
     ) {
       return res.status(404).json({ message: "Product not available" });
+    }
+
+    if (req.subdomainStore) {
+      const prodSellerId = product.sellerId._id?.toString() || product.sellerId.toString();
+      const storeSellerId = req.subdomainStore.sellerId.toString();
+      if (prodSellerId !== storeSellerId) {
+        return res.status(404).json({ message: "Product not found on this store" });
+      }
     }
 
     // Analytics: record a product/store view (best-effort; don't block the response)

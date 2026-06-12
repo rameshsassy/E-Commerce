@@ -6,6 +6,7 @@ import SearchBar from '../components/search/SearchBar';
 import NotificationBell from '../components/notifications/NotificationBell';
 import { getSellerPortalOrigin } from '../utils/portalHost';
 import Footer from '../components/common/Footer';
+import api from '../utils/api';
 
 const CATEGORIES = ['Bags', 'Jewellery', 'Snacks', 'Women Hygiene', 'Books', 'Lifestyle'];
 
@@ -14,11 +15,26 @@ const PublicLayout = () => {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [menuItems, setMenuItems] = useState([]);
 
   useEffect(() => {
     setMobileMenuOpen(false);
     setMobileSearchOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    const fetchMenu = async () => {
+      try {
+        const res = await api.get('/menu');
+        if (res.data && res.data.length > 0) {
+          setMenuItems(res.data);
+        }
+      } catch (err) {
+        console.error('Error fetching dynamic menu:', err);
+      }
+    };
+    fetchMenu();
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -104,15 +120,27 @@ const PublicLayout = () => {
 
         <div className="category-scroll border-t border-glass-border pt-3 -mx-1 px-1">
           <div className="flex gap-4 sm:gap-6 md:gap-8 overflow-x-auto pb-1 text-[12px] sm:text-[13px] font-bold text-text-muted whitespace-nowrap scrollbar-thin">
-            {CATEGORIES.map((cat) => (
-              <Link
-                key={cat}
-                to={`/products?category=${encodeURIComponent(cat)}`}
-                className="hover:text-primary transition-colors shrink-0"
-              >
-                {cat}
-              </Link>
-            ))}
+            {menuItems.length > 0 ? (
+              menuItems.map((item) => (
+                <Link
+                  key={item._id}
+                  to={item.link}
+                  className="hover:text-primary transition-colors shrink-0"
+                >
+                  {item.name}
+                </Link>
+              ))
+) : (
+              CATEGORIES.map((cat) => (
+                <Link
+                  key={cat}
+                  to={`/products?category=${encodeURIComponent(cat)}`}
+                  className="hover:text-primary transition-colors shrink-0"
+                >
+                  {cat}
+                </Link>
+              ))
+            )}
           </div>
         </div>
       </header>

@@ -11,6 +11,8 @@ import {
   getPlatformStoreHost,
   getSubdomainPreview,
   validateSubdomain,
+  getSubdomainFromRequest,
+  generateUniqueStoreSlug,
 } from "../utils/storeDomain.js";
 import {
   assertCanCreateStore,
@@ -116,17 +118,8 @@ export const createStore = async (req, res) => {
 
     const content = applyStoreContentFromBody(req.body, req.user);
 
-    const check = resolveSubdomain(req.body, content.storeName, null);
-    if (!check.ok) {
-      return res.status(400).json({ message: check.message });
-    }
-    const subdomainValue = check.value;
-    const taken = await SellerStore.findOne({ subdomain: subdomainValue });
-    if (taken) {
-      return res.status(400).json({
-        message: "This store URL is already taken. Try a different store name.",
-      });
-    }
+    const storeSlug = await generateUniqueStoreSlug(content.storeName);
+    const storeUrl = `https://${storeSlug}.aashansh.org`;
 
     const logoPath = pickStoreFile(req, "logo");
     const faviconPath = pickStoreFile(req, "favicon");
@@ -146,7 +139,9 @@ export const createStore = async (req, res) => {
       tagline: req.body.tagline ? String(req.body.tagline).trim() : "",
       domainType: "platform_subdomain",
       customDomain: "",
-      subdomain: subdomainValue,
+      subdomain: storeSlug,
+      storeSlug,
+      storeUrl,
     });
 
     logStoreActivity(req.user._id, store.storeName, true);
@@ -202,20 +197,19 @@ export const updateStore = async (req, res) => {
     if (logoPath) store.logo = logoPath;
     if (faviconPath) store.favicon = faviconPath;
 
-    const nameForSubdomain = content.storeName || store.storeName;
-    const check = resolveSubdomain(req.body, nameForSubdomain, store.subdomain);
-    if (!check.ok) {
-      return res.status(400).json({ message: check.message });
+    const nameForSlug = content.storeName || store.storeName;
+    let storeSlug = store.storeSlug;
+    if (content.storeName && content.storeName !== store.storeName) {
+      storeSlug = await generateUniqueStoreSlug(content.storeName, store._id);
+    } else if (!storeSlug) {
+      storeSlug = await generateUniqueStoreSlug(nameForSlug, store._id);
     }
-    const taken = await SellerStore.findOne({
-      subdomain: check.value,
-      _id: { $ne: store._id },
-    });
-    if (taken) {
-      return res.status(400).json({ message: "This store URL is already taken." });
-    }
+    const storeUrl = `https://${storeSlug}.aashansh.org`;
+
     store.domainType = "platform_subdomain";
-    store.subdomain = check.value;
+    store.subdomain = storeSlug;
+    store.storeSlug = storeSlug;
+    store.storeUrl = storeUrl;
     store.customDomain = "";
 
     await store.save();
@@ -265,11 +259,39 @@ export const getPublicStore = async (req, res) => {
     const subdomain = String(req.params.subdomain || "")
       .trim()
       .toLowerCase();
-    if (!subdomain) {
-      return res.status(400).json({ message: "Store subdomain is required." });
+
+    let store;
+    if (subdomain === "current" || !subdomain) {
+      if (req.subdomainStore) {
+        store = req.subdomainStore.toObject ? req.subdomainStore.toObject() : req.subdomainStore;
+      } else {
+        const sub = getSubdomainFromRequest(req);
+        if (sub) {
+          const fetched = await SellerStore.findOne({ storeSlug: sub, isActive: true });
+          if (fetched) {
+            store = fetched.toObject ? fetched.toObject() : fetched;
+          } else {
+            // Try fallback
+            const oldFetched = await SellerStore.findOne({ subdomain: sub, isActive: true });
+            if (oldFetched) {
+              store = oldFetched.toObject ? oldFetched.toObject() : oldFetched;
+            }
+          }
+        }
+      }
+    } else {
+      const fetched = await SellerStore.findOne({ storeSlug: subdomain, isActive: true });
+      if (fetched) {
+        store = fetched.toObject ? fetched.toObject() : fetched;
+      } else {
+        // Fallback for older stores where storeSlug isn't set yet
+        const oldFetched = await SellerStore.findOne({ subdomain, isActive: true });
+        if (oldFetched) {
+          store = oldFetched.toObject ? oldFetched.toObject() : oldFetched;
+        }
+      }
     }
 
-    const store = await SellerStore.findOne({ subdomain, isActive: true }).lean();
     if (!store) {
       return res.status(404).json({ message: "Store not found or is not active." });
     }

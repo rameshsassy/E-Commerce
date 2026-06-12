@@ -4,6 +4,7 @@ import { subscribeToNewsletter } from "../controllers/newsletter.controller.js";
 
 const router = express.Router();
 
+router.get("/store/current", getPublicStore);
 router.get("/stores/:subdomain", getPublicStore);
 router.post("/newsletter/subscribe", subscribeToNewsletter);
 

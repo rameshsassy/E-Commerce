@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import PortalRouteGuard from './components/routing/PortalRouteGuard';
+import { getSubdomain } from './utils/subdomain';
 
 import PublicLayout from './layouts/PublicLayout';
 
@@ -37,11 +38,17 @@ import SellerAgreement from './pages/public/SellerAgreement';
 import FloatingChat from './components/chat/FloatingChat';
 
 function AppRoutes() {
+  const subdomain = getSubdomain(window.location.hostname);
+
   return (
     <PortalRouteGuard>
       <Routes>
         <Route element={<PublicLayout />}>
-          <Route path="/" element={<Home />} />
+          {subdomain ? (
+            <Route path="/" element={<PublicStorePage subdomain={subdomain} />} />
+          ) : (
+            <Route path="/" element={<Home />} />
+          )}
           <Route path="/products/category/:main/:sub/:type" element={<Products />} />
           <Route path="/products/category/:main/:sub" element={<Products />} />
           <Route path="/products/category/:main" element={<Products />} />

@@ -21,9 +21,11 @@ import publicStoreRoutes from "./routes/publicStore.routes.js";
 import formDraftRoutes from "./routes/formDraft.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
 import websiteRequestRoutes from "./routes/websiteRequest.routes.js";
+import menuRoutes from "./routes/menu.routes.js";
 
 import { errorHandler } from "./middleware/error.middleware.js";
 import { clientDeviceMiddleware } from "./middleware/clientDevice.middleware.js";
+import { subdomainStoreMiddleware } from "./middleware/subdomain.middleware.js";
 import { getUploadsRoot, ensureUploadsRoot } from "./utils/uploadPaths.js";
 
 ensureUploadsRoot();
@@ -66,6 +68,19 @@ function corsOriginCallback(origin, callback) {
 
   if (allowed.has(origin)) {
     return callback(null, true);
+  }
+
+  try {
+    const { hostname } = new URL(origin);
+    // Allow any subdomain of aashansh.org or localhost
+    if (hostname === "aashansh.org" || hostname.endsWith(".aashansh.org")) {
+      return callback(null, true);
+    }
+    if (hostname === "localhost" || hostname.endsWith(".localhost")) {
+      return callback(null, true);
+    }
+  } catch {
+    /* ignore */
   }
 
   if (process.env.CORS_ALLOW_VERCEL === "true") {
@@ -128,6 +143,7 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(clientDeviceMiddleware);
+app.use(subdomainStoreMiddleware);
 
 // Manual Cookie Parser Middleware
 app.use((req, res, next) => {
@@ -198,6 +214,7 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/public", publicStoreRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/website-requests", websiteRequestRoutes);
+app.use("/api/menu", menuRoutes);
 
 // ===============================
 // 🏠 ROOT ROUTE

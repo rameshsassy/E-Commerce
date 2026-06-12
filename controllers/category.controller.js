@@ -39,7 +39,7 @@ export const getCategory = async (req, res) => {
 // ===============================
 export const createCategory = async (req, res) => {
   try {
-    const { name, description, image, icon, parentCategory, commissionRate, isActive, isFeatured } = req.body;
+    const { name, description, image, icon, parentCategory, subCategory, productType, commissionRate, isActive, isFeatured } = req.body;
 
     if (!name || !String(name).trim()) {
       return res.status(400).json({ message: "Category name is required" });
@@ -69,6 +69,8 @@ export const createCategory = async (req, res) => {
       image,
       icon,
       parentCategory: parentCategory || null,
+      subCategory: subCategory || null,
+      productType: productType || null,
       commissionRate,
       isActive,
       isFeatured
@@ -86,7 +88,7 @@ export const createCategory = async (req, res) => {
 // ===============================
 export const updateCategory = async (req, res) => {
   try {
-    const { name, description, image, icon, parentCategory, commissionRate, isActive, isFeatured } = req.body;
+    const { name, description, image, icon, parentCategory, subCategory, productType, commissionRate, isActive, isFeatured } = req.body;
 
     const category = await Category.findById(req.params.id);
     if (!category) {
@@ -124,6 +126,8 @@ export const updateCategory = async (req, res) => {
       }
       category.parentCategory = parentCategory || null;
     }
+    if (subCategory !== undefined) category.subCategory = subCategory || null;
+    if (productType !== undefined) category.productType = productType || null;
     if (commissionRate !== undefined) category.commissionRate = commissionRate;
     if (isActive !== undefined) category.isActive = isActive;
     if (isFeatured !== undefined) category.isFeatured = isFeatured;

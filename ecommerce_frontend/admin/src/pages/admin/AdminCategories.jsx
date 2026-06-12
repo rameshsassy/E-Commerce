@@ -4,6 +4,7 @@ import { Tag, Plus, Edit, Trash2, Save, X, Percent } from 'lucide-react';
 import ResponsiveTable from '../../components/common/ResponsiveTable';
 import useFormAutosave from '../../hooks/useFormAutosave';
 import FormAutosaveStatus from '../../components/common/FormAutosaveStatus';
+import { getSubcategoriesForMain, getTypesForMainSub } from '../../constants/sellerCategoryTaxonomy';
 
 const AdminCategories = () => {
   const [categories, setCategories] = useState([]);
@@ -14,7 +15,7 @@ const AdminCategories = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
-    name: '', description: '', icon: '', commissionRate: 5, isActive: true, isFeatured: false, parentCategory: ''
+    name: '', description: '', commissionRate: 5, isActive: true, isFeatured: false, parentCategory: '', subCategory: '', productType: ''
   });
 
   const fetchCategories = async () => {
@@ -48,16 +49,25 @@ const AdminCategories = () => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    setFormData(prev => {
+      const next = {
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value
+      };
+      if (name === 'parentCategory') {
+        next.subCategory = '';
+        next.productType = '';
+      } else if (name === 'subCategory') {
+        next.productType = '';
+      }
+      return next;
+    });
   };
 
   const resetFormState = () => {
     setShowForm(false);
     setEditingId(null);
-    setFormData({ name: '', description: '', icon: '', commissionRate: 5, isActive: true, isFeatured: false, parentCategory: '' });
+    setFormData({ name: '', description: '', commissionRate: 5, isActive: true, isFeatured: false, parentCategory: '', subCategory: '', productType: '' });
     clearCategoryDraft();
   };
 
@@ -83,11 +93,12 @@ const AdminCategories = () => {
     setFormData({
       name: cat.name,
       description: cat.description || '',
-      icon: cat.icon || '',
       commissionRate: cat.commissionRate,
       isActive: cat.isActive,
       isFeatured: cat.isFeatured,
-      parentCategory: cat.parentCategory?._id || ''
+      parentCategory: cat.parentCategory?._id || '',
+      subCategory: cat.subCategory || '',
+      productType: cat.productType || '',
     });
     setEditingId(cat._id);
     setShowForm(true);
@@ -103,6 +114,12 @@ const AdminCategories = () => {
       }
     }
   };
+
+  const selectedParent = categories.find(c => c._id === formData.parentCategory);
+  const parentName = selectedParent ? selectedParent.name : '';
+
+  const subCategoryOptions = parentName ? getSubcategoriesForMain(parentName) : [];
+  const productTypeOptions = (parentName && formData.subCategory) ? getTypesForMainSub(parentName, formData.subCategory) : [];
 
   if (loading) return <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div></div>;
 
@@ -148,7 +165,7 @@ const AdminCategories = () => {
             </div>
 
             <div>
-              <label className="block text-sm mb-1 font-medium">Parent Category (Optional)</label>
+              <label className="block text-sm mb-1 font-medium">Main Category (Optional)</label>
               <select name="parentCategory" className="input-field w-full bg-surface" value={formData.parentCategory} onChange={handleInputChange}>
                 <option value="">None (Root Category)</option>
                 {categories.filter(c => c._id !== editingId).map(cat => (
@@ -158,15 +175,35 @@ const AdminCategories = () => {
             </div>
 
             <div>
-              <label className="block text-sm mb-1 font-medium">Icon (Optional)</label>
-              <input
-                type="text"
-                name="icon"
-                className="input-field w-full"
-                value={formData.icon}
+              <label className="block text-sm mb-1 font-medium">Sub Category (Optional)</label>
+              <select 
+                name="subCategory" 
+                className="input-field w-full bg-surface disabled:opacity-50 disabled:cursor-not-allowed" 
+                value={formData.subCategory} 
                 onChange={handleInputChange}
-                placeholder="e.g. tag, laptop, tshirt"
-              />
+                disabled={!formData.parentCategory}
+              >
+                <option value="">None (Select Sub Category)</option>
+                {subCategoryOptions.map(sub => (
+                  <option key={sub} value={sub}>{sub}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm mb-1 font-medium">Product Type (Optional)</label>
+              <select 
+                name="productType" 
+                className="input-field w-full bg-surface disabled:opacity-50 disabled:cursor-not-allowed" 
+                value={formData.productType} 
+                onChange={handleInputChange}
+                disabled={!formData.subCategory}
+              >
+                <option value="">None (Select Product Type)</option>
+                {productTypeOptions.map(type => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
             </div>
 
             <div className="md:col-span-2">
@@ -237,7 +274,13 @@ const AdminCategories = () => {
                     <div className="flex flex-col">
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-lg">{cat.name}</span>
-                        {cat.parentCategory && <span className="text-[10px] bg-secondary/20 text-secondary px-2 py-0.5 rounded-full">Sub of {cat.parentCategory.name}</span>}
+                        {cat.parentCategory && (
+                          <span className="text-[10px] bg-secondary/20 text-secondary px-2 py-0.5 rounded-full">
+                            Sub of {cat.parentCategory.name}
+                            {cat.subCategory && ` > ${cat.subCategory}`}
+                            {cat.productType && ` > ${cat.productType}`}
+                          </span>
+                        )}
                       </div>
                       <span className="text-xs text-text-muted">/{cat.slug}</span>
                     </div>

@@ -178,7 +178,7 @@ export default function StoreFormFields({
           maxLength={STORE_NAME_MAX + 50}
         />
         <p className="text-[12px] text-[#6D7175] mt-2">
-          www.{platformHost}/store/{storeSlug}
+          https://{storeSlug}.aashansh.org
         </p>
         <div className="mt-3">
           <label className="block text-[12px] text-[#6D7175] mb-1">
@@ -372,21 +372,44 @@ export default function StoreFormFields({
       {/* Store hosting (always platform subdomain) */}
       <div className="pt-2">
         <p className="text-[16px] font-medium mb-2">Store hosting</p>
-
-        <label className="flex items-start gap-2 text-[14px] text-[#202223]">
-          <input
-            type="radio"
-            name="domainType"
-            value="platform_subdomain"
-            checked
-            readOnly
-          />
-          <div>
-            <div className="leading-snug">
-              On our website — <span className="font-medium">{`www.${platformHost}/store/${storeSlug}`}</span>
+ 
+        <div className="space-y-3">
+          <label className="flex items-start gap-2 text-[14px] text-[#202223]">
+            <input
+              type="radio"
+              name="domainType"
+              value="platform_subdomain"
+              checked
+              readOnly
+            />
+            <div>
+              <div className="leading-snug">
+                Your store link — <span className="font-medium text-[#005bd3]">{`https://${storeSlug}.aashansh.org`}</span>
+              </div>
             </div>
+          </label>
+
+          <div className="flex flex-wrap gap-2 pl-6">
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(`https://${storeSlug}.aashansh.org`);
+                alert("Store link copied to clipboard!");
+              }}
+              className="px-3 py-1.5 bg-[#F6F6F7] hover:bg-[#E4E5E7] text-[#202223] border border-[#8C9196] rounded-md text-[13px] font-medium transition-colors cursor-pointer"
+            >
+              Copy Link
+            </button>
+            <a
+              href={`https://${storeSlug}.aashansh.org`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 bg-[#008060] hover:bg-[#006e52] text-white rounded-md text-[13px] font-medium transition-colors flex items-center gap-1 cursor-pointer"
+            >
+              Open Store <ExternalLink size={12} />
+            </a>
           </div>
-        </label>
+        </div>
       </div>
 
       {compressing && (

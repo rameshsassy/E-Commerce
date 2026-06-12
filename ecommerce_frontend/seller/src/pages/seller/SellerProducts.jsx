@@ -12,6 +12,7 @@ import {
   Store,
   Zap,
   Download,
+  ExternalLink,
 } from 'lucide-react';
 import StoreFormFields, { isStoreFormValid } from '../../components/seller/StoreFormFields';
 import useFormAutosave from '../../hooks/useFormAutosave';
@@ -933,15 +934,37 @@ const SellerProducts = () => {
                 </h2>
                 {myStore?.storeUrl && (
                   <div className="mb-6 p-4 rounded-xl border border-[#E1E3E5] bg-[#F6F6F7]">
-                    <p className="text-sm text-[#6D7175] mb-1">Your store is live at</p>
-                    <a
-                      href={myStore.storeUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[#005bd3] font-medium break-all hover:underline"
-                    >
-                      {myStore.storeUrl}
-                    </a>
+                    <p className="text-sm text-[#6D7175] mb-1">Your store link</p>
+                    <div className="flex flex-wrap items-center gap-3 mt-1">
+                      <a
+                        href={myStore.storeUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#005bd3] font-medium break-all hover:underline"
+                      >
+                        {myStore.storeUrl}
+                      </a>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(myStore.storeUrl);
+                            alert("Store link copied to clipboard!");
+                          }}
+                          className="px-3 py-1 bg-white hover:bg-slate-50 text-[#202223] border border-[#E1E3E5] rounded-md text-xs font-semibold shadow-sm transition-colors cursor-pointer"
+                        >
+                          Copy Link
+                        </button>
+                        <a
+                          href={myStore.storeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-1 bg-[#008060] hover:bg-[#006e52] text-white rounded-md text-xs font-semibold shadow-sm transition-colors flex items-center gap-1 cursor-pointer"
+                        >
+                          Open Store <ExternalLink size={12} />
+                        </a>
+                      </div>
+                    </div>
                   </div>
                 )}
                 {myStore?.seo && (

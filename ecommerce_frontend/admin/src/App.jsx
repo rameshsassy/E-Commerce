@@ -25,6 +25,7 @@ import AdminRoles from './pages/admin/AdminRoles';
 import AdminEmailLogs from './pages/admin/AdminEmailLogs';
 import AdminChat from './pages/admin/AdminChat';
 import AdminWebsiteRequests from './pages/admin/AdminWebsiteRequests';
+import AdminMenu from './pages/admin/AdminMenu';
 
 import FloatingChat from './components/chat/FloatingChat';
 
@@ -52,6 +53,7 @@ function AppRoutes() {
           <Route path="/admin/premium-sellers" element={<AdminPremiumSellers />} />
           <Route path="/admin/premium-seller-dashboard" element={<AdminPremiumSellerDashboard />} />
           <Route path="/admin/categories" element={<AdminCategories />} />
+          <Route path="/admin/menu" element={<AdminMenu />} />
           <Route path="/admin/email-logs" element={<AdminEmailLogs />} />
           <Route path="/admin/chats" element={<AdminChat />} />
           <Route path="/admin/website-requests" element={<AdminWebsiteRequests />} />

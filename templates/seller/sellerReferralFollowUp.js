@@ -23,7 +23,7 @@ export default function sellerReferralFollowUp({
   const banner = "https://aashansh.org/brand/seller-welcome-banner.png";
 
   function featureCard(iconUrl, title, description) {
-    return `<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border: 2px solid #ffd401; border-radius: 12px; margin-bottom: 15px;">
+    return `<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border: 1px solid #FFD600; border-radius: 12px; margin-bottom: 15px; background-color: #FFD600;">
     <tr>
       <td align="center" style="padding: 25px 20px;">
         <img src="${iconUrl}" width="40" height="40" style="display: block; margin: 0 auto 12px;" alt="${escapeHtml(title)}">
@@ -164,9 +164,9 @@ export default function sellerReferralFollowUp({
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Follow Up ${step} - Aashansh</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #F6F6F6; font-family: Arial, Helvetica, sans-serif;">
+<body style="margin: 0; padding: 0; background-color: #FFFFFF; font-family: Arial, Helvetica, sans-serif;">
 <center>
-    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #F6F6F6; padding: 20px 0;">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #FFFFFF; padding: 20px 0;">
         <tr>
             <td align="center">
                 <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #FFFFFF; border-radius: 4px; overflow: hidden; max-width: 600px;">

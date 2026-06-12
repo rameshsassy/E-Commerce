@@ -28,6 +28,14 @@ const categorySchema = new mongoose.Schema(
       ref: "Category",
       default: null,
     },
+    subCategory: {
+      type: String,
+      default: null,
+    },
+    productType: {
+      type: String,
+      default: null,
+    },
     commissionRate: {
       type: Number,
       required: true,

@@ -54,6 +54,7 @@ const ADMIN_PATH_SECTIONS = [
   [/^\/admin\/returns/, 'returns'],
   [/^\/admin\/coupons/, 'coupons'],
   [/^\/admin\/categories/, 'categories'],
+  [/^\/admin\/menu/, 'categories'],
   [/^\/admin\/premium-sellers/, 'sellers'],
   [/^\/admin\/premium-seller-dashboard/, 'dashboard'],
   [/^\/admin\/email-logs/, 'dashboard'],
@@ -335,6 +336,16 @@ const DashboardLayout = ({ variant }) => {
                 >
                   <LayoutDashboard size={20} className="text-primary" />
                   Category Engine
+                </Link>
+              )}
+
+              {showAdminLink('categories') && (
+                <Link
+                  to="/admin/menu"
+                  className={adminNavLinkClass(location.pathname, location.hash, '/admin/menu')}
+                >
+                  <Menu size={20} className="text-primary" />
+                  Menu Manager
                 </Link>
               )}
 
