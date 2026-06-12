@@ -15,7 +15,7 @@ const AdminCategories = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
-    name: '', description: '', commissionRate: 5, isActive: true, isFeatured: false, parentCategory: '', subCategory: '', productType: ''
+    name: '', description: '', commissionRate: 5, isActive: true, isFeatured: false, parentCategory: '', subCategory: '', productType: '', customParentCategory: '', customSubCategory: '', customProductType: ''
   });
 
   const fetchCategories = async () => {
@@ -55,10 +55,23 @@ const AdminCategories = () => {
         [name]: type === 'checkbox' ? checked : value
       };
       if (name === 'parentCategory') {
+        if (value !== 'other') {
+          next.customParentCategory = '';
+        }
         next.subCategory = '';
+        next.customSubCategory = '';
         next.productType = '';
+        next.customProductType = '';
       } else if (name === 'subCategory') {
+        if (value !== 'other') {
+          next.customSubCategory = '';
+        }
         next.productType = '';
+        next.customProductType = '';
+      } else if (name === 'productType') {
+        if (value !== 'other') {
+          next.customProductType = '';
+        }
       }
       return next;
     });
@@ -67,7 +80,7 @@ const AdminCategories = () => {
   const resetFormState = () => {
     setShowForm(false);
     setEditingId(null);
-    setFormData({ name: '', description: '', commissionRate: 5, isActive: true, isFeatured: false, parentCategory: '', subCategory: '', productType: '' });
+    setFormData({ name: '', description: '', commissionRate: 5, isActive: true, isFeatured: false, parentCategory: '', subCategory: '', productType: '', customParentCategory: '', customSubCategory: '', customProductType: '' });
     clearCategoryDraft();
   };
 
@@ -99,6 +112,9 @@ const AdminCategories = () => {
       parentCategory: cat.parentCategory?._id || '',
       subCategory: cat.subCategory || '',
       productType: cat.productType || '',
+      customParentCategory: '',
+      customSubCategory: '',
+      customProductType: '',
     });
     setEditingId(cat._id);
     setShowForm(true);
@@ -116,10 +132,11 @@ const AdminCategories = () => {
   };
 
   const selectedParent = categories.find(c => c._id === formData.parentCategory);
-  const parentName = selectedParent ? selectedParent.name : '';
-
+  const parentName = formData.parentCategory === 'other' ? formData.customParentCategory : (selectedParent ? selectedParent.name : '');
+  const subCategoryName = formData.subCategory === 'other' ? formData.customSubCategory : formData.subCategory;
+ 
   const subCategoryOptions = parentName ? getSubcategoriesForMain(parentName) : [];
-  const productTypeOptions = (parentName && formData.subCategory) ? getTypesForMainSub(parentName, formData.subCategory) : [];
+  const productTypeOptions = (parentName && subCategoryName) ? getTypesForMainSub(parentName, subCategoryName) : [];
 
   if (loading) return <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div></div>;
 
@@ -165,17 +182,33 @@ const AdminCategories = () => {
             </div>
 
             <div>
-              <label className="block text-sm mb-1 font-medium">Main Category (Optional)</label>
+              <label className="block text-sm mb-1 font-medium">Main Category</label>
               <select name="parentCategory" className="input-field w-full bg-surface" value={formData.parentCategory} onChange={handleInputChange}>
                 <option value="">None (Root Category)</option>
+                <option value="other">Other (Please mention)</option>
                 {categories.filter(c => c._id !== editingId).map(cat => (
                   <option key={cat._id} value={cat._id}>{cat.name}</option>
                 ))}
               </select>
             </div>
 
+            {formData.parentCategory === 'other' && (
+              <div>
+                <label className="block text-sm mb-1 font-medium">Please mention Main Category *</label>
+                <input
+                  type="text"
+                  name="customParentCategory"
+                  required
+                  className="input-field w-full"
+                  value={formData.customParentCategory || ''}
+                  onChange={handleInputChange}
+                  placeholder="Type your main category"
+                />
+              </div>
+            )}
+
             <div>
-              <label className="block text-sm mb-1 font-medium">Sub Category (Optional)</label>
+              <label className="block text-sm mb-1 font-medium">Sub Category</label>
               <select 
                 name="subCategory" 
                 className="input-field w-full bg-surface disabled:opacity-50 disabled:cursor-not-allowed" 
@@ -184,14 +217,30 @@ const AdminCategories = () => {
                 disabled={!formData.parentCategory}
               >
                 <option value="">None (Select Sub Category)</option>
+                <option value="other">Other (Please mention)</option>
                 {subCategoryOptions.map(sub => (
                   <option key={sub} value={sub}>{sub}</option>
                 ))}
               </select>
             </div>
 
+            {formData.subCategory === 'other' && (
+              <div>
+                <label className="block text-sm mb-1 font-medium">Please mention Sub Category *</label>
+                <input
+                  type="text"
+                  name="customSubCategory"
+                  required
+                  className="input-field w-full"
+                  value={formData.customSubCategory || ''}
+                  onChange={handleInputChange}
+                  placeholder="Type your sub category"
+                />
+              </div>
+            )}
+
             <div>
-              <label className="block text-sm mb-1 font-medium">Product Type (Optional)</label>
+              <label className="block text-sm mb-1 font-medium">Product Type</label>
               <select 
                 name="productType" 
                 className="input-field w-full bg-surface disabled:opacity-50 disabled:cursor-not-allowed" 
@@ -200,11 +249,27 @@ const AdminCategories = () => {
                 disabled={!formData.subCategory}
               >
                 <option value="">None (Select Product Type)</option>
+                <option value="other">Other (Please mention)</option>
                 {productTypeOptions.map(type => (
                   <option key={type} value={type}>{type}</option>
                 ))}
               </select>
             </div>
+
+            {formData.productType === 'other' && (
+              <div>
+                <label className="block text-sm mb-1 font-medium">Please mention Product Type *</label>
+                <input
+                  type="text"
+                  name="customProductType"
+                  required
+                  className="input-field w-full"
+                  value={formData.customProductType || ''}
+                  onChange={handleInputChange}
+                  placeholder="Type your product type"
+                />
+              </div>
+            )}
 
             <div className="md:col-span-2">
               <label className="block text-sm mb-1 font-medium">Description</label>

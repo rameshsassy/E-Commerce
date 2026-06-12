@@ -34,7 +34,7 @@ const buildSafeUser = (user) => {
   return o;
 };
 
-const normalizeEmail = (email) =>
+export const normalizeEmail = (email) =>
   typeof email === "string" ? email.trim().toLowerCase() : "";
 
 /** Match frontend rules: 8+ chars, uppercase, digit, special @ $ ! % * ? & # */
@@ -51,7 +51,7 @@ const pickRegisterBody = (body) => ({
 });
 
 // Helper function to issue tokens and set cookie
-const issueTokensAndSetCookie = async (user, res, req) => {
+export const issueTokensAndSetCookie = async (user, res, req) => {
   if (!process.env.JWT_SECRET) {
     throw new Error("JWT_SECRET is not configured");
   }
@@ -372,6 +372,11 @@ export const loginUser = async (req, res) => {
 
     if (user.role === "seller") {
       logSellerLogin(user._id);
+    }
+
+    if (user.role === "admin" || user.role === "admin_staff") {
+      user.lastLogin = new Date();
+      await user.save();
     }
 
     res.json({

@@ -8,7 +8,14 @@ const AdminCoupons = () => {
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({ code: '', discountPercentage: '', minOrderAmount: 0, expiryDate: '' });
+  const [formData, setFormData] = useState({
+    code: '',
+    discountPercentage: '',
+    maxDiscountAmount: '',
+    minOrderAmount: 0,
+    expiryDate: '',
+    usageLimit: ''
+  });
 
   const fetchCoupons = async () => {
     try {
@@ -31,14 +38,26 @@ const AdminCoupons = () => {
       value: formData,
       enabled: showModal,
       isEmpty: (v) => !String(v.code || '').trim(),
+      onRestore: (data) => setFormData((prev) => ({ ...prev, ...data })),
     });
 
   const handleCreate = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/coupons/admin', formData);
+      const payload = { ...formData };
+      if (payload.maxDiscountAmount === '') delete payload.maxDiscountAmount;
+      if (payload.usageLimit === '') delete payload.usageLimit;
+
+      await api.post('/coupons/admin', payload);
       setShowModal(false);
-      setFormData({ code: '', discountPercentage: '', minOrderAmount: 0, expiryDate: '' });
+      setFormData({
+        code: '',
+        discountPercentage: '',
+        maxDiscountAmount: '',
+        minOrderAmount: 0,
+        expiryDate: '',
+        usageLimit: ''
+      });
       await clearCouponDraft();
       fetchCoupons();
     } catch (err) {
@@ -78,7 +97,15 @@ const AdminCoupons = () => {
                 </div>
                 
                 <h3 className="text-3xl font-bold mb-1">{coupon.discountPercentage}% OFF</h3>
-                <p className="text-text-muted text-sm mb-4">Min. Order: ₹{coupon.minOrderAmount}</p>
+                <div className="space-y-1 mb-4">
+                  <p className="text-text-muted text-sm">
+                    Min. Order: ₹{coupon.minOrderAmount}
+                    {coupon.maxDiscountAmount ? ` | Max Disc: ₹${coupon.maxDiscountAmount}` : ''}
+                  </p>
+                  <p className="text-text-muted text-xs">
+                    Limit: {coupon.usageLimit !== null && coupon.usageLimit !== undefined ? `${coupon.usageLimit} uses` : 'Unlimited'}
+                  </p>
+                </div>
                 
                 <div className="pt-4 border-t border-glass-border flex justify-between text-xs text-text-muted font-medium">
                   <span>Used: {coupon.usedCount} times</span>
@@ -96,8 +123,8 @@ const AdminCoupons = () => {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-surface border border-glass-border rounded-2xl p-6 w-full max-w-md animate-fade-in shadow-2xl">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-surface border border-glass-border rounded-2xl p-6 w-full max-w-md animate-fade-in shadow-2xl my-auto">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
               <h2 className="text-2xl font-bold">Create New Promo Code</h2>
               <FormAutosaveStatus status={couponAutosaveStatus} message={couponAutosaveMessage} />
@@ -107,20 +134,36 @@ const AdminCoupons = () => {
                 <label className="block text-sm font-medium mb-1">Code</label>
                 <input required type="text" className="input-field uppercase font-mono" placeholder="SUMMER20" value={formData.code} onChange={e => setFormData({...formData, code: e.target.value.toUpperCase()})} />
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Discount Percentage (%)</label>
-                <input required type="number" min="1" max="100" className="input-field" placeholder="20" value={formData.discountPercentage} onChange={e => setFormData({...formData, discountPercentage: e.target.value})} />
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Discount Percentage (%)</label>
+                  <input required type="number" min="1" max="100" className="input-field" placeholder="20" value={formData.discountPercentage} onChange={e => setFormData({...formData, discountPercentage: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Max Discount Amount (₹)</label>
+                  <input type="number" min="1" className="input-field" placeholder="e.g. 500" value={formData.maxDiscountAmount} onChange={e => setFormData({...formData, maxDiscountAmount: e.target.value})} />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Minimum Order Amount (₹)</label>
-                <input required type="number" min="0" className="input-field" placeholder="1000" value={formData.minOrderAmount} onChange={e => setFormData({...formData, minOrderAmount: e.target.value})} />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Min. Order Amount (₹)</label>
+                  <input required type="number" min="0" className="input-field" placeholder="1000" value={formData.minOrderAmount} onChange={e => setFormData({...formData, minOrderAmount: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Expiry Date</label>
+                  <input required type="date" className="input-field" value={formData.expiryDate} onChange={e => setFormData({...formData, expiryDate: e.target.value})} />
+                </div>
               </div>
+
               <div>
-                <label className="block text-sm font-medium mb-1">Expiry Date</label>
-                <input required type="date" className="input-field" value={formData.expiryDate} onChange={e => setFormData({...formData, expiryDate: e.target.value})} />
+                <label className="block text-sm font-medium mb-1">Usage Limit</label>
+                <input type="number" min="1" className="input-field" placeholder="Unlimited (or enter a number)" value={formData.usageLimit} onChange={e => setFormData({...formData, usageLimit: e.target.value})} />
               </div>
+
               <div className="flex gap-4 mt-8">
-                <button type="button" onClick={() => setShowModal(false)} className="btn bg-surface-hover flex-1 text-text hover:text-white">Cancel</button>
+                <button type="button" onClick={() => { setShowModal(false); setFormData({ code: '', discountPercentage: '', maxDiscountAmount: '', minOrderAmount: 0, expiryDate: '', usageLimit: '' }); }} className="btn bg-surface-hover flex-1 text-text hover:text-white">Cancel</button>
                 <button type="submit" className="btn btn-primary flex-1">Create</button>
               </div>
             </form>

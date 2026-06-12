@@ -1,4 +1,5 @@
 import { isSubscribedSeller } from "./productInventoryRules.js";
+import Category from "../models/Category.js";
 import { createPremiumRequiredError } from "./storePlanLimits.js";
 import { SELLER_MAIN_CATEGORIES } from "../data/sellerMainCategories.js";
 import {
@@ -125,11 +126,74 @@ export async function getSellerCategoryLimitsForApi(seller) {
     ? await getSellerLockedCategoryPath(seller._id)
     : null;
 
+  const dbCategories = await Category.find({ isActive: true }).populate("parentCategory", "name");
+  const baseTaxonomy = getCategoryTaxonomyForApi();
+
+  for (const cat of dbCategories) {
+    if (!cat.parentCategory) {
+      if (!baseTaxonomy.mains.includes(cat.name)) {
+        const otherIndex = baseTaxonomy.mains.indexOf(baseTaxonomy.otherLabel);
+        if (otherIndex > -1) {
+          baseTaxonomy.mains.splice(otherIndex, 0, cat.name);
+        } else {
+          baseTaxonomy.mains.push(cat.name);
+        }
+      }
+      if (!baseTaxonomy.subcategoriesByMain[cat.name]) {
+        baseTaxonomy.subcategoriesByMain[cat.name] = [baseTaxonomy.otherLabel];
+      }
+      if (!baseTaxonomy.typesByMainSub[cat.name]) {
+        baseTaxonomy.typesByMainSub[cat.name] = {};
+      }
+    } else {
+      const mainName = cat.parentCategory.name;
+      if (!baseTaxonomy.mains.includes(mainName)) {
+        const otherIndex = baseTaxonomy.mains.indexOf(baseTaxonomy.otherLabel);
+        if (otherIndex > -1) {
+          baseTaxonomy.mains.splice(otherIndex, 0, mainName);
+        } else {
+          baseTaxonomy.mains.push(mainName);
+        }
+      }
+
+      if (cat.subCategory) {
+        if (!baseTaxonomy.subcategoriesByMain[mainName]) {
+          baseTaxonomy.subcategoriesByMain[mainName] = [baseTaxonomy.otherLabel];
+        }
+        if (!baseTaxonomy.subcategoriesByMain[mainName].includes(cat.subCategory)) {
+          const otherIndex = baseTaxonomy.subcategoriesByMain[mainName].indexOf(baseTaxonomy.otherLabel);
+          if (otherIndex > -1) {
+            baseTaxonomy.subcategoriesByMain[mainName].splice(otherIndex, 0, cat.subCategory);
+          } else {
+            baseTaxonomy.subcategoriesByMain[mainName].push(cat.subCategory);
+          }
+        }
+
+        if (cat.productType) {
+          if (!baseTaxonomy.typesByMainSub[mainName]) {
+            baseTaxonomy.typesByMainSub[mainName] = {};
+          }
+          if (!baseTaxonomy.typesByMainSub[mainName][cat.subCategory]) {
+            baseTaxonomy.typesByMainSub[mainName][cat.subCategory] = [baseTaxonomy.otherLabel];
+          }
+          if (!baseTaxonomy.typesByMainSub[mainName][cat.subCategory].includes(cat.productType)) {
+            const otherIndex = baseTaxonomy.typesByMainSub[mainName][cat.subCategory].indexOf(baseTaxonomy.otherLabel);
+            if (otherIndex > -1) {
+              baseTaxonomy.typesByMainSub[mainName][cat.subCategory].splice(otherIndex, 0, cat.productType);
+            } else {
+              baseTaxonomy.typesByMainSub[mainName][cat.subCategory].push(cat.productType);
+            }
+          }
+        }
+      }
+    }
+  }
+
   return {
     ...plan,
     lockedCategoryPath: serializeLockedCategoryPathForApi(lockedPath),
     /** @deprecated use lockedCategoryPath */
     lockedMainCategory: lockedPath?.mainDisplay || lockedPath?.main || null,
-    taxonomy: getCategoryTaxonomyForApi(),
+    taxonomy: baseTaxonomy,
   };
 }

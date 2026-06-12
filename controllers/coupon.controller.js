@@ -46,7 +46,26 @@ export const applyCoupon = async (req, res) => {
 // @access  Private (Admin)
 export const createCoupon = async (req, res) => {
   try {
-    const coupon = await Coupon.create(req.body);
+    const { code, discountPercentage, maxDiscountAmount, minOrderAmount, expiryDate, usageLimit } = req.body;
+
+    const couponData = {
+      code: code ? code.toUpperCase() : undefined,
+      discountPercentage: discountPercentage ? Number(discountPercentage) : undefined,
+      minOrderAmount: minOrderAmount !== undefined && minOrderAmount !== '' ? Number(minOrderAmount) : 0,
+      expiryDate: expiryDate ? new Date(expiryDate) : undefined,
+    };
+
+    if (maxDiscountAmount !== undefined && maxDiscountAmount !== '' && maxDiscountAmount !== null) {
+      couponData.maxDiscountAmount = Number(maxDiscountAmount);
+    }
+
+    if (usageLimit !== undefined && usageLimit !== '' && usageLimit !== null) {
+      couponData.usageLimit = Number(usageLimit);
+    } else {
+      couponData.usageLimit = null; // Null means unlimited
+    }
+
+    const coupon = await Coupon.create(couponData);
     res.status(201).json(coupon);
   } catch (error) {
     res.status(500).json({ message: error.message });

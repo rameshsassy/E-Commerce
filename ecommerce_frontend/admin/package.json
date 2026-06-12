@@ -16,6 +16,7 @@
     "react": "^19.2.5",
     "react-colorful": "^5.7.0",
     "react-dom": "^19.2.5",
+    "react-hook-form": "^7.78.0",
     "react-router-dom": "^7.14.2"
   },
   "devDependencies": {

@@ -66,6 +66,7 @@ const AUTH_NO_REFRESH = [
   '/auth/admin/register',
   '/auth/forgot-password',
   '/auth/refresh-token',
+  '/admin/signup',
 ];
 
 const shouldSkipRefreshRetry = (url = '') =>

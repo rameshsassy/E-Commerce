@@ -146,6 +146,17 @@ const Login = () => {
             {loading ? 'Signing in...' : <><LogIn size={18} /> Sign In</>}
           </button>
         </form>
+
+        <p className="text-center mt-6 text-sm text-text-muted" style={{ color: 'var(--color-text-muted)' }}>
+          Don&apos;t have an account?{' '}
+          <Link
+            to="/admin-setup"
+            className="text-primary font-medium hover:underline"
+            style={{ color: 'var(--color-primary)' }}
+          >
+            Create admin account
+          </Link>
+        </p>
       </div>
     </div>
   );

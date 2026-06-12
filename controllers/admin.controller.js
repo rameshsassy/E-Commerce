@@ -9,6 +9,7 @@ import BulkInquiry from "../models/BulkInquiry.js";
 import { notifyCustomersNewProduct, sendKycApprovalEmail, sendKycRejectionEmail, sendWeeklySellerReport } from "../services/email.service.js";
 import { VALID_ADMIN_SECTIONS } from "../middleware/adminAccess.middleware.js";
 import { getWeeklySellerReportData } from "../cron/weeklyReports.js";
+import { normalizeEmail, issueTokensAndSetCookie } from "./auth.controller.js";
 
 // ===============================
 // 📋 GET ALL SELLERS
@@ -499,5 +500,116 @@ export const sendWeeklyRecapAction = async (req, res) => {
     res.json({ message: `Weekly recap recap successfully sent to ${seller.firstName || "seller"}!` });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+// ===============================
+// 🔐 SECURE ADMIN SIGNUP
+// ===============================
+export const signupAdmin = async (req, res) => {
+  const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  const { fullName, email, phone, password, confirmPassword, secretKey } = req.body;
+
+  try {
+    // 1. Validate all fields are provided
+    if (!fullName || !email || !phone || !password || !confirmPassword || !secretKey) {
+      console.warn(`[Admin Signup Failed] Missing fields from IP: ${ip}`);
+      return res.status(400).json({ success: false, message: "All fields are mandatory." });
+    }
+
+    // 2. Validate email format
+    const trimmedEmail = typeof email === "string" ? email.trim() : "";
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      console.warn(`[Admin Signup Failed] Invalid email format: "${trimmedEmail}" from IP: ${ip}`);
+      return res.status(400).json({ success: false, message: "Invalid email format" });
+    }
+    const normalizedEmail = normalizeEmail(trimmedEmail);
+
+    // 3. Validate phone number format (must be standard phone number: e.g. 10-15 digits after cleaning)
+    const cleanPhone = phone.replace(/[\s\-()]/g, '');
+    const phoneRegex = /^\+?[1-9]\d{9,14}$/;
+    if (!phoneRegex.test(cleanPhone)) {
+      console.warn(`[Admin Signup Failed] Invalid phone number format: "${phone}" from IP: ${ip}`);
+      return res.status(400).json({ success: false, message: "Invalid phone number" });
+    }
+
+    // 4. Validate password strength
+    // Minimum 8 characters, One uppercase letter, One lowercase letter, One number, One special character
+    const hasUpper = /[A-Z]/.test(password);
+    const hasLower = /[a-z]/.test(password);
+    const hasDigit = /\d/.test(password);
+    const hasSpecial = /[@$!%*?&#\-_+=\[\]{}|;:',.<>/?~`]/.test(password);
+    if (password.length < 8 || !hasUpper || !hasLower || !hasDigit || !hasSpecial) {
+      console.warn(`[Admin Signup Failed] Weak password attempt from IP: ${ip}, Email: ${normalizedEmail}`);
+      return res.status(400).json({ success: false, message: "Password does not meet security requirements" });
+    }
+
+    // 5. Verify password and confirm password match
+    if (password !== confirmPassword) {
+      console.warn(`[Admin Signup Failed] Passwords do not match from IP: ${ip}, Email: ${normalizedEmail}`);
+      return res.status(400).json({ success: false, message: "Passwords do not match" });
+    }
+
+    // 6. Verify admin secret key
+    if (secretKey !== process.env.ADMIN_SECRET_KEY) {
+      if (typeof req.recordFailedSecretKeyAttempt === 'function') {
+        req.recordFailedSecretKeyAttempt();
+      }
+      console.warn(`[Admin Signup Failed] Invalid admin secret key from IP: ${ip}, Email: ${normalizedEmail}`);
+      return res.status(403).json({ success: false, message: "Invalid Admin Secret Key" });
+    }
+
+    // 7. Check if email already exists
+    const emailExists = await User.findOne({ email: normalizedEmail });
+    if (emailExists) {
+      console.warn(`[Admin Signup Failed] Email already exists: ${normalizedEmail} from IP: ${ip}`);
+      return res.status(400).json({ success: false, message: "Email already exists" });
+    }
+
+    // 8. Check if phone number already exists
+    const phoneExists = await User.findOne({ $or: [{ phone: cleanPhone }, { mobile: cleanPhone }] });
+    if (phoneExists) {
+      console.warn(`[Admin Signup Failed] Phone number already exists: ${cleanPhone} from IP: ${ip}`);
+      return res.status(400).json({ success: false, message: "Phone number already exists" });
+    }
+
+    // 9. Hash password using bcrypt and create admin account
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const admin = await User.create({
+      fullName: fullName.trim(),
+      firstName: fullName.trim(), // legacy field fallback
+      email: normalizedEmail,
+      phone: cleanPhone,
+      mobile: cleanPhone, // legacy field fallback
+      password: hashedPassword,
+      role: "admin",
+      status: "active",
+      lastLogin: new Date(),
+    });
+
+    console.log(`[Admin Signup Success] Admin created: ${admin._id}, Email: ${admin.email}, IP: ${ip}`);
+
+    // 10. Generate JWT token and create session
+    const token = await issueTokensAndSetCookie(admin, res, req);
+
+    res.status(201).json({
+      success: true,
+      message: "Admin account created successfully.",
+      token,
+      user: {
+        _id: admin._id,
+        fullName: admin.fullName,
+        firstName: admin.firstName,
+        email: admin.email,
+        phone: admin.phone,
+        role: admin.role,
+        status: admin.status,
+      }
+    });
+
+  } catch (error) {
+    console.error(`[Admin Signup Error] ${error.message} from IP: ${ip}`);
+    res.status(500).json({ success: false, message: error.message });
   }
 };

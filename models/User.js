@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
   {
+    fullName: String,
     firstName: String,
     lastName: String,
 
@@ -12,6 +13,7 @@ const userSchema = new mongoose.Schema(
     },
 
     mobile: String,
+    phone: String,
 
     password: {
       type: String,
@@ -36,7 +38,7 @@ const userSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["pending", "kyc_submitted", "approved", "rejected"],
+      enum: ["pending", "kyc_submitted", "approved", "rejected", "active"],
       default: "pending",
     },
 
@@ -180,6 +182,7 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    lastLogin: Date,
   },
   { timestamps: true }
 );

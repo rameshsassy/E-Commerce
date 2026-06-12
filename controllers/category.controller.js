@@ -55,11 +55,51 @@ export const createCategory = async (req, res) => {
       return res.status(400).json({ message: "Category with this name already exists" });
     }
 
-    if (parentCategory) {
+    let resolvedParentCategory = parentCategory || null;
+    if (parentCategory === "other") {
+      if (!req.body.customParentCategory || !String(req.body.customParentCategory).trim()) {
+        return res.status(400).json({ message: "Custom parent category name is required when choosing 'Other'" });
+      }
+      const customName = String(req.body.customParentCategory).trim();
+      const parentSlug = buildSlug(customName);
+      if (!parentSlug) {
+        return res.status(400).json({ message: "Custom parent category name is invalid" });
+      }
+      let existingParent = await Category.findOne({ slug: parentSlug });
+      if (!existingParent) {
+        existingParent = new Category({
+          name: customName,
+          slug: parentSlug,
+          commissionRate: 5,
+          isActive: true,
+          parentCategory: null,
+          subCategory: null,
+          productType: null
+        });
+        await existingParent.save();
+      }
+      resolvedParentCategory = existingParent._id;
+    } else if (parentCategory) {
       const parentExists = await Category.exists({ _id: parentCategory });
       if (!parentExists) {
         return res.status(400).json({ message: "Selected parent category does not exist" });
       }
+    }
+
+    let resolvedSubCategory = subCategory || null;
+    if (subCategory === "other") {
+      if (!req.body.customSubCategory || !String(req.body.customSubCategory).trim()) {
+        return res.status(400).json({ message: "Custom subcategory name is required when choosing 'Other'" });
+      }
+      resolvedSubCategory = String(req.body.customSubCategory).trim();
+    }
+
+    let resolvedProductType = productType || null;
+    if (productType === "other") {
+      if (!req.body.customProductType || !String(req.body.customProductType).trim()) {
+        return res.status(400).json({ message: "Custom product type is required when choosing 'Other'" });
+      }
+      resolvedProductType = String(req.body.customProductType).trim();
     }
 
     const category = new Category({
@@ -68,9 +108,9 @@ export const createCategory = async (req, res) => {
       description,
       image,
       icon,
-      parentCategory: parentCategory || null,
-      subCategory: subCategory || null,
-      productType: productType || null,
+      parentCategory: resolvedParentCategory,
+      subCategory: resolvedSubCategory,
+      productType: resolvedProductType,
       commissionRate,
       isActive,
       isFeatured
@@ -115,19 +155,63 @@ export const updateCategory = async (req, res) => {
     if (image !== undefined) category.image = image;
     if (icon !== undefined) category.icon = icon;
     if (parentCategory !== undefined) {
-      if (parentCategory && String(parentCategory) === String(category._id)) {
+      let resolvedParentCategory = parentCategory || null;
+      if (parentCategory === "other") {
+        if (!req.body.customParentCategory || !String(req.body.customParentCategory).trim()) {
+          return res.status(400).json({ message: "Custom parent category name is required when choosing 'Other'" });
+        }
+        const customName = String(req.body.customParentCategory).trim();
+        const parentSlug = buildSlug(customName);
+        if (!parentSlug) {
+          return res.status(400).json({ message: "Custom parent category name is invalid" });
+        }
+        let existingParent = await Category.findOne({ slug: parentSlug });
+        if (!existingParent) {
+          existingParent = new Category({
+            name: customName,
+            slug: parentSlug,
+            commissionRate: 5,
+            isActive: true,
+            parentCategory: null,
+            subCategory: null,
+            productType: null
+          });
+          await existingParent.save();
+        }
+        resolvedParentCategory = existingParent._id;
+      }
+
+      if (resolvedParentCategory && String(resolvedParentCategory) === String(category._id)) {
         return res.status(400).json({ message: "A category cannot be its own parent" });
       }
-      if (parentCategory) {
-        const parentExists = await Category.exists({ _id: parentCategory });
+      if (resolvedParentCategory && parentCategory !== "other") {
+        const parentExists = await Category.exists({ _id: resolvedParentCategory });
         if (!parentExists) {
           return res.status(400).json({ message: "Selected parent category does not exist" });
         }
       }
-      category.parentCategory = parentCategory || null;
+      category.parentCategory = resolvedParentCategory;
     }
-    if (subCategory !== undefined) category.subCategory = subCategory || null;
-    if (productType !== undefined) category.productType = productType || null;
+    if (subCategory !== undefined) {
+      let resolvedSubCategory = subCategory || null;
+      if (subCategory === "other") {
+        if (!req.body.customSubCategory || !String(req.body.customSubCategory).trim()) {
+          return res.status(400).json({ message: "Custom subcategory name is required when choosing 'Other'" });
+        }
+        resolvedSubCategory = String(req.body.customSubCategory).trim();
+      }
+      category.subCategory = resolvedSubCategory;
+    }
+    if (productType !== undefined) {
+      let resolvedProductType = productType || null;
+      if (productType === "other") {
+        if (!req.body.customProductType || !String(req.body.customProductType).trim()) {
+          return res.status(400).json({ message: "Custom product type is required when choosing 'Other'" });
+        }
+        resolvedProductType = String(req.body.customProductType).trim();
+      }
+      category.productType = resolvedProductType;
+    }
     if (commissionRate !== undefined) category.commissionRate = commissionRate;
     if (isActive !== undefined) category.isActive = isActive;
     if (isFeatured !== undefined) category.isFeatured = isFeatured;

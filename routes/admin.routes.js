@@ -26,7 +26,9 @@ import {
   updateAdminStaff,
   deleteAdminStaff,
   sendWeeklyRecapAction,
+  signupAdmin,
 } from "../controllers/admin.controller.js";
+import { adminSignupRateLimiter } from "../middleware/rateLimit.middleware.js";
 import {
   listAdminBulkInquiries,
   updateBulkInquiryStatus,
@@ -45,6 +47,11 @@ import {
 } from "../controllers/websiteRequest.controller.js";
 
 const router = express.Router();
+
+// ===============================
+// 🔑 PUBLIC SIGNUP
+// ===============================
+router.post("/signup", adminSignupRateLimiter, signupAdmin);
 
 // ===============================
 // 👥 SELLER MANAGEMENT
