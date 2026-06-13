@@ -4,7 +4,7 @@ export const generateAccessToken = (user) => {
   return jwt.sign(
     { id: user._id, role: user.role },
     process.env.JWT_SECRET,
-    { expiresIn: "15m" } // 15 minutes as per requirement
+    { expiresIn: "1d" } // 1 day — long enough for a full admin session
   );
 };
 

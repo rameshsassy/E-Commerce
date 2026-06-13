@@ -27,17 +27,28 @@ export const createConversation = async (req, res) => {
     let participantIds = [currentUser._id];
 
     if (type === "customer_seller") {
-      if (currentUser.role !== "customer") {
-        return res.status(403).json({ message: "Only customers can start customer-seller chats" });
+      if (currentUser.role === "customer") {
+        if (!sellerId) {
+          return res.status(400).json({ message: "Seller ID is required for customer_seller chats" });
+        }
+        const seller = await User.findOne({ _id: sellerId, role: "seller" });
+        if (!seller) {
+          return res.status(404).json({ message: "Seller not found" });
+        }
+        participantIds.push(seller._id);
+      } else if (currentUser.role === "seller") {
+        const customerId = req.body.customerId || req.body.sellerId;
+        if (!customerId) {
+          return res.status(400).json({ message: "Customer ID is required for customer_seller chats" });
+        }
+        const customer = await User.findOne({ _id: customerId, role: "customer" });
+        if (!customer) {
+          return res.status(404).json({ message: "Customer not found" });
+        }
+        participantIds.push(customer._id);
+      } else {
+        return res.status(403).json({ message: "Only customers and sellers can start customer-seller chats" });
       }
-      if (!sellerId) {
-        return res.status(400).json({ message: "Seller ID is required for customer_seller chats" });
-      }
-      const seller = await User.findOne({ _id: sellerId, role: "seller" });
-      if (!seller) {
-        return res.status(404).json({ message: "Seller not found" });
-      }
-      participantIds.push(seller._id);
     } else if (type === "customer_admin") {
       if (currentUser.role !== "customer" && currentUser.role !== "admin" && currentUser.role !== "admin_staff") {
         return res.status(403).json({ message: "Only customers and admins can start customer-admin chats" });

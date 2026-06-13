@@ -1,4 +1,6 @@
 import User from "../models/User.js";
+import bcrypt from "bcryptjs";
+
 
 // ===============================
 // 👤 GET PROFILE (COMMON)
@@ -83,6 +85,50 @@ export const updateProfile = async (req, res) => {
         pincode: user.pincode,
       },
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ===============================
+// 🔑 UPDATE PASSWORD (COMMON)
+// ===============================
+export const updatePassword = async (req, res) => {
+  try {
+    const user = req.user;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "Current password and new password are required" });
+    }
+
+    // Fetch user from DB to include password field
+    const dbUser = await User.findById(user._id);
+    if (!dbUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, dbUser.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Incorrect current password" });
+    }
+
+    // Validate new password strength
+    const isStrong = typeof newPassword === "string" &&
+      /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(newPassword);
+
+    if (!isStrong) {
+      return res.status(400).json({
+        message: "Password must be at least 8 characters and include an uppercase letter, a number, and a special character."
+      });
+    }
+
+    // Hash the new password
+    dbUser.password = await bcrypt.hash(newPassword, 10);
+    await dbUser.save();
+
+    res.json({ message: "Password updated successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

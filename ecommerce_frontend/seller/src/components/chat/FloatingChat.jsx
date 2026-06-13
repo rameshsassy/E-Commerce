@@ -96,7 +96,7 @@ const FloatingChat = () => {
   // Local messages list for Guest users
   const [guestMessages, setGuestMessages] = useState([]);
 
-  const messagesEndRef = useRef(null);
+  const chatContainerRef = useRef(null);
 
   // Initialize/load conversation for logged-in users
   useEffect(() => {
@@ -143,7 +143,9 @@ const FloatingChat = () => {
 
   // Scroll to bottom when message count updates
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
   }, [messages, guestMessages, isOpen]);
 
   const handleSendMessage = async (e) => {
@@ -255,7 +257,7 @@ const FloatingChat = () => {
           </div>
 
           {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
+          <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
             {error && (
               <div className="p-2.5 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-xl">
                 {error}
@@ -333,8 +335,6 @@ const FloatingChat = () => {
             {loading && (
               <div className="text-center text-xs text-[#94a3b8]">Connecting...</div>
             )}
-            
-            <div ref={messagesEndRef} />
           </div>
 
           {/* Guest Log-in prompt banner */}

@@ -156,6 +156,7 @@ export async function mapShipmentForSeller(s, sellerIdStr, sellerDoc, { persistM
     createdAt: shipmentDoc.createdAt,
     updatedAt: shipmentDoc.updatedAt,
     customer: {
+      _id: order.user?._id || order.user || "",
       name: customerName,
       city: customerCity,
       tag: `${customerCity} | ${customerTag}`,

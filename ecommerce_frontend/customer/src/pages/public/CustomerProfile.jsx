@@ -16,6 +16,11 @@ const CustomerProfile = () => {
   const [emailNewProductAlerts, setEmailNewProductAlerts] = useState(false);
   const [marketingEmailsEnabled, setMarketingEmailsEnabled] = useState(true);
   const [prefsSaving, setPrefsSaving] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [updatingPassword, setUpdatingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
 
   // Address Modal State
   const [showAddressModal, setShowAddressModal] = useState(false);
@@ -141,6 +146,41 @@ const CustomerProfile = () => {
       alert(error.response?.data?.message || 'Could not save email preferences');
     } finally {
       setPrefsSaving(false);
+    }
+  };
+
+  const handlePasswordUpdate = async (e) => {
+    e.preventDefault();
+    setPasswordError('');
+    setPasswordSuccess('');
+
+    if (!currentPassword || !newPassword) {
+      setPasswordError('Please fill in all fields.');
+      return;
+    }
+
+    const isStrong = /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(newPassword);
+    if (!isStrong) {
+      setPasswordError(
+        'Password must be at least 8 characters and include an uppercase letter, a number, and a special character (@$!%*?&#).'
+      );
+      return;
+    }
+
+    setUpdatingPassword(true);
+    try {
+      const response = await api.put('/user/update-password', {
+        currentPassword,
+        newPassword,
+      });
+      setPasswordSuccess(response.data.message || 'Password updated successfully!');
+      setCurrentPassword('');
+      setNewPassword('');
+    } catch (error) {
+      console.error('Password update error:', error);
+      setPasswordError(error.response?.data?.message || 'Failed to update password.');
+    } finally {
+      setUpdatingPassword(false);
     }
   };
 
@@ -371,16 +411,46 @@ const CustomerProfile = () => {
               </div>
               <div>
                 <h3 className="font-bold text-lg mb-4">Change Password</h3>
-                <form className="space-y-4">
+                {passwordError && (
+                  <div className="p-3 mb-4 text-sm text-error bg-error/10 border border-error/20 rounded-xl animate-fade-in">
+                    {passwordError}
+                  </div>
+                )}
+                {passwordSuccess && (
+                  <div className="p-3 mb-4 text-sm text-success bg-success/10 border border-success/20 rounded-xl animate-fade-in">
+                    {passwordSuccess}
+                  </div>
+                )}
+                <form onSubmit={handlePasswordUpdate} className="space-y-4">
                   <div>
                     <label className="block text-sm text-text-muted mb-1">Current Password</label>
-                    <input type="password" placeholder="••••••••" className="input-field" />
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      className="input-field"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      required
+                    />
                   </div>
                   <div>
                     <label className="block text-sm text-text-muted mb-1">New Password</label>
-                    <input type="password" placeholder="••••••••" className="input-field" />
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      className="input-field"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      required
+                    />
                   </div>
-                  <button className="btn btn-primary">Update Password</button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={updatingPassword}
+                  >
+                    {updatingPassword ? 'Updating...' : 'Update Password'}
+                  </button>
                 </form>
               </div>
             </div>

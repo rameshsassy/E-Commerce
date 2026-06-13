@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
 import api, { BASE_URL } from '../../utils/api';
 import LoadErrorMessage from '../common/LoadErrorMessage';
@@ -31,6 +32,7 @@ const formatStatusTime = (date) => {
 };
 
 export default function SellerIndividualOrderDetail({ shipmentId, onClose }) {
+  const navigate = useNavigate();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -72,6 +74,20 @@ export default function SellerIndividualOrderDetail({ shipmentId, onClose }) {
     }
   };
 
+  const handleChatWithCustomer = async () => {
+    if (!order.customer?._id) return;
+    try {
+      await api.post('/chat/conversations', {
+        type: 'customer_seller',
+        customerId: order.customer._id,
+      });
+      navigate('/seller/chat');
+    } catch (err) {
+      console.error('Failed to start chat with customer', err);
+      alert(err.response?.data?.message || 'Could not initiate chat with customer.');
+    }
+  };
+
   if (loading) {
     return <div className="py-12 text-center text-text-muted">Loading order…</div>;
   }
@@ -110,10 +126,21 @@ export default function SellerIndividualOrderDetail({ shipmentId, onClose }) {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <div className="bg-white rounded-2xl border-2 border-gray-900 px-5 py-5">
-          <p className="text-sm font-semibold text-gray-700 mb-1">Customer Name</p>
-          <p className="text-xl font-bold text-gray-900">{order.customer?.name}</p>
-          <p className="text-xs text-gray-600 mt-2">{order.customer?.tag}</p>
+        <div className="bg-white rounded-2xl border-2 border-gray-900 px-5 py-5 flex flex-col justify-between">
+          <div>
+            <p className="text-sm font-semibold text-gray-700 mb-1">Customer Name</p>
+            <p className="text-xl font-bold text-gray-900">{order.customer?.name}</p>
+            <p className="text-xs text-gray-600 mt-2">{order.customer?.tag}</p>
+          </div>
+          {order.customer?._id && (
+            <button
+              type="button"
+              onClick={handleChatWithCustomer}
+              className="mt-3 w-full py-1.5 px-3 text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg border-0 transition-colors"
+            >
+              Chat with Customer
+            </button>
+          )}
         </div>
 
         <div className="bg-white rounded-2xl border-2 border-gray-900 px-5 py-5">

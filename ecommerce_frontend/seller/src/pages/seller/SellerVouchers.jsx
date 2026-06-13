@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../utils/api";
-import { Tag, Trash2, Loader2, AlertCircle, Calendar, Sparkles, Plus, Info } from "lucide-react";
+import { downloadVoucherImage } from "../../utils/downloadVoucher";
+import { Tag, Trash2, Loader2, AlertCircle, Calendar, Download, X, Image, FileImage } from "lucide-react";
 
 function generateCode(prefix) {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -13,9 +14,402 @@ function generateCode(prefix) {
 const today = new Date().toISOString().split("T")[0];
 const defaultExpiry = new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0];
 
+// ─── Voucher Card for Download ────────────────────────────────────────────────
+function VoucherCardImage({ voucher, productTitle }) {
+  const discount =
+    voucher.discountType === "percent"
+      ? `${voucher.discountValue}% OFF`
+      : `₹${voucher.discountValue} OFF`;
+
+  const subtitle =
+    voucher.scope === "specific" && productTitle
+      ? `On: ${productTitle}`
+      : "On all products";
+
+  const expiryStr = new Date(voucher.expiry).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+
+  return (
+    <div
+      style={{
+        width: 520,
+        background: "linear-gradient(135deg, #1A1464 0%, #312E8A 60%, #4338CA 100%)",
+        borderRadius: 24,
+        padding: "36px 40px",
+        position: "relative",
+        overflow: "hidden",
+        fontFamily: "'Poppins', 'Inter', sans-serif",
+        boxShadow: "0 20px 60px rgba(26,20,100,0.5)",
+      }}
+    >
+      {/* Decorative circles */}
+      <div
+        style={{
+          position: "absolute",
+          right: -40,
+          top: -40,
+          width: 180,
+          height: 180,
+          borderRadius: "50%",
+          background: "rgba(245,158,11,0.12)",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          right: 30,
+          bottom: -50,
+          width: 120,
+          height: 120,
+          borderRadius: "50%",
+          background: "rgba(255,255,255,0.05)",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          left: -20,
+          bottom: 20,
+          width: 80,
+          height: 80,
+          borderRadius: "50%",
+          background: "rgba(245,158,11,0.07)",
+        }}
+      />
+
+      {/* Brand */}
+      <div
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          color: "rgba(255,255,255,0.55)",
+          letterSpacing: 3,
+          textTransform: "uppercase",
+          marginBottom: 18,
+        }}
+      >
+        🏷️ Aashansh — Seller Voucher
+      </div>
+
+      {/* Discount */}
+      <div
+        style={{
+          fontSize: 52,
+          fontWeight: 900,
+          color: "#F59E0B",
+          lineHeight: 1,
+          marginBottom: 8,
+          textShadow: "0 2px 20px rgba(245,158,11,0.4)",
+        }}
+      >
+        {discount}
+      </div>
+
+      {/* Subtitle */}
+      <div
+        style={{
+          fontSize: 14,
+          color: "rgba(255,255,255,0.78)",
+          fontWeight: 500,
+          marginBottom: 4,
+        }}
+      >
+        {subtitle}
+      </div>
+
+      {/* Min Order */}
+      {voucher.minOrder > 0 && (
+        <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginBottom: 4 }}>
+          Min. order: ₹{voucher.minOrder}
+        </div>
+      )}
+
+      {/* Divider */}
+      <div
+        style={{
+          borderTop: "1.5px dashed rgba(255,255,255,0.18)",
+          margin: "22px 0",
+          position: "relative",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            left: -48,
+            top: -12,
+            width: 24,
+            height: 24,
+            borderRadius: "50%",
+            background: "#F0F2F8",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            right: -48,
+            top: -12,
+            width: 24,
+            height: 24,
+            borderRadius: "50%",
+            background: "#F0F2F8",
+          }}
+        />
+      </div>
+
+      {/* Code & Expiry */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+        <div>
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginBottom: 4 }}>
+            USE CODE
+          </div>
+          <div
+            style={{
+              fontSize: 26,
+              fontWeight: 800,
+              color: "#ffffff",
+              letterSpacing: 4,
+              textShadow: "0 0 20px rgba(255,255,255,0.3)",
+            }}
+          >
+            {voucher.voucherCode}
+          </div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginBottom: 4 }}>
+            VALID UNTIL
+          </div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#ffffff" }}>{expiryStr}</div>
+        </div>
+      </div>
+
+      {/* Usage limit if any */}
+      {voucher.usageLimit && (
+        <div
+          style={{
+            marginTop: 16,
+            fontSize: 11,
+            color: "rgba(255,255,255,0.4)",
+            textAlign: "center",
+          }}
+        >
+          Limited to {voucher.usageLimit} uses
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Download Modal ────────────────────────────────────────────────────────────
+function DownloadModal({ voucher, productTitle, onClose }) {
+  const cardRef = useRef(null);
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = async (format) => {
+    setDownloading(true);
+    await downloadVoucherImage(
+      cardRef,
+      `voucher-${voucher.voucherCode}`,
+      format
+    );
+    setDownloading(false);
+  };
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.65)",
+        backdropFilter: "blur(6px)",
+        zIndex: 9999,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 16,
+      }}
+    >
+      <div
+        style={{
+          background: "#fff",
+          borderRadius: 24,
+          padding: "32px",
+          width: "100%",
+          maxWidth: 620,
+          boxShadow: "0 40px 80px rgba(0,0,0,0.25)",
+          position: "relative",
+          maxHeight: "90vh",
+          overflowY: "auto",
+        }}
+      >
+        {/* Close */}
+        <button
+          onClick={onClose}
+          style={{
+            position: "absolute",
+            top: 16,
+            right: 16,
+            background: "#F1F5F9",
+            border: "none",
+            borderRadius: "50%",
+            width: 36,
+            height: 36,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            color: "#475569",
+          }}
+        >
+          <X size={18} />
+        </button>
+
+        {/* Success Banner */}
+        <div
+          style={{
+            background: "linear-gradient(135deg, #ECFDF5, #D1FAE5)",
+            border: "1.5px solid #6EE7B7",
+            borderRadius: 14,
+            padding: "14px 18px",
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            marginBottom: 24,
+          }}
+        >
+          <span style={{ fontSize: 24 }}>✅</span>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: "#065F46" }}>
+              Voucher Created Successfully!
+            </div>
+            <div style={{ fontSize: 12, color: "#047857", marginTop: 2 }}>
+              Code <strong>{voucher.voucherCode}</strong> is now saved & active. Download your voucher below.
+            </div>
+          </div>
+        </div>
+
+        {/* Title */}
+        <div
+          style={{
+            fontFamily: "Poppins, sans-serif",
+            fontSize: 16,
+            fontWeight: 700,
+            color: "#1A1464",
+            marginBottom: 4,
+          }}
+        >
+          Download Voucher
+        </div>
+        <p style={{ fontSize: 13, color: "#64748B", marginBottom: 20 }}>
+          Save your voucher as a high-resolution image to share with customers.
+        </p>
+
+        {/* Voucher Card Preview */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            marginBottom: 24,
+            overflow: "hidden",
+            borderRadius: 16,
+          }}
+        >
+          <div ref={cardRef}>
+            <VoucherCardImage voucher={voucher} productTitle={productTitle} />
+          </div>
+        </div>
+
+        {/* Download Buttons */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <button
+            onClick={() => handleDownload("jpeg")}
+            disabled={downloading}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              padding: "14px 20px",
+              background: "linear-gradient(135deg, #F59E0B, #F97316)",
+              border: "none",
+              borderRadius: 12,
+              color: "#fff",
+              fontFamily: "Poppins, sans-serif",
+              fontWeight: 700,
+              fontSize: 14,
+              cursor: downloading ? "not-allowed" : "pointer",
+              opacity: downloading ? 0.7 : 1,
+              transition: "all 0.15s",
+            }}
+          >
+            {downloading ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <FileImage size={16} />
+            )}
+            Download JPG
+          </button>
+
+          <button
+            onClick={() => handleDownload("png")}
+            disabled={downloading}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              padding: "14px 20px",
+              background: "linear-gradient(135deg, #1A1464, #4338CA)",
+              border: "none",
+              borderRadius: 12,
+              color: "#fff",
+              fontFamily: "Poppins, sans-serif",
+              fontWeight: 700,
+              fontSize: 14,
+              cursor: downloading ? "not-allowed" : "pointer",
+              opacity: downloading ? 0.7 : 1,
+              transition: "all 0.15s",
+            }}
+          >
+            {downloading ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Image size={16} />
+            )}
+            Download PNG
+          </button>
+        </div>
+
+        {/* Dismiss */}
+        <button
+          onClick={onClose}
+          style={{
+            width: "100%",
+            marginTop: 12,
+            padding: "12px",
+            background: "#F1F5F9",
+            border: "1.5px solid #E2E8F0",
+            borderRadius: 12,
+            color: "#475569",
+            fontFamily: "Poppins, sans-serif",
+            fontWeight: 600,
+            fontSize: 13,
+            cursor: "pointer",
+          }}
+        >
+          Close & Create Another
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Component ────────────────────────────────────────────────────────────
 export default function SellerVouchers() {
   const { user } = useAuth();
-  
+
   // Products and Vouchers Lists
   const [products, setProducts] = useState([]);
   const [vouchers, setVouchers] = useState([]);
@@ -36,18 +430,18 @@ export default function SellerVouchers() {
 
   // Action states
   const [creating, setCreating] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
+
+  // Download modal state
+  const [downloadVoucher, setDownloadVoucher] = useState(null); // holds the created voucher object
 
   // Find product object from state
   const selectedProductObj = products.find((p) => p._id === selectedProduct);
 
-  // Load products & vouchers on mount
   const fetchProducts = async () => {
     try {
       const { data } = await api.get("/seller/products");
-      // filter out drafts if needed, but standard listed products are good
-      const activeProducts = data.filter(p => !p.isDraft);
+      const activeProducts = data.filter((p) => !p.isDraft);
       setProducts(activeProducts);
     } catch (err) {
       console.error("Error loading products:", err);
@@ -88,29 +482,48 @@ export default function SellerVouchers() {
   const previewSavings = () => {
     const val = parseFloat(discountValue);
     if (!val || !selectedProductObj || scope !== "specific") return null;
-    if (discountType === "percent") return `Save ₹${Math.round((selectedProductObj.price * val) / 100)}`;
+    if (discountType === "percent")
+      return `Save ₹${Math.round((selectedProductObj.price * val) / 100)}`;
     return `Save ₹${val}`;
   };
 
   const validate = () => {
     const e = {};
     if (!voucherCode.trim()) e.voucherCode = "Voucher code is required";
-    if (!discountValue || parseFloat(discountValue) <= 0) e.discountValue = "Enter a valid discount amount";
-    if (discountType === "percent" && parseFloat(discountValue) > 100) e.discountValue = "Percentage cannot exceed 100";
+    if (!discountValue || parseFloat(discountValue) <= 0)
+      e.discountValue = "Enter a valid discount amount";
+    if (discountType === "percent" && parseFloat(discountValue) > 100)
+      e.discountValue = "Percentage cannot exceed 100";
     if (scope === "specific" && !selectedProduct) e.selectedProduct = "Please select a product";
     if (!expiry) e.expiry = "Expiry date is required";
-    if (new Date(expiry) < new Date(new Date().setHours(0, 0, 0, 0))) e.expiry = "Expiry date cannot be in the past";
+    if (new Date(expiry) < new Date(new Date().setHours(0, 0, 0, 0)))
+      e.expiry = "Expiry date cannot be in the past";
     return e;
+  };
+
+  const resetForm = () => {
+    setScope("all");
+    setSelectedProduct("");
+    setDiscountType("percent");
+    setDiscountValue("");
+    setVoucherCode("");
+    setExpiry(defaultExpiry);
+    setMinOrder("");
+    setUsageLimit("");
+    setDescription("");
   };
 
   const handleSave = async () => {
     const e = validate();
-    if (Object.keys(e).length > 0) { setErrors(e); return; }
+    if (Object.keys(e).length > 0) {
+      setErrors(e);
+      return;
+    }
     setErrors({});
     setCreating(true);
 
     try {
-      await api.post("/seller/vouchers", {
+      const { data } = await api.post("/seller/vouchers", {
         scope,
         productId: scope === "specific" ? selectedProduct : null,
         voucherCode,
@@ -119,36 +532,32 @@ export default function SellerVouchers() {
         minOrder,
         usageLimit,
         expiry,
-        description
+        description,
       });
 
-      setSaved(true);
+      // Store created voucher and show download modal
+      setDownloadVoucher(data.voucher);
+
       // Reset form
-      setScope("all");
-      setSelectedProduct("");
-      setDiscountType("percent");
-      setDiscountValue("");
-      setVoucherCode("");
-      setExpiry(defaultExpiry);
-      setMinOrder("");
-      setUsageLimit("");
-      setDescription("");
+      resetForm();
 
       // Reload vouchers list
       fetchVouchers();
-      setTimeout(() => setSaved(false), 3000);
     } catch (err) {
       console.error("Create voucher error:", err);
-      setErrors({ apiError: err.response?.data?.message || "Failed to create voucher. Please check inputs." });
+      setErrors({
+        apiError: err.response?.data?.message || "Failed to create voucher. Please check inputs.",
+      });
     } finally {
       setCreating(false);
     }
   };
 
   const handleAutoGenerate = () => {
-    const prefix = scope === "specific" && selectedProductObj 
-      ? selectedProductObj.title.split(" ")[0] 
-      : "AASH";
+    const prefix =
+      scope === "specific" && selectedProductObj
+        ? selectedProductObj.title.split(" ")[0]
+        : "AASH";
     setVoucherCode(generateCode(prefix));
     setErrors((p) => ({ ...p, voucherCode: undefined }));
   };
@@ -168,7 +577,15 @@ export default function SellerVouchers() {
   };
 
   return (
-    <div style={{ fontFamily: "'Inter', sans-serif", background: "#F0F2F8", minHeight: "100vh", borderRadius: "16px", overflow: "hidden" }}>
+    <div
+      style={{
+        fontFamily: "'Inter', sans-serif",
+        background: "#F0F2F8",
+        minHeight: "100vh",
+        borderRadius: "16px",
+        overflow: "hidden",
+      }}
+    >
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap');
 
@@ -283,6 +700,7 @@ export default function SellerVouchers() {
           background: #fff;
           transition: border-color 0.15s;
           outline: none;
+          box-sizing: border-box;
         }
         .input-base:focus { border-color: #1A1464; }
         .input-base.error { border-color: #EF4444; }
@@ -334,17 +752,6 @@ export default function SellerVouchers() {
         .save-btn:hover { opacity: 0.92; transform: translateY(-1px); }
         .save-btn:active { transform: translateY(0); }
         .save-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
-
-        .success-toast {
-          display: flex; align-items: center; gap: 10px;
-          background: #ECFDF5;
-          border: 1.5px solid #6EE7B7;
-          border-radius: 10px;
-          padding: 12px 16px;
-          margin-top: 12px;
-          font-size: 13px; font-weight: 500;
-          color: #065F46;
-        }
 
         /* Preview card */
         .preview-sticky { position: sticky; top: 24px; }
@@ -502,11 +909,10 @@ export default function SellerVouchers() {
         }
         .v-badge-active { background: #DCFCE7; color: #15803D; }
         .v-badge-expired { background: #FEE2E2; color: #B91C1C; }
-        .btn-delete {
+        .btn-action {
           padding: 6px;
           background: transparent;
           border: none;
-          color: #EF4444;
           cursor: pointer;
           border-radius: 6px;
           transition: all 0.15s;
@@ -514,19 +920,17 @@ export default function SellerVouchers() {
           align-items: center;
           justify-content: center;
         }
-        .btn-delete:hover {
-          background: #FEF2F2;
-          color: #B91C1C;
-        }
-        .btn-delete:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
+        .btn-delete { color: #EF4444; }
+        .btn-delete:hover { background: #FEF2F2; color: #B91C1C; }
+        .btn-delete:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-download-row { color: #1A1464; }
+        .btn-download-row:hover { background: #EEF2FF; color: #1A1464; }
         .empty-vouchers {
           padding: 40px;
           text-align: center;
           color: #64748B;
         }
+        .actions-cell { display: flex; align-items: center; justify-content: center; gap: 4px; }
       `}</style>
 
       {/* Header */}
@@ -549,18 +953,21 @@ export default function SellerVouchers() {
             </div>
             <div className="card-body">
               <div className="scope-toggle">
-                <button 
-                  type="button" 
-                  className={`scope-btn ${scope === "all" ? "active" : ""}`} 
-                  onClick={() => { setScope("all"); setSelectedProduct(""); }}
+                <button
+                  type="button"
+                  className={`scope-btn ${scope === "all" ? "active" : ""}`}
+                  onClick={() => {
+                    setScope("all");
+                    setSelectedProduct("");
+                  }}
                 >
                   <div className="scope-icon">🏪</div>
                   <div className="scope-label">All Products</div>
                   <div className="scope-desc">Works across your entire catalogue</div>
                 </button>
-                <button 
-                  type="button" 
-                  className={`scope-btn ${scope === "specific" ? "active" : ""}`} 
+                <button
+                  type="button"
+                  className={`scope-btn ${scope === "specific" ? "active" : ""}`}
                   onClick={() => setScope("specific")}
                 >
                   <div className="scope-icon">📦</div>
@@ -571,9 +978,13 @@ export default function SellerVouchers() {
 
               {scope === "specific" && (
                 <div className="field-group" style={{ marginBottom: 0 }}>
-                  <label className="field-label">Select Product <span>*</span></label>
+                  <label className="field-label">
+                    Select Product <span>*</span>
+                  </label>
                   {loadingProducts ? (
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "#64748B" }}>
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "#64748B" }}
+                    >
                       <Loader2 size={16} className="animate-spin text-primary" />
                       Loading products...
                     </div>
@@ -585,15 +996,22 @@ export default function SellerVouchers() {
                     <select
                       className={`input-base ${errors.selectedProduct ? "error" : ""}`}
                       value={selectedProduct}
-                      onChange={(e) => { setSelectedProduct(e.target.value); setErrors((p) => ({ ...p, selectedProduct: undefined })); }}
+                      onChange={(e) => {
+                        setSelectedProduct(e.target.value);
+                        setErrors((p) => ({ ...p, selectedProduct: undefined }));
+                      }}
                     >
                       <option value="">— Choose a product —</option>
                       {products.map((p) => (
-                        <option key={p._id} value={p._id}>{p.title} (₹{p.price})</option>
+                        <option key={p._id} value={p._id}>
+                          {p.title} (₹{p.price})
+                        </option>
                       ))}
                     </select>
                   )}
-                  {errors.selectedProduct && <div className="error-msg">{errors.selectedProduct}</div>}
+                  {errors.selectedProduct && (
+                    <div className="error-msg">{errors.selectedProduct}</div>
+                  )}
                 </div>
               )}
             </div>
@@ -607,13 +1025,18 @@ export default function SellerVouchers() {
             </div>
             <div className="card-body">
               <div className="field-group">
-                <label className="field-label">Voucher Code <span>*</span></label>
+                <label className="field-label">
+                  Voucher Code <span>*</span>
+                </label>
                 <div className="code-row">
                   <input
                     className={`input-base ${errors.voucherCode ? "error" : ""}`}
                     placeholder="e.g. DIWALI50"
                     value={voucherCode}
-                    onChange={(e) => { setVoucherCode(e.target.value.toUpperCase()); setErrors((p) => ({ ...p, voucherCode: undefined })); }}
+                    onChange={(e) => {
+                      setVoucherCode(e.target.value.toUpperCase());
+                      setErrors((p) => ({ ...p, voucherCode: undefined }));
+                    }}
                     maxLength={20}
                   />
                   <button type="button" className="gen-btn" onClick={handleAutoGenerate}>
@@ -624,9 +1047,15 @@ export default function SellerVouchers() {
               </div>
 
               <div className="field-group">
-                <label className="field-label">Discount Amount <span>*</span></label>
+                <label className="field-label">
+                  Discount Amount <span>*</span>
+                </label>
                 <div className="discount-row">
-                  <select className="input-base type-select" value={discountType} onChange={(e) => setDiscountType(e.target.value)}>
+                  <select
+                    className="input-base type-select"
+                    value={discountType}
+                    onChange={(e) => setDiscountType(e.target.value)}
+                  >
                     <option value="percent">Percentage (%)</option>
                     <option value="flat">Flat Amount (₹)</option>
                   </select>
@@ -637,7 +1066,10 @@ export default function SellerVouchers() {
                     value={discountValue}
                     min={0}
                     max={discountType === "percent" ? 100 : undefined}
-                    onChange={(e) => { setDiscountValue(e.target.value); setErrors((p) => ({ ...p, discountValue: undefined })); }}
+                    onChange={(e) => {
+                      setDiscountValue(e.target.value);
+                      setErrors((p) => ({ ...p, discountValue: undefined }));
+                    }}
                   />
                 </div>
                 {errors.discountValue && <div className="error-msg">{errors.discountValue}</div>}
@@ -679,13 +1111,18 @@ export default function SellerVouchers() {
             </div>
             <div className="card-body">
               <div className="field-group">
-                <label className="field-label">Expiry Date <span>*</span></label>
+                <label className="field-label">
+                  Expiry Date <span>*</span>
+                </label>
                 <input
                   className={`input-base ${errors.expiry ? "error" : ""}`}
                   type="date"
                   value={expiry}
                   min={today}
-                  onChange={(e) => { setExpiry(e.target.value); setErrors((p) => ({ ...p, expiry: undefined })); }}
+                  onChange={(e) => {
+                    setExpiry(e.target.value);
+                    setErrors((p) => ({ ...p, expiry: undefined }));
+                  }}
                 />
                 {errors.expiry && <div className="error-msg">{errors.expiry}</div>}
               </div>
@@ -708,17 +1145,30 @@ export default function SellerVouchers() {
 
           {/* API Error Notification */}
           {errors.apiError && (
-            <div className="mb-4 p-4 rounded-xl border border-red-200 bg-red-50 text-red-700 flex items-start gap-3">
-              <AlertCircle size={20} className="shrink-0 mt-0.5" />
-              <div className="text-sm font-medium">{errors.apiError}</div>
+            <div
+              style={{
+                marginBottom: 16,
+                padding: "14px 16px",
+                borderRadius: 12,
+                border: "1.5px solid #FCA5A5",
+                background: "#FEF2F2",
+                color: "#B91C1C",
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 10,
+                fontSize: 13,
+              }}
+            >
+              <AlertCircle size={20} style={{ flexShrink: 0, marginTop: 1 }} />
+              <div style={{ fontWeight: 500 }}>{errors.apiError}</div>
             </div>
           )}
 
           {/* Save */}
-          <button 
-            type="button" 
-            className="save-btn" 
-            onClick={handleSave} 
+          <button
+            type="button"
+            className="save-btn"
+            onClick={handleSave}
             disabled={creating}
           >
             {creating ? (
@@ -728,17 +1178,11 @@ export default function SellerVouchers() {
               </>
             ) : (
               <>
-                Create Voucher →
+                <Download size={18} />
+                Create & Download Voucher
               </>
             )}
           </button>
-
-          {saved && (
-            <div className="success-toast">
-              <span style={{ fontSize: 18 }}>✅</span>
-              Voucher created successfully! Your customers can now use it at checkout.
-            </div>
-          )}
         </div>
 
         {/* Preview Column */}
@@ -767,7 +1211,16 @@ export default function SellerVouchers() {
                     {voucherCode || "YOUR-CODE"}
                   </div>
                   <div className="vc-expiry">
-                    Valid until<span>{expiry ? new Date(expiry).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}</span>
+                    Valid until
+                    <span>
+                      {expiry
+                        ? new Date(expiry).toLocaleDateString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })
+                        : "—"}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -776,16 +1229,31 @@ export default function SellerVouchers() {
             {/* Summary */}
             <div className="card">
               <div className="card-body" style={{ padding: "16px 20px" }}>
-                <div style={{ fontFamily: "Poppins, sans-serif", fontSize: 13, fontWeight: 600, color: "#1A1464", marginBottom: 4 }}>Summary</div>
+                <div
+                  style={{
+                    fontFamily: "Poppins, sans-serif",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: "#1A1464",
+                    marginBottom: 4,
+                  }}
+                >
+                  Summary
+                </div>
                 <div className="details-list">
                   <div className="detail-row">
                     <span className="detail-key">Scope</span>
-                    <span className="badge badge-blue">{scope === "all" ? "All Products" : "Specific Product"}</span>
+                    <span className="badge badge-blue">
+                      {scope === "all" ? "All Products" : "Specific Product"}
+                    </span>
                   </div>
                   {scope === "specific" && (
                     <div className="detail-row">
                       <span className="detail-key">Product</span>
-                      <span className="detail-val" style={{ maxWidth: 160, textAlign: "right", fontSize: 12 }}>
+                      <span
+                        className="detail-val"
+                        style={{ maxWidth: 160, textAlign: "right", fontSize: 12 }}
+                      >
                         {selectedProductObj?.title || "—"}
                       </span>
                     </div>
@@ -793,7 +1261,11 @@ export default function SellerVouchers() {
                   <div className="detail-row">
                     <span className="detail-key">Discount</span>
                     <span className="badge badge-amber">
-                      {discountValue ? (discountType === "percent" ? `${discountValue}%` : `₹${discountValue}`) : "—"}
+                      {discountValue
+                        ? discountType === "percent"
+                          ? `${discountValue}%`
+                          : `₹${discountValue}`
+                        : "—"}
                     </span>
                   </div>
                   <div className="detail-row">
@@ -802,12 +1274,20 @@ export default function SellerVouchers() {
                   </div>
                   <div className="detail-row">
                     <span className="detail-key">Usage Limit</span>
-                    <span className="detail-val">{usageLimit ? `${usageLimit} uses` : "Unlimited"}</span>
+                    <span className="detail-val">
+                      {usageLimit ? `${usageLimit} uses` : "Unlimited"}
+                    </span>
                   </div>
                   <div className="detail-row">
                     <span className="detail-key">Expires</span>
                     <span className="detail-val">
-                      {expiry ? new Date(expiry).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                      {expiry
+                        ? new Date(expiry).toLocaleDateString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })
+                        : "—"}
                     </span>
                   </div>
                 </div>
@@ -820,18 +1300,39 @@ export default function SellerVouchers() {
       {/* Vouchers List Section */}
       <div className="management-section">
         <div className="card">
-          <div className="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div
+            className="card-header"
+            style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+          >
             <div>
               <h2>Active Vouchers</h2>
               <p>View and manage your active promotional codes</p>
             </div>
-            <span style={{ fontSize: "12px", background: "#EFF6FF", color: "#1D4ED8", padding: "4px 8px", borderRadius: "20px", fontWeight: "600" }}>
+            <span
+              style={{
+                fontSize: "12px",
+                background: "#EFF6FF",
+                color: "#1D4ED8",
+                padding: "4px 8px",
+                borderRadius: "20px",
+                fontWeight: "600",
+              }}
+            >
               Total: {vouchers.length}
             </span>
           </div>
           <div className="card-body" style={{ padding: 0, overflowX: "auto" }}>
             {loadingVouchers ? (
-              <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "40px", gap: "10px", color: "#64748B" }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  padding: "40px",
+                  gap: "10px",
+                  color: "#64748B",
+                }}
+              >
                 <Loader2 className="animate-spin text-primary" size={24} />
                 <span>Loading active vouchers...</span>
               </div>
@@ -839,7 +1340,9 @@ export default function SellerVouchers() {
               <div className="empty-vouchers">
                 <Tag style={{ margin: "0 auto 12px", color: "#94A3B8" }} size={36} />
                 <p style={{ fontWeight: 600, fontSize: "14px" }}>No vouchers created yet</p>
-                <p style={{ fontSize: "12px", marginTop: "4px" }}>Create your first discount coupon above to share with customers.</p>
+                <p style={{ fontSize: "12px", marginTop: "4px" }}>
+                  Create your first discount coupon above to share with customers.
+                </p>
               </div>
             ) : (
               <table className="vouchers-table">
@@ -852,7 +1355,7 @@ export default function SellerVouchers() {
                     <th>Limit</th>
                     <th>Expiry Date</th>
                     <th>Status</th>
-                    <th style={{ width: "80px", textAlign: "center" }}>Actions</th>
+                    <th style={{ width: "100px", textAlign: "center" }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -865,24 +1368,44 @@ export default function SellerVouchers() {
                         </td>
                         <td>
                           <span style={{ fontWeight: 600, color: "#0F172A" }}>
-                            {v.discountType === "percent" ? `${v.discountValue}%` : `₹${v.discountValue}`}
+                            {v.discountType === "percent"
+                              ? `${v.discountValue}%`
+                              : `₹${v.discountValue}`}
                           </span>
                         </td>
                         <td>
                           {v.scope === "all" ? (
                             <span style={{ color: "#64748B" }}>All Catalogue</span>
                           ) : (
-                            <span style={{ fontWeight: 500, display: "block", maxWidth: "160px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={v.productId?.title || "Specific Item"}>
+                            <span
+                              style={{
+                                fontWeight: 500,
+                                display: "block",
+                                maxWidth: "160px",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                              }}
+                              title={v.productId?.title || "Specific Item"}
+                            >
                               {v.productId?.title || "Specific Item"}
                             </span>
                           )}
                         </td>
                         <td>{v.minOrder > 0 ? `₹${v.minOrder}` : "—"}</td>
-                        <td>{v.usageLimit ? `${v.usedCount} / ${v.usageLimit}` : `${v.usedCount} / ∞`}</td>
+                        <td>
+                          {v.usageLimit
+                            ? `${v.usedCount} / ${v.usageLimit}`
+                            : `${v.usedCount} / ∞`}
+                        </td>
                         <td>
                           <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                            <Calendar size={13} className="text-text-muted" />
-                            {new Date(v.expiry).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                            <Calendar size={13} />
+                            {new Date(v.expiry).toLocaleDateString("en-IN", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })}
                           </span>
                         </td>
                         <td>
@@ -892,20 +1415,32 @@ export default function SellerVouchers() {
                             <span className="v-badge v-badge-active">Active</span>
                           )}
                         </td>
-                        <td style={{ textAlign: "center" }}>
-                          <button
-                            type="button"
-                            className="btn-delete"
-                            onClick={() => handleDelete(v._id)}
-                            disabled={deleteId === v._id}
-                            title="Delete Voucher"
-                          >
-                            {deleteId === v._id ? (
-                              <Loader2 className="animate-spin" size={16} />
-                            ) : (
-                              <Trash2 size={16} />
-                            )}
-                          </button>
+                        <td>
+                          <div className="actions-cell">
+                            {/* Download button */}
+                            <button
+                              type="button"
+                              className="btn-action btn-download-row"
+                              onClick={() => setDownloadVoucher(v)}
+                              title="Download Voucher Image"
+                            >
+                              <Download size={15} />
+                            </button>
+                            {/* Delete button */}
+                            <button
+                              type="button"
+                              className="btn-action btn-delete"
+                              onClick={() => handleDelete(v._id)}
+                              disabled={deleteId === v._id}
+                              title="Delete Voucher"
+                            >
+                              {deleteId === v._id ? (
+                                <Loader2 className="animate-spin" size={15} />
+                              ) : (
+                                <Trash2 size={15} />
+                              )}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -916,6 +1451,19 @@ export default function SellerVouchers() {
           </div>
         </div>
       </div>
+
+      {/* Download Modal */}
+      {downloadVoucher && (
+        <DownloadModal
+          voucher={downloadVoucher}
+          productTitle={
+            downloadVoucher.productId?.title ||
+            products.find((p) => p._id === downloadVoucher.productId)?.title ||
+            null
+          }
+          onClose={() => setDownloadVoucher(null)}
+        />
+      )}
     </div>
   );
 }

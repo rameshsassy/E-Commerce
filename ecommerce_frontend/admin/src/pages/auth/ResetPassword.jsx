@@ -24,7 +24,7 @@ const ResetPassword = () => {
         return;
       }
 
-      const isStrong = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/.test(password);
+      const isStrong = /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(password);
       if (!isStrong) {
         setLoading(false);
         setError("That password is as weak as wet paper! Make it at least 8 characters, with 1 uppercase, 1 number, and 1 special character.");
@@ -57,7 +57,7 @@ const ResetPassword = () => {
               <Lock className="absolute left-3 top-3 text-text-muted" size={18} />
               <input type="password" required minLength={6} className="input-field pl-10" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} />
             </div>
-            {password.length > 0 && !/^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/.test(password) && (
+            {password.length > 0 && !/^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(password) && (
               <p className="text-xs text-error mt-1">Come on, my cat could guess that password! Make it stronger with at least 8 characters, 1 uppercase letter, 1 number, and 1 special character (like @).</p>
             )}
           </div>

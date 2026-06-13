@@ -40,7 +40,7 @@ export const normalizeEmail = (email) =>
 /** Match frontend rules: 8+ chars, uppercase, digit, special @ $ ! % * ? & # */
 const isPasswordStrong = (password) =>
   typeof password === "string" &&
-  /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/.test(password);
+  /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(password);
 
 const pickRegisterBody = (body) => ({
   firstName: typeof body.firstName === "string" ? body.firstName.trim() : "",

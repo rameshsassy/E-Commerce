@@ -132,6 +132,7 @@ export async function mapBulkInquiryForSeller(row, { persistId = true } = {}) {
     buyerType: row.buyerType || null,
     buyerTypeOptions: BUYER_TYPE_OPTIONS,
     customer: {
+      _id: row.buyerId || "",
       name: row.buyerName,
       city: buyerCity,
       tag: `${buyerCity} | ${customerTag}`,

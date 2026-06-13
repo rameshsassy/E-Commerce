@@ -14,7 +14,7 @@ const ChatPanel = () => {
   const [staff, setStaff] = useState([]);
   const [error, setError] = useState('');
   
-  const messagesEndRef = useRef(null);
+  const chatContainerRef = useRef(null);
 
   const isAdmin = user?.role === 'admin';
 
@@ -93,7 +93,9 @@ const ChatPanel = () => {
 
   // Scroll to bottom when messages update
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
   }, [messages]);
 
   const handleSendMessage = async (e) => {
@@ -324,7 +326,7 @@ const ChatPanel = () => {
             </div>
 
             {/* Message List */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
+            <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
               {loadingMessages ? (
                 <div className="flex items-center justify-center h-full text-sm text-text-muted">
                   Loading chat history...
@@ -368,7 +370,6 @@ const ChatPanel = () => {
                   );
                 })
               )}
-              <div ref={messagesEndRef} />
             </div>
 
             {/* Input form */}

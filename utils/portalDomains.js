@@ -97,8 +97,18 @@ export function getSellerPortalOrigin() {
   const configured = list[0];
   if (configured && !/seller\.aashansh\.org/i.test(configured)) return configured;
   const customer = parseOriginList(process.env.FRONTEND_URL)[0];
-  if (customer) return customer;
-  return "http://localhost:5173";
+  if (customer) {
+    try {
+      const parsed = new URL(customer);
+      if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
+        return `${parsed.protocol}//${parsed.hostname}:5174`;
+      }
+    } catch {
+      // ignore
+    }
+    return customer;
+  }
+  return "http://localhost:5174";
 }
 
 export function getCustomerPortalOrigin() {
@@ -136,6 +146,11 @@ export function portalLoginRedirectUrl(expectedPortal, req) {
       const parsed = new URL(requestOrigin);
       const host = parsed.hostname.toLowerCase();
 
+      if (isDevOnlyHostname(host)) {
+        const base = expectedPortal === "seller" ? getSellerPortalOrigin() : getCustomerPortalOrigin();
+        return `${base}/login`;
+      }
+
       if (host.startsWith("seller.")) {
         if (expectedPortal === "customer") {
           const customerHost = host.replace(/^seller\./i, "");
@@ -147,8 +162,7 @@ export function portalLoginRedirectUrl(expectedPortal, req) {
 
       // Not starting with seller.
       const useSameOrigin =
-        host.endsWith(".vercel.app") ||
-        isDevOnlyHostname(host);
+        host.endsWith(".vercel.app");
 
       if (useSameOrigin) {
         if (expectedPortal === "seller") {

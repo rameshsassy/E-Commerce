@@ -67,7 +67,7 @@ const Register = () => {
         return;
       }
 
-      const isStrong = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/.test(formData.password);
+      const isStrong = /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(formData.password);
       if (!isStrong) {
         setError("Come on, my cat could guess that password! Make it stronger with at least 8 characters, 1 uppercase letter, 1 number, and 1 special character (like @).");
         return;
@@ -188,7 +188,7 @@ const Register = () => {
               <Lock className="absolute left-3 top-3 text-text-muted" size={18} />
               <input type="password" name="password" required className="input-field pl-10" placeholder="••••••••" minLength={6} value={formData.password} onChange={handleChange} />
             </div>
-            {formData.password.length > 0 && !/^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/.test(formData.password) && (
+            {formData.password.length > 0 && !/^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(formData.password) && (
               <p className="text-xs text-error mt-1">Come on, my cat could guess that password! Make it stronger with at least 8 characters, 1 uppercase letter, 1 number, and 1 special character (like @).</p>
             )}
           </div>

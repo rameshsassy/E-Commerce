@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { Tag, Plus, Trash2, Calendar, AlertCircle, CheckCircle, XCircle, ArrowLeft, Search, RefreshCw } from "lucide-react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { Tag, Plus, Trash2, Calendar, AlertCircle, CheckCircle, XCircle, ArrowLeft, Search, RefreshCw, Download, FileImage, Image, X } from "lucide-react";
 import api from "../../utils/api";
+import { downloadVoucherImage } from "../../utils/downloadVoucher";
 
 // ─── Inline Badge Component ───
 function Badge({ children, color = "#1D4ED8", bg = "#EFF6FF" }) {
@@ -164,6 +165,166 @@ function StepDot({ n, active, done }) {
   );
 }
 
+// ─── Admin Voucher Card (for image capture) ───────────────────────────────────
+function AdminVoucherCardImage({ voucher }) {
+  const vt = VOUCHER_TYPES.find((v) => v.id === voucher.voucherType);
+  const discount =
+    voucher.discountType === "percent"
+      ? `${voucher.discountValue}% OFF`
+      : `₹${voucher.discountValue?.toLocaleString()} OFF`;
+
+  const expiryStr = new Date(voucher.expiry).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+
+  return (
+    <div
+      style={{
+        width: 520,
+        background: "linear-gradient(135deg, #0F172A 0%, #1E1B4B 60%, #312E81 100%)",
+        borderRadius: 24,
+        padding: "36px 40px",
+        position: "relative",
+        overflow: "hidden",
+        fontFamily: "'Poppins', 'Inter', sans-serif",
+        boxShadow: "0 20px 60px rgba(15,23,42,0.6)",
+      }}
+    >
+      {/* Decorative */}
+      <div style={{ position: "absolute", right: -40, top: -40, width: 180, height: 180, borderRadius: "50%", background: "rgba(99,102,241,0.18)" }} />
+      <div style={{ position: "absolute", left: -30, bottom: -30, width: 130, height: 130, borderRadius: "50%", background: "rgba(245,158,11,0.07)" }} />
+
+      {/* Brand */}
+      <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.45)", letterSpacing: 3, textTransform: "uppercase", marginBottom: 6 }}>
+        Aashansh · Admin Voucher
+      </div>
+
+      {/* Audience badge */}
+      {vt && (
+        <div style={{ display: "inline-block", fontSize: 10, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", padding: "3px 10px", borderRadius: 20, background: vt.audienceColor + "20", color: vt.audienceColor, marginBottom: 16 }}>
+          {vt.audience} — {vt.label}
+        </div>
+      )}
+
+      {/* Discount */}
+      <div style={{ fontSize: 52, fontWeight: 900, color: "#F59E0B", lineHeight: 1, marginBottom: 8, textShadow: "0 2px 20px rgba(245,158,11,0.4)" }}>
+        {discount}
+      </div>
+
+      {/* Divider */}
+      <div style={{ borderTop: "1.5px dashed rgba(255,255,255,0.15)", margin: "22px 0" }} />
+
+      {/* Code & Expiry */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+        <div>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginBottom: 4 }}>USE CODE</div>
+          <div style={{ fontSize: 26, fontWeight: 800, color: "#ffffff", letterSpacing: 4, textShadow: "0 0 20px rgba(255,255,255,0.3)" }}>
+            {voucher.voucherCode}
+          </div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginBottom: 4 }}>VALID UNTIL</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#ffffff" }}>{expiryStr}</div>
+        </div>
+      </div>
+
+      {/* Usage limit */}
+      {voucher.usageLimit && (
+        <div style={{ marginTop: 16, fontSize: 11, color: "rgba(255,255,255,0.35)", textAlign: "center" }}>
+          Limited to {voucher.usageLimit} uses
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Download Modal (Admin) ────────────────────────────────────────────────────
+function AdminDownloadModal({ voucher, onClose }) {
+  const cardRef = useRef(null);
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = async (format) => {
+    setDownloading(true);
+    await downloadVoucherImage(cardRef, `admin-voucher-${voucher.voucherCode}`, format);
+    setDownloading(false);
+  };
+
+  return (
+    <div
+      style={{
+        position: "fixed", inset: 0,
+        background: "rgba(0,0,0,0.7)",
+        backdropFilter: "blur(8px)",
+        zIndex: 9999,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: 16,
+      }}
+    >
+      <div
+        style={{
+          background: "#fff", borderRadius: 24, padding: "32px",
+          width: "100%", maxWidth: 620,
+          boxShadow: "0 40px 80px rgba(0,0,0,0.3)",
+          position: "relative", maxHeight: "90vh", overflowY: "auto",
+        }}
+      >
+        {/* Close */}
+        <button onClick={onClose} style={{ position: "absolute", top: 16, right: 16, background: "#F1F5F9", border: "none", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#475569" }}>
+          <X size={18} />
+        </button>
+
+        {/* Success Banner */}
+        <div style={{ background: "linear-gradient(135deg, #ECFDF5, #D1FAE5)", border: "1.5px solid #6EE7B7", borderRadius: 14, padding: "14px 18px", display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+          <span style={{ fontSize: 24 }}>✅</span>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: "#065F46" }}>Voucher Created Successfully!</div>
+            <div style={{ fontSize: 12, color: "#047857", marginTop: 2 }}>Code <strong>{voucher.voucherCode}</strong> is now saved in the database. Download your voucher below.</div>
+          </div>
+        </div>
+
+        <div style={{ fontSize: 16, fontWeight: 700, color: "#1E293B", marginBottom: 4, fontFamily: "Poppins, sans-serif" }}>Download Voucher</div>
+        <p style={{ fontSize: 13, color: "#64748B", marginBottom: 20 }}>Save as a high-resolution image to share or archive.</p>
+
+        {/* Card preview */}
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 24, borderRadius: 16, overflow: "hidden" }}>
+          <div ref={cardRef}>
+            <AdminVoucherCardImage voucher={voucher} />
+          </div>
+        </div>
+
+        {/* Download buttons */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <button
+            onClick={() => handleDownload("jpeg")}
+            disabled={downloading}
+            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "14px 20px", background: "linear-gradient(135deg, #F59E0B, #F97316)", border: "none", borderRadius: 12, color: "#fff", fontFamily: "Poppins, sans-serif", fontWeight: 700, fontSize: 14, cursor: downloading ? "not-allowed" : "pointer", opacity: downloading ? 0.7 : 1 }}
+          >
+            {downloading ? <RefreshCw size={16} className="animate-spin" /> : <FileImage size={16} />}
+            Download JPG
+          </button>
+          <button
+            onClick={() => handleDownload("png")}
+            disabled={downloading}
+            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "14px 20px", background: "linear-gradient(135deg, #1E1B4B, #4338CA)", border: "none", borderRadius: 12, color: "#fff", fontFamily: "Poppins, sans-serif", fontWeight: 700, fontSize: 14, cursor: downloading ? "not-allowed" : "pointer", opacity: downloading ? 0.7 : 1 }}
+          >
+            {downloading ? <RefreshCw size={16} className="animate-spin" /> : <Image size={16} />}
+            Download PNG
+          </button>
+        </div>
+
+        <button
+          onClick={onClose}
+          style={{ width: "100%", marginTop: 12, padding: "12px", background: "#F1F5F9", border: "1.5px solid #E2E8F0", borderRadius: 12, color: "#475569", fontFamily: "Poppins, sans-serif", fontWeight: 600, fontSize: 13, cursor: "pointer" }}
+        >
+          Close & Continue
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function AdminVouchers() {
   const [vouchers, setVouchers] = useState([]);
@@ -171,6 +332,9 @@ export default function AdminVouchers() {
   const [showCreate, setShowCreate] = useState(false);
   const [step, setStep] = useState(1);
   const [voucherType, setVoucherType] = useState(null);
+
+  // Download modal
+  const [downloadModalVoucher, setDownloadModalVoucher] = useState(null);
 
   // Search databases
   const [sellers, setSellers] = useState([]);
@@ -316,14 +480,18 @@ export default function AdminVouchers() {
         sellerSpecificProducts,
       };
 
-      await api.post("/admin/vouchers", payload);
+      const { data } = await api.post("/admin/vouchers", payload);
       setSaved(true);
       await fetchVouchers();
+
+      // Show download modal with the created voucher
+      setDownloadModalVoucher(data.voucher);
+
       setTimeout(() => {
         setSaved(false);
         reset();
         setShowCreate(false);
-      }, 2000);
+      }, 500);
     } catch (err) {
       alert(err.response?.data?.message || "Failed to create voucher");
     }
@@ -470,14 +638,24 @@ export default function AdminVouchers() {
                             })}
                           </span>
                         </td>
-                        <td className="p-4 flex justify-end">
-                          <button
-                            onClick={() => handleDelete(voucher._id, voucher.voucherCode)}
-                            className="btn bg-error/15 text-error hover:bg-error hover:text-white p-2 rounded-lg"
-                            title="Delete Voucher"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                        <td className="p-4">
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
+                            <button
+                              onClick={() => setDownloadModalVoucher(voucher)}
+                              className="btn p-2 rounded-lg"
+                              style={{ background: "rgba(99,102,241,0.1)", color: "#6366F1" }}
+                              title="Download Voucher Image"
+                            >
+                              <Download size={16} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(voucher._id, voucher.voucherCode)}
+                              className="btn bg-error/15 text-error hover:bg-error hover:text-white p-2 rounded-lg"
+                              title="Delete Voucher"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -1208,6 +1386,14 @@ export default function AdminVouchers() {
             </div>
           )}
         </div>
+      )}
+
+      {/* Download Modal */}
+      {downloadModalVoucher && (
+        <AdminDownloadModal
+          voucher={downloadModalVoucher}
+          onClose={() => setDownloadModalVoucher(null)}
+        />
       )}
     </div>
   );

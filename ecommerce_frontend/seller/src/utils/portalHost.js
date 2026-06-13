@@ -55,8 +55,11 @@ function isPendingSellerDomain(url) {
 export function resolveSellerPortalOrigin() {
   if (typeof window !== 'undefined') {
     const h = window.location.hostname.toLowerCase();
-    if (h.endsWith('.vercel.app') || isLocalHostname(h)) {
+    if (h.endsWith('.vercel.app')) {
       return window.location.origin;
+    }
+    if (isLocalHostname(h)) {
+      return 'http://localhost:5174';
     }
   }
 
@@ -88,8 +91,11 @@ export function isCustomerPortal() {
 export function getCustomerPortalOrigin() {
   if (typeof window !== 'undefined' && window.location?.origin) {
     const h = window.location.hostname.toLowerCase();
-    if (h.endsWith('.vercel.app') || isLocalHostname(h)) {
+    if (h.endsWith('.vercel.app')) {
       return window.location.origin;
+    }
+    if (isLocalHostname(h)) {
+      return 'http://localhost:5173';
     }
     if (!isSellerPortal(window.location.hostname, window.location.pathname)) {
       return window.location.origin;
