@@ -1,637 +1,645 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import api, { BASE_URL } from '../../utils/api';
-import { useAuth } from '../../context/AuthContext';
-import {
-  ShoppingCart,
-  Search,
-  Info,
-  Check,
-  Truck,
-  Sparkles,
-  AlertCircle,
-  Package,
-  X,
-  DollarSign,
-} from 'lucide-react';
+import { useState, useEffect } from "react";
+import { useAuth } from "../../context/AuthContext";
+import api from "../../utils/api";
+
+// ─── Mock product data with Unsplash image URLs ───────────────────────────────
+const PRODUCTS = [
+  {
+    id: 1,
+    title: "NCERT Mathematics Textbook Grade 10",
+    category: "Textbooks",
+    minQty: 50,
+    price: "₹180 / unit",
+    image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&h=400&fit=crop",
+  },
+  {
+    id: 2,
+    title: "Spiral Ruled Notebook 200 Pages",
+    category: "Stationery",
+    minQty: 100,
+    price: "₹65 / unit",
+    image: "https://images.unsplash.com/photo-1531346878377-a5be20888e57?w=400&h=400&fit=crop",
+  },
+  {
+    id: 3,
+    title: "Geometry Box — Student Set",
+    category: "Stationery",
+    minQty: 50,
+    price: "₹95 / unit",
+    image: "https://images.unsplash.com/photo-1509228627152-72ae9ae6848d?w=400&h=400&fit=crop",
+  },
+  {
+    id: 4,
+    title: "Handwoven Cotton Kurta — School Uniform",
+    category: "Uniforms",
+    minQty: 200,
+    price: "₹420 / unit",
+    image: "https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=400&h=400&fit=crop",
+  },
+  {
+    id: 5,
+    title: "A4 Printer Paper — 500 Sheet Ream",
+    category: "Office Supplies",
+    minQty: 100,
+    price: "₹320 / ream",
+    image: "https://images.unsplash.com/photo-1568667256549-094345857637?w=400&h=400&fit=crop",
+  },
+  {
+    id: 6,
+    title: "Ballpoint Pen — Blue Ink (Pack of 10)",
+    category: "Stationery",
+    minQty: 500,
+    price: "₹55 / pack",
+    image: "https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=400&h=400&fit=crop",
+  },
+  {
+    id: 7,
+    title: "English Dictionary — Oxford Illustrated",
+    category: "Textbooks",
+    minQty: 25,
+    price: "₹350 / unit",
+    image: "https://images.unsplash.com/photo-1512820790803-83ca734da794?w=400&h=400&fit=crop",
+  },
+  {
+    id: 8,
+    title: "Whiteboard Marker Set — 4 Colours",
+    category: "Classroom",
+    minQty: 50,
+    price: "₹120 / set",
+    image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=400&fit=crop",
+  },
+];
+
+const CATEGORIES = ["All", ...Array.from(new Set(PRODUCTS.map((p) => p.category)))];
+
+const today = new Date().toISOString().split("T")[0];
+
+function validate(form, minQty) {
+  const errors = {};
+  if (!form.firstName.trim()) errors.firstName = "Required";
+  if (!form.lastName.trim()) errors.lastName = "Required";
+  if (!form.email.trim()) errors.email = "Required";
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errors.email = "Invalid email";
+  if (!form.phone.trim()) errors.phone = "Required";
+  else if (!/^[6-9]\d{9}$/.test(form.phone.replace(/\s/g, ""))) errors.phone = "Enter a valid 10-digit Indian mobile number";
+  if (!form.quantity || parseInt(form.quantity) < minQty) errors.quantity = `Enter a valid quantity (min. ${minQty})`;
+  if (!form.location.trim()) errors.location = "Required";
+  if (!form.date) errors.date = "Required";
+  return errors;
+}
 
 export default function SellerBuyProducts() {
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  
-  // Search and filter state
-  const [searchQuery, setSearchQuery] = useState('');
-
-  // Checkout modal state
+  const [activeCategory, setActiveCategory] = useState("All");
+  const [search, setSearch] = useState("");
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [checkoutMode, setCheckoutMode] = useState(''); // 'single' or 'bulk'
-  const [checkoutQty, setCheckoutQty] = useState(1);
-  const [shippingAddress, setShippingAddress] = useState({
-    fullName: '',
-    phone: '',
-    addressLine1: '',
-    city: '',
-    state: '',
-    pinCode: '',
+  const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [form, setForm] = useState({
+    firstName: "", lastName: "", email: "",
+    phone: "", quantity: "", location: "", date: "",
   });
-  const [paymentMethod, setPaymentMethod] = useState('Direct');
-  const [orderProcessing, setOrderProcessing] = useState(false);
-  const [orderSuccess, setOrderSuccess] = useState(null);
-  const [profileLoading, setProfileLoading] = useState(false);
 
-  const buyerType = user?.sellerType || 'free';
-  const activePlan = user?.subscriptionPlan || 'free';
+  // Dynamic statistics state
+  const [stats, setStats] = useState({
+    productsCount: PRODUCTS.length,
+    pendingRequests: 0,
+    bulkSalesFormatted: "₹0",
+  });
 
-  const fetchProducts = useCallback(async () => {
-    setLoading(true);
-    setError('');
+  const sellerName = user?.businessName || `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "Seller Hub";
+  const sellerInitials = sellerName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || "S";
+
+  const fetchStats = async () => {
     try {
-      const res = await api.get('/seller/buy-products');
-      if (res.data && res.data.products) {
-        setProducts(res.data.products);
+      const [inquiriesRes, dashboardRes] = await Promise.all([
+        api.get("/seller/bulk-inquiries").catch(() => ({ data: { inquiries: [] } })),
+        api.get("/seller/dashboard").catch(() => ({ data: { data: { totalProducts: PRODUCTS.length } } })),
+      ]);
+
+      const inquiries = inquiriesRes.data?.inquiries || [];
+      const dashboardData = dashboardRes.data?.data || {};
+
+      const pending = inquiries.filter((inq) => inq.status === "Negotiation Pending").length;
+      const completedValue = inquiries
+        .filter((inq) => inq.status === "Completed")
+        .reduce((sum, inq) => sum + (inq.estimatedCost || 0), 0);
+
+      let bulkSalesStr = "₹0";
+      if (completedValue >= 100000) {
+        bulkSalesStr = `₹${(completedValue / 100000).toFixed(1)}L`;
+      } else {
+        bulkSalesStr = `₹${completedValue.toLocaleString("en-IN")}`;
       }
+
+      setStats({
+        productsCount: dashboardData.totalProducts || PRODUCTS.length,
+        pendingRequests: pending,
+        bulkSalesFormatted: bulkSalesStr,
+      });
     } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || 'Failed to load products. Please try again.');
-    } finally {
-      setLoading(false);
+      console.error("Failed to fetch bulk order dashboard stats", err);
     }
+  };
+
+  useEffect(() => {
+    fetchStats();
   }, []);
 
-  // Load products of other sellers on mount
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
-
-  // Fetch buyer's address to prefill shipping details when opening checkout
-  const openCheckout = async (product, mode) => {
-    setSelectedProduct(product);
-    setCheckoutMode(mode);
-    setOrderSuccess(null);
-    setError('');
-
-
-
-    // Set default quantities
-    if (mode === 'single') {
-      setCheckoutQty(1);
-    } else {
-      // Bulk purchase requires bulkPurchaseMinOrderQuantity (default 50)
-      setCheckoutQty(product.bulkPurchaseMinOrderQuantity || 50);
-    }
-
-    setProfileLoading(true);
-    try {
-      const res = await api.get('/seller/profile');
-      const profile = res.data;
-      if (profile) {
-        setShippingAddress({
-          fullName: `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || user?.name || '',
-          phone: profile.mobile || user?.mobile || '',
-          addressLine1: profile.address || '',
-          city: profile.city || '',
-          state: profile.state || '',
-          pinCode: profile.pincode || '',
-        });
-      }
-    } catch (err) {
-      console.error('Failed to load profile for address prefill', err);
-      // Fallback to basic auth context details
-      setShippingAddress({
-        fullName: user?.name || '',
-        phone: user?.mobile || '',
-        addressLine1: '',
-        city: '',
-        state: '',
-        pinCode: '',
-      });
-    } finally {
-      setProfileLoading(false);
-    }
-  };
-
-  const handlePlaceOrder = async (e) => {
-    e.preventDefault();
-    if (!selectedProduct) return;
-
-    if (checkoutQty <= 0) {
-      alert('Please enter a valid quantity.');
-      return;
-    }
-
-    if (checkoutQty > selectedProduct.stock) {
-      alert(`Only ${selectedProduct.stock} units available in stock.`);
-      return;
-    }
-
-    setOrderProcessing(true);
-    setError('');
-
-    try {
-      const payload = {
-        productId: selectedProduct._id,
-        quantity: checkoutQty,
-        shippingAddress,
-        paymentMethod,
-      };
-
-      const res = await api.post('/seller/buy-products/order', payload);
-      if (res.data && res.data.success) {
-        setOrderSuccess(res.data.order);
-        // Refresh products list to update stock amounts
-        fetchProducts();
-      }
-    } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || 'Failed to place order. Please check inputs.');
-    } finally {
-      setOrderProcessing(false);
-    }
-  };
-
-  // Filtered products list
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch =
-      product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    return matchesSearch;
+  const filtered = PRODUCTS.filter((p) => {
+    const matchCat = activeCategory === "All" || p.category === activeCategory;
+    const matchSearch = p.title.toLowerCase().includes(search.toLowerCase()) || p.category.toLowerCase().includes(search.toLowerCase());
+    return matchCat && matchSearch;
   });
 
+  const openModal = (product) => {
+    setSelectedProduct(product);
+    setForm({
+      firstName: user?.firstName || "",
+      lastName: user?.lastName || "",
+      email: user?.email || "",
+      phone: user?.mobile || "",
+      quantity: String(product.minQty),
+      location: "",
+      date: "",
+    });
+    setErrors({});
+    setSubmitted(false);
+    setSubmitError("");
+  };
+
+  const closeModal = () => setSelectedProduct(null);
+
+  const handleChange = (field, value) => {
+    setForm((f) => ({ ...f, [field]: value }));
+    setErrors((e) => ({ ...e, [field]: undefined }));
+  };
+
+  const handleSubmit = async () => {
+    const errs = validate(form, selectedProduct.minQty);
+    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
+
+    setSubmitting(true);
+    setSubmitError("");
+    try {
+      const payload = {
+        name: `${form.firstName} ${form.lastName}`.trim(),
+        contactNumber: form.phone,
+        email: form.email,
+        quantityRequired: String(form.quantity),
+        requestedDeliveryDate: form.date,
+        buyerCity: form.location,
+        sellerId: user?._id || user?.id,
+        productTitle: selectedProduct.title,
+        productPrice: selectedProduct.price,
+        productImage: selectedProduct.image,
+        productMinQty: selectedProduct.minQty,
+      };
+
+      await api.post(`/products/${selectedProduct.id}/bulk-inquiry`, payload);
+      setSubmitted(true);
+      fetchStats();
+    } catch (err) {
+      console.error(err);
+      setSubmitError(err.response?.data?.message || "Failed to submit bulk order request. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
-    <div className="seller-page animate-fade-in w-full">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="seller-page-title mb-1">Bulk Purchase</h1>
-          <p className="text-text-muted text-sm">
-            Purchase products in bulk directly from fellow marketplace sellers.
-          </p>
-        </div>
+    <div style={{ fontFamily: "'Inter', sans-serif", background: "#F0F2F8", minHeight: "100vh", borderRadius: "20px", overflow: "hidden" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap');
+        *, *::before, *::after { box-sizing: border-box; }
 
-        {/* Badge showing current user type */}
-        <div className="flex items-center gap-2 px-4 py-2 bg-surface border border-glass-border rounded-xl w-fit">
-          <span className="text-xs text-text-muted font-medium">
-            {activePlan === 'premium' && user?.subscriptionActive ? (
-              "You are on premium plan"
-            ) : activePlan === 'pro' && user?.subscriptionActive ? (
-              "You are on pro plan"
-            ) : (
-              "You are on free plan"
-            )}
-          </span>
-          {activePlan === 'premium' && user?.subscriptionActive ? (
-            <span className="badge bg-warning/20 text-warning border border-warning/30 font-bold flex items-center gap-1">
-              <Sparkles size={12} className="fill-warning/10" /> Premium Seller
-            </span>
-          ) : activePlan === 'pro' && user?.subscriptionActive ? (
-            <span className="badge bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 font-bold flex items-center gap-1">
-              <Sparkles size={12} className="fill-indigo-500/10" /> Pro Seller
-            </span>
-          ) : (
-            <button
-              onClick={() => navigate('/seller/premium')}
-              className="badge bg-primary/20 hover:bg-primary/35 text-primary border border-primary/30 hover:border-primary/50 font-bold flex items-center gap-1 cursor-pointer transition-all py-1 px-3 rounded-full text-xs"
-            >
-              Upgrade Now
-            </button>
-          )}
-        </div>
-      </div>
+        /* ── Header ── */
+        .bo-header {
+          background: linear-gradient(135deg, #0F0F1A 0%, #1A1464 100%);
+          padding: 18px 32px;
+          display: flex; align-items: center; justify-content: space-between;
+        }
+        .bo-logo { display: flex; align-items: center; gap: 12px; }
+        .bo-logo-mark {
+          width: 36px; height: 36px; background: #F59E0B; border-radius: 9px;
+          display: flex; align-items: center; justify-content: center;
+          font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 18px; color: #0F0F1A;
+        }
+        .bo-logo-name { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 15px; color: #fff; }
+        .bo-logo-sub { font-size: 11px; color: rgba(255,255,255,0.45); }
+        .bo-seller-chip {
+          display: flex; align-items: center; gap: 8px;
+          background: rgba(255,255,255,0.07); border-radius: 8px; padding: 6px 12px;
+        }
+        .bo-seller-avatar {
+          width: 26px; height: 26px; border-radius: 50%; background: #0EA5E9;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 11px; font-weight: 700; color: #fff;
+        }
+        .bo-seller-name { font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.75); }
 
-      {/* Rules Banner (Dynamic & Professional) */}
-      <div className="glass-panel p-5 mb-8 border border-glass-border flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between bg-[#1e293b]/40">
-        <div className="flex gap-4 items-start">
-          <Info className="text-primary shrink-0 mt-0.5" size={22} />
+        /* ── Page body ── */
+        .bo-page { max-width: 1080px; margin: 0 auto; padding: 32px 20px 60px; }
+
+        /* ── Hero band ── */
+        .bo-hero {
+          background: linear-gradient(120deg, #0EA5E9 0%, #1A1464 100%);
+          border-radius: 18px; padding: 28px 32px; margin-bottom: 28px;
+          display: flex; align-items: center; justify-content: space-between; gap: 20px;
+          overflow: hidden; position: relative;
+        }
+        .bo-hero::after {
+          content: ''; position: absolute; right: -40px; top: -40px;
+          width: 200px; height: 200px; border-radius: 50%;
+          background: rgba(255,255,255,0.06);
+        }
+        .bo-hero-tag {
+          font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.55);
+          letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px;
+        }
+        .bo-hero-title {
+          font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 22px; color: #fff; line-height: 1.3;
+        }
+        .bo-hero-title span { color: #F59E0B; }
+        .bo-hero-desc { font-size: 13px; color: rgba(255,255,255,0.65); margin-top: 8px; line-height: 1.6; max-width: 500px; }
+        .bo-hero-stats { display: flex; gap: 28px; flex-shrink: 0; }
+        .bo-stat { text-align: center; }
+        .bo-stat-num { font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 28px; color: #F59E0B; }
+        .bo-stat-label { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+        @media(max-width: 640px) { .bo-hero-stats { display: none; } .bo-hero { padding: 22px 20px; } }
+
+        /* ── Controls ── */
+        .bo-controls {
+          display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;
+        }
+        .bo-search {
+          flex: 1; min-width: 200px;
+          border: 1.5px solid #E2E8F0; border-radius: 10px;
+          padding: 10px 16px 10px 40px;
+          font-family: 'Inter', sans-serif; font-size: 14px; color: #1E293B;
+          background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='M21 21l-4.35-4.35'/%3E%3C/svg%3E") no-repeat 14px center;
+          outline: none; transition: border-color 0.15s;
+        }
+        .bo-search:focus { border-color: #1A1464; }
+        .bo-cats { display: flex; gap: 6px; flex-wrap: wrap; }
+        .bo-cat {
+          padding: 7px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;
+          cursor: pointer; transition: all 0.15s; border: 1.5px solid #E2E8F0;
+          background: #fff; color: #64748B; white-space: nowrap;
+        }
+        .bo-cat:hover { border-color: #1A1464; color: #1A1464; }
+        .bo-cat.active { background: #1A1464; border-color: #1A1464; color: #fff; }
+
+        /* ── Grid ── */
+        .bo-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+          gap: 18px;
+        }
+
+        /* ── Product card ── */
+        .bo-card {
+          background: #fff; border-radius: 16px;
+          border: 1px solid #E8EBF4;
+          overflow: hidden;
+          transition: transform 0.18s, box-shadow 0.18s;
+          display: flex; flex-direction: column;
+        }
+        .bo-card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(26,20,100,0.12); }
+
+        .bo-card-img-wrap {
+          position: relative; width: 100%; aspect-ratio: 1/1; overflow: hidden;
+        }
+        .bo-card-img {
+          width: 100%; height: 100%; object-fit: cover;
+          display: block; transition: transform 0.3s;
+        }
+        .bo-card:hover .bo-card-img { transform: scale(1.04); }
+        .bo-card-overlay {
+          position: absolute; bottom: 0; left: 0; right: 0;
+          padding: 32px 14px 12px;
+          background: linear-gradient(to top, rgba(15,15,26,0.82) 0%, transparent 100%);
+        }
+        .bo-card-category {
+          display: inline-block; background: rgba(14,165,233,0.85);
+          color: #fff; font-size: 10px; font-weight: 700;
+          letter-spacing: 0.8px; text-transform: uppercase;
+          padding: 3px 8px; border-radius: 4px; margin-bottom: 4px;
+        }
+        .bo-card-img-title {
+          font-family: 'Poppins', sans-serif; font-size: 13px; font-weight: 600;
+          color: #fff; line-height: 1.35;
+        }
+        .bo-card-footer {
+          padding: 12px 14px 14px;
+          display: flex; align-items: center; justify-content: space-between; gap: 8px;
+        }
+        .bo-card-meta { flex: 1; }
+        .bo-card-price { font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 13px; color: #1A1464; }
+        .bo-card-minqty { font-size: 11px; color: #94A3B8; margin-top: 1px; }
+        .bo-btn-bulk {
+          padding: 8px 14px;
+          background: linear-gradient(135deg, #F59E0B, #F97316);
+          border: none; border-radius: 9px;
+          font-family: 'Poppins', sans-serif; font-size: 12px; font-weight: 700;
+          color: #fff; cursor: pointer; white-space: nowrap;
+          transition: opacity 0.15s, transform 0.1s;
+        }
+        .bo-btn-bulk:hover { opacity: 0.9; transform: scale(1.03); }
+
+        /* ── Empty state ── */
+        .bo-empty { text-align: center; padding: 64px 20px; color: #94A3B8; grid-column: 1/-1; }
+        .bo-empty-icon { font-size: 48px; margin-bottom: 12px; }
+        .bo-empty-title { font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 16px; color: #64748B; margin-bottom: 4px; }
+
+        /* ── Modal backdrop ── */
+        .bo-backdrop {
+          position: fixed; inset: 0; background: rgba(15,15,26,0.6);
+          z-index: 100; display: flex; align-items: center; justify-content: center;
+          padding: 20px;
+          animation: fadeIn 0.18s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* ── Modal panel ── */
+        .bo-modal {
+          background: #fff; border-radius: 20px;
+          width: 100%; max-width: 560px; max-height: 92vh;
+          overflow-y: auto; position: relative;
+          animation: slideUp 0.22s ease;
+          scrollbar-width: thin;
+        }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+
+        .bo-modal-product-banner {
+          display: flex; align-items: center; gap: 14px;
+          padding: 18px 20px; border-bottom: 1px solid #F1F5F9;
+          position: sticky; top: 0; background: #fff; z-index: 2;
+        }
+        .bo-modal-product-img {
+          width: 54px; height: 54px; border-radius: 10px;
+          object-fit: cover; flex-shrink: 0;
+          border: 1.5px solid #E2E8F0;
+        }
+        .bo-modal-product-title { font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 14px; color: #1E293B; line-height: 1.3; }
+        .bo-modal-product-sub { font-size: 12px; color: #64748B; margin-top: 3px; }
+        .bo-modal-close {
+          margin-left: auto; width: 32px; height: 32px; border-radius: 8px;
+          background: #F1F5F9; border: none; cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
+          color: #64748B; font-size: 16px; flex-shrink: 0;
+          transition: background 0.15s;
+        }
+        .bo-modal-close:hover { background: #E2E8F0; }
+
+        .bo-modal-body { padding: 22px 24px 28px; }
+        .bo-modal-heading { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 17px; color: #1A1464; margin-bottom: 4px; }
+        .bo-modal-sub { font-size: 12px; color: #94A3B8; margin-bottom: 22px; }
+
+        .bo-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+        @media(max-width: 480px) { .bo-form-row { grid-template-columns: 1fr; } }
+        .bo-form-field { margin-bottom: 14px; }
+        .bo-field-label { display: block; font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 5px; }
+        .bo-field-label span { color: #EF4444; margin-left: 2px; }
+        .bo-field-input {
+          width: 100%; border: 1.5px solid #E2E8F0; border-radius: 10px;
+          padding: 10px 13px; font-family: 'Inter', sans-serif; font-size: 14px; color: #1E293B;
+          background: #fff; outline: none; transition: border-color 0.15s;
+        }
+        .bo-field-input:focus { border-color: #1A1464; }
+        .bo-field-input.err { border-color: #EF4444; }
+        .bo-field-error { font-size: 11px; color: #EF4444; margin-top: 4px; }
+
+        .bo-submit {
+          width: 100%; padding: 14px;
+          background: linear-gradient(135deg, #F59E0B, #F97316);
+          border: none; border-radius: 12px;
+          font-family: 'Poppins', sans-serif; font-size: 15px; font-weight: 700;
+          color: #fff; cursor: pointer; margin-top: 6px;
+          transition: opacity 0.15s, transform 0.1s;
+        }
+        .bo-submit:hover { opacity: 0.92; transform: translateY(-1px); }
+        .bo-submit:active { transform: translateY(0); }
+        .bo-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* ── Success state ── */
+        .bo-success { text-align: center; padding: 40px 24px; }
+        .bo-success-icon { font-size: 56px; margin-bottom: 16px; }
+        .bo-success-title { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 20px; color: #1A1464; margin-bottom: 8px; }
+        .bo-success-desc { font-size: 14px; color: #64748B; line-height: 1.6; max-width: 340px; margin: 0 auto 24px; }
+        .bo-success-detail {
+          display: inline-flex; flex-direction: column; gap: 6px;
+          background: #F0F2F8; border-radius: 12px; padding: 14px 20px;
+          text-align: left; margin-bottom: 24px; min-width: 260px;
+        }
+        .bo-success-detail-row { display: flex; justify-content: space-between; gap: 20px; font-size: 12px; }
+        .bo-success-detail-key { color: #94A3B8; }
+        .bo-success-detail-val { font-weight: 600; color: #1E293B; }
+        .bo-success-close {
+          padding: 12px 32px; background: #1A1464; border: none; border-radius: 10px;
+          font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 14px;
+          color: #fff; cursor: pointer; transition: opacity 0.15s;
+        }
+        .bo-success-close:hover { opacity: 0.88; }
+      `}</style>
+
+      {/* ── Header ── */}
+      <header className="bo-header">
+        <div className="bo-logo">
+          <div className="bo-logo-mark">A</div>
           <div>
-            <h4 className="font-bold text-white mb-2">Want to sell in bulk?</h4>
-            <ul className="text-xs text-text-muted space-y-1.5 list-disc pl-4">
-              <li>
-                Display your products for the fellow sellers to request for bulk quantity from you
-              </li>
-              <li>
-                All the bulk buying request from sellers, corporates, schools, colleges, and other instutional buyers can be check on 'Orders & Enquiries' page
-              </li>
-            </ul>
+            <div className="bo-logo-name">Aashansh</div>
+            <div className="bo-logo-sub">Seller Dashboard</div>
           </div>
         </div>
-        
-        <button
-          type="button"
-          onClick={() => navigate('/seller/premium')}
-          className="px-6 py-2 border border-white/40 hover:border-white/80 text-white hover:bg-white/5 bg-transparent text-sm rounded-lg transition-all shrink-0"
-        >
-          Click to Upgrade
-        </button>
-      </div>
+        <div className="bo-seller-chip">
+          <div className="bo-seller-avatar">{sellerInitials}</div>
+          <div className="bo-seller-name">{sellerName}</div>
+        </div>
+      </header>
 
-      {/* Search & Filtering Panel */}
-      <div className="glass-panel p-4 mb-6 flex gap-4 items-center">
-        <div className="relative w-full">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
+      {/* ── Page ── */}
+      <div className="bo-page">
+
+        {/* Hero band */}
+        <div className="bo-hero">
+          <div>
+            <div className="bo-hero-tag">Seller Feature</div>
+            <div className="bo-hero-title">Bulk Orders<br /><span>for Institutions & Organisations</span></div>
+            <div className="bo-hero-desc">
+              Schools, offices, and NGOs can request your products in bulk directly from this page.
+              Every request lands in your inbox with full buyer details — you confirm, negotiate, and fulfil.
+            </div>
+          </div>
+          <div className="bo-hero-stats">
+            <div className="bo-stat">
+              <div className="bo-stat-num">{stats.productsCount}</div>
+              <div className="bo-stat-label">Products listed</div>
+            </div>
+            <div className="bo-stat">
+              <div className="bo-stat-num">{stats.pendingRequests}</div>
+              <div className="bo-stat-label">Pending requests</div>
+            </div>
+            <div className="bo-stat">
+              <div className="bo-stat-num">{stats.bulkSalesFormatted}</div>
+              <div className="bo-stat-label">Bulk sales</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Controls */}
+        <div className="bo-controls">
           <input
-            type="text"
-            placeholder="Search products by title or description..."
-            className="input-field pl-10"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            className="bo-search"
+            placeholder="Search products…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
           />
+          <div className="bo-cats">
+            {CATEGORIES.map((cat) => (
+              <button key={cat} className={`bo-cat ${activeCategory === cat ? "active" : ""}`} onClick={() => setActiveCategory(cat)}>
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Grid */}
+        <div className="bo-grid">
+          {filtered.length === 0 && (
+            <div className="bo-empty">
+              <div className="bo-empty-icon">🔍</div>
+              <div className="bo-empty-title">No products found</div>
+              <div>Try a different search or category</div>
+            </div>
+          )}
+          {filtered.map((product) => (
+            <div className="bo-card" key={product.id}>
+              <div className="bo-card-img-wrap">
+                <img className="bo-card-img" src={product.image} alt={product.title} loading="lazy" />
+                <div className="bo-card-overlay">
+                  <div className="bo-card-category">{product.category}</div>
+                  <div className="bo-card-img-title">{product.title}</div>
+                </div>
+              </div>
+              <div className="bo-card-footer">
+                <div className="bo-card-meta">
+                  <div className="bo-card-price">{product.price}</div>
+                  <div className="bo-card-minqty">Min. {product.minQty} units</div>
+                </div>
+                <button className="bo-btn-bulk" onClick={() => openModal(product)}>
+                  Request Bulk
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Error state */}
-      {error && !selectedProduct && (
-        <div className="p-4 bg-error/10 border border-error/20 text-error rounded-xl mb-6 text-sm flex gap-2 items-center">
-          <AlertCircle size={18} />
-          {error}
-        </div>
-      )}
-
-      {/* Product Grid */}
-      {loading ? (
-        <div className="flex justify-center items-center py-20">
-          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      ) : filteredProducts.length === 0 ? (
-        <div className="glass-panel p-12 text-center text-text-muted">
-          <Package size={48} className="mx-auto mb-3 opacity-30" />
-          <p className="text-base font-bold">No products available for purchase</p>
-          <p className="text-xs">There are no products listed by other sellers matching your criteria.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredProducts.map((product) => {
-            const productOwnerPlan = product.sellerId?.subscriptionPlan || 'free';
-            const isSubscribedOwner = productOwnerPlan === 'premium' || productOwnerPlan === 'pro';
-            const businessName = product.sellerId?.businessName || 
-                                 `${product.sellerId?.firstName || ''} ${product.sellerId?.lastName || ''}`.trim() || 
-                                 'Aashansh Seller';
-
-            // Rules configuration
-            const isBulkAllowed = isSubscribedOwner; // Free sellers cannot sell in bulk
-
-            return (
-              <div key={product._id} className="glass-panel flex flex-col overflow-hidden hover:border-glass-border/40 transition-all hover:-translate-y-0.5">
-                {/* Image Section */}
-                <div className="relative aspect-video bg-surface overflow-hidden border-b border-glass-border">
-                  {product.images && product.images.length > 0 ? (
-                    <img
-                      src={`${BASE_URL}/${product.images[0].replace(/\\/g, '/')}`}
-                      className="w-full h-full object-cover"
-                      alt={product.title}
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-text-muted">
-                      <Package size={40} className="opacity-20" />
-                    </div>
-                  )}
-
-                  {/* Seller Type Badge on Image */}
-                  <div className="absolute top-3 right-3">
-                    {productOwnerPlan === 'premium' ? (
-                      <span className="px-2.5 py-1 text-[10px] bg-[#ffd401] text-black font-extrabold rounded-lg shadow-md flex items-center gap-1">
-                        <Sparkles size={10} className="fill-black" /> PREMIUM SELLER
-                      </span>
-                    ) : productOwnerPlan === 'pro' ? (
-                      <span className="px-2.5 py-1 text-[10px] bg-indigo-500 text-white font-extrabold rounded-lg shadow-md flex items-center gap-1">
-                        <Sparkles size={10} className="fill-white" /> PRO SELLER
-                      </span>
-                    ) : (
-                      <span className="px-2.5 py-1 text-[10px] bg-[#334155] text-white font-extrabold rounded-lg shadow-md border border-white/10">
-                        FREE SELLER
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Content Section */}
-                <div className="p-5 flex-1 flex flex-col">
-                  <span className="text-[10px] uppercase font-bold text-primary tracking-wider mb-1">
-                    {product.category}
-                  </span>
-                  <h3 className="font-bold text-white text-base mb-1 line-clamp-1">{product.title}</h3>
-                  <p className="text-xs text-text-muted mb-4 line-clamp-2">{product.description}</p>
-
-                  {/* Price & Stock info */}
-                  <div className="flex items-baseline justify-between mb-4 border-y border-glass-border/40 py-2.5">
-                    <div>
-                      <p className="text-[10px] text-text-muted">Price per unit</p>
-                      <span className="text-lg font-bold text-success">₹{product.price}</span>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] text-text-muted">Available Stock</p>
-                      <span className={`text-xs font-semibold ${product.stock > 0 ? 'text-white' : 'text-error'}`}>
-                        {product.stock > 0 ? `${product.stock} units` : 'Out of Stock'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Metadata: Seller & Min Quantity */}
-                  <div className="text-[11px] text-text-muted mb-5 space-y-1 bg-surface/40 p-2.5 rounded-xl border border-glass-border/30">
-                    <p className="truncate">
-                      <strong>Seller:</strong> {businessName}
-                    </p>
-                    {isSubscribedOwner && (
-                      <p>
-                        <strong>Min Bulk Qty:</strong> {product.bulkPurchaseMinOrderQuantity || 50} units
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Action buttons */}
-                  <div className="mt-auto flex gap-2">
-                    <button
-                      type="button"
-                      disabled={product.stock <= 0}
-                      onClick={() => openCheckout(product, 'single')}
-                      className="flex-1 py-2 px-3 bg-surface hover:bg-surface-hover border border-glass-border text-white text-xs font-bold rounded-xl disabled:opacity-50 transition-colors"
-                    >
-                      Buy Single
-                    </button>
-
-                    {isBulkAllowed ? (
-                      <button
-                        type="button"
-                        disabled={product.stock < (product.bulkPurchaseMinOrderQuantity || 50)}
-                        onClick={() => openCheckout(product, 'bulk')}
-                        className="flex-1 py-2 px-3 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl disabled:opacity-50 transition-colors shadow-glow"
-                      >
-                        Buy in Bulk
-                      </button>
-                    ) : (
-                      <div className="flex-1 text-center py-2 px-2 border border-dashed border-glass-border text-[9px] text-text-muted flex items-center justify-center rounded-xl bg-surface/10 leading-snug">
-                        Bulk N/A (Free Seller)
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Checkout Modal */}
+      {/* ── Modal ── */}
       {selectedProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
-          <div className="glass-panel w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl flex flex-col border border-glass-border shadow-glow">
-            
-            {/* Modal Header */}
-            <div className="p-5 border-b border-glass-border flex justify-between items-center bg-surface/30">
+        <div className="bo-backdrop" onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}>
+          <div className="bo-modal">
+            {/* Sticky product reminder */}
+            <div className="bo-modal-product-banner">
+              <img className="bo-modal-product-img" src={selectedProduct.image} alt={selectedProduct.title} />
               <div>
-                <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                  <ShoppingCart className="text-primary" size={20} />
-                  Checkout: {checkoutMode === 'single' ? 'Individual Purchase' : 'Bulk Purchase'}
-                </h2>
-                <p className="text-xs text-text-muted mt-0.5">
-                  Buying from {selectedProduct.sellerId?.businessName || 'fellow seller'}
-                </p>
+                <div className="bo-modal-product-title">{selectedProduct.title}</div>
+                <div className="bo-modal-product-sub">{selectedProduct.price} · Min. {selectedProduct.minQty} units</div>
               </div>
-              <button
-                type="button"
-                onClick={() => setSelectedProduct(null)}
-                className="p-1 rounded-lg text-text-muted hover:text-white hover:bg-surface-hover transition-colors"
-              >
-                <X size={20} />
-              </button>
+              <button className="bo-modal-close" onClick={closeModal} aria-label="Close">✕</button>
             </div>
 
-            {/* Error banner inside modal */}
-            {error && (
-              <div className="mx-6 mt-4 p-3.5 bg-error/10 border border-error/20 text-error rounded-xl text-xs flex gap-2 items-center">
-                <AlertCircle size={16} />
-                {error}
-              </div>
-            )}
+            {!submitted ? (
+              <div className="bo-modal-body">
+                <div className="bo-modal-heading">Bulk Order Request</div>
+                <div className="bo-modal-sub">Fill in your details and the seller will get back to you within 24 hours.</div>
 
-            {/* Success state */}
-            {orderSuccess ? (
-              <div className="p-8 text-center flex flex-col items-center justify-center animate-fade-in">
-                <div className="w-16 h-16 rounded-full bg-success/20 text-success border border-success/30 flex items-center justify-center mb-4">
-                  <Check size={36} />
+                {submitError && (
+                  <div style={{ padding: "10px 14px", background: "#FEE2E2", border: "1px solid #FCA5A5", borderRadius: "10px", color: "#B91C1C", fontSize: "13px", marginBottom: "14px", fontWeight: 500 }}>
+                    {submitError}
+                  </div>
+                )}
+
+                <div className="bo-form-row">
+                  <div>
+                    <label className="bo-field-label">First Name<span>*</span></label>
+                    <input className={`bo-field-input ${errors.firstName ? "err" : ""}`} placeholder="Priya" value={form.firstName} onChange={(e) => handleChange("firstName", e.target.value)} />
+                    {errors.firstName && <div className="bo-field-error">{errors.firstName}</div>}
+                  </div>
+                  <div>
+                    <label className="bo-field-label">Last Name<span>*</span></label>
+                    <input className={`bo-field-input ${errors.lastName ? "err" : ""}`} placeholder="Sharma" value={form.lastName} onChange={(e) => handleChange("lastName", e.target.value)} />
+                    {errors.lastName && <div className="bo-field-error">{errors.lastName}</div>}
+                  </div>
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2">Order Placed Successfully!</h3>
-                <p className="text-sm text-text-muted mb-6 max-w-sm">
-                  Your purchase of <strong>{checkoutQty} x {selectedProduct.title}</strong> has been created. Shipment details are registered.
-                </p>
-                <div className="p-4 bg-surface rounded-xl border border-glass-border w-full text-left text-xs mb-6 max-w-md space-y-1.5 text-text-muted">
-                  <p><strong className="text-white">Order Reference:</strong> {orderSuccess._id}</p>
-                  <p><strong className="text-white">Units Purchased:</strong> {checkoutQty}</p>
-                  <p><strong className="text-white">Amount Charged:</strong> ₹{orderSuccess.totalAmount.toFixed(2)}</p>
-                  <p><strong className="text-white">Status:</strong> Processing</p>
+
+                <div className="bo-form-row">
+                  <div>
+                    <label className="bo-field-label">Email Address<span>*</span></label>
+                    <input className={`bo-field-input ${errors.email ? "err" : ""}`} type="email" placeholder="priya@school.edu.in" value={form.email} onChange={(e) => handleChange("email", e.target.value)} />
+                    {errors.email && <div className="bo-field-error">{errors.email}</div>}
+                  </div>
+                  <div>
+                    <label className="bo-field-label">Contact Number<span>*</span></label>
+                    <input className={`bo-field-input ${errors.phone ? "err" : ""}`} type="tel" placeholder="98765 43210" value={form.phone} onChange={(e) => handleChange("phone", e.target.value)} maxLength={10} />
+                    {errors.phone && <div className="bo-field-error">{errors.phone}</div>}
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setSelectedProduct(null)}
-                  className="btn btn-primary px-8"
-                >
-                  Close Window
+
+                <div className="bo-form-row">
+                  <div>
+                    <label className="bo-field-label">Quantity Required<span>*</span></label>
+                    <input className={`bo-field-input ${errors.quantity ? "err" : ""}`} type="number" placeholder={`Min. ${selectedProduct.minQty}`} min={selectedProduct.minQty} value={form.quantity} onChange={(e) => handleChange("quantity", e.target.value)} />
+                    {errors.quantity && <div className="bo-field-error">{errors.quantity}</div>}
+                  </div>
+                  <div>
+                    <label className="bo-field-label">Delivery Needed By<span>*</span></label>
+                    <input className={`bo-field-input ${errors.date ? "err" : ""}`} type="date" min={today} value={form.date} onChange={(e) => handleChange("date", e.target.value)} />
+                    {errors.date && <div className="bo-field-error">{errors.date}</div>}
+                  </div>
+                </div>
+
+                <div className="bo-form-field">
+                  <label className="bo-field-label">Delivery Location<span>*</span></label>
+                  <input className={`bo-field-input ${errors.location ? "err" : ""}`} placeholder="e.g. DPS School, Sector 12, Noida, UP — 201301" value={form.location} onChange={(e) => handleChange("location", e.target.value)} />
+                  {errors.location && <div className="bo-field-error">{errors.location}</div>}
+                </div>
+
+                <button className="bo-submit" onClick={handleSubmit} disabled={submitting}>
+                  {submitting ? "Sending..." : "Send Bulk Request →"}
                 </button>
               </div>
             ) : (
-              <form onSubmit={handlePlaceOrder} className="p-6 flex-1 flex flex-col gap-6">
-                
-                {/* 1. Quantity & Pricing Selection */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-surface/40 p-4 rounded-xl border border-glass-border/40">
-                  <div>
-                    <label className="block text-xs text-text-muted font-bold uppercase mb-1">
-                      Purchase Quantity
-                    </label>
-
-                    {/* Rules restriction for Premium/Pro Buyer buying from Free Seller */}
-                    {checkoutMode === 'single' &&
-                    (activePlan === 'premium' || activePlan === 'pro') &&
-                    (selectedProduct.sellerId?.sellerType || 'free') === 'free' ? (
-                      <div className="flex flex-col gap-1">
-                        <input
-                          type="number"
-                          value={1}
-                          readOnly
-                          className="input-field bg-surface-hover/50 text-text-muted cursor-not-allowed font-bold"
-                        />
-                        <span className="text-[10px] text-warning flex items-center gap-1 font-semibold">
-                          <AlertCircle size={10} /> Locked to 1 unit per rules (Premium/Pro Buyer)
-                        </span>
-                      </div>
-                    ) : (
-                      <input
-                        type="number"
-                        min={checkoutMode === 'single' ? 1 : (selectedProduct.bulkPurchaseMinOrderQuantity || 50)}
-                        max={selectedProduct.stock}
-                        required
-                        className="input-field"
-                        value={checkoutQty}
-                        onChange={(e) => setCheckoutQty(Number(e.target.value))}
-                      />
-                    )}
-                    
-                    <p className="text-[10px] text-text-muted mt-1">
-                      Available Stock: {selectedProduct.stock} units
-                      {checkoutMode === 'bulk' && ` (Min bulk: ${selectedProduct.bulkPurchaseMinOrderQuantity || 50})`}
-                    </p>
+              <div className="bo-success">
+                <div className="bo-success-icon">📦</div>
+                <div className="bo-success-title">Request Sent!</div>
+                <div className="bo-success-desc">
+                  Your bulk order request has been sent to the seller. They'll review it and reach out to you at <strong>{form.email}</strong> within 24 hours.
+                </div>
+                <div className="bo-success-detail">
+                  <div className="bo-success-detail-row">
+                    <span className="bo-success-detail-key">Product</span>
+                    <span className="bo-success-detail-val" style={{ maxWidth: 180, textAlign: "right", fontSize: 11 }}>{selectedProduct.title}</span>
                   </div>
-
-                  <div>
-                    <label className="block text-xs text-text-muted font-bold uppercase mb-1">
-                      Cost Summary
-                    </label>
-                    <div className="space-y-1.5 text-xs text-text-muted">
-                      <div className="flex justify-between">
-                        <span>Items Price:</span>
-                        <span className="font-semibold text-white">₹{(selectedProduct.price * checkoutQty).toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Shipping Fee:</span>
-                        <span className="font-semibold text-white">
-                          {(selectedProduct.price * checkoutQty) > 999 ? 'FREE' : '₹50.00'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-sm font-bold border-t border-glass-border pt-1.5 mt-1">
-                        <span className="text-white">Total Payable:</span>
-                        <span className="text-success">
-                          ₹{((selectedProduct.price * checkoutQty) + ((selectedProduct.price * checkoutQty) > 999 ? 0 : 50)).toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
+                  <div className="bo-success-detail-row">
+                    <span className="bo-success-detail-key">Quantity</span>
+                    <span className="bo-success-detail-val">{parseInt(form.quantity).toLocaleString("en-IN")} units</span>
+                  </div>
+                  <div className="bo-success-detail-row">
+                    <span className="bo-success-detail-key">Needed by</span>
+                    <span className="bo-success-detail-val">{new Date(form.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
+                  </div>
+                  <div className="bo-success-detail-row">
+                    <span className="bo-success-detail-key">Location</span>
+                    <span className="bo-success-detail-val" style={{ maxWidth: 180, textAlign: "right", fontSize: 11 }}>{form.location}</span>
                   </div>
                 </div>
-
-                {/* 2. Shipping Address */}
-                <div>
-                  <h4 className="font-bold text-white text-sm mb-3 flex items-center gap-1.5">
-                    <Truck size={16} className="text-primary" /> Shipping Destination Address
-                  </h4>
-                  {profileLoading ? (
-                    <div className="flex items-center gap-2 py-4 justify-center">
-                      <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                      <span className="text-xs text-text-muted">Loading profile details...</span>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs text-text-muted mb-1">Full Name</label>
-                        <input
-                          type="text"
-                          required
-                          className="input-field text-sm"
-                          value={shippingAddress.fullName}
-                          onChange={(e) => setShippingAddress({ ...shippingAddress, fullName: e.target.value })}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-text-muted mb-1">Phone Number</label>
-                        <input
-                          type="text"
-                          required
-                          className="input-field text-sm"
-                          value={shippingAddress.phone}
-                          onChange={(e) => setShippingAddress({ ...shippingAddress, phone: e.target.value })}
-                        />
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="block text-xs text-text-muted mb-1">Address Details</label>
-                        <input
-                          type="text"
-                          required
-                          className="input-field text-sm"
-                          placeholder="Street name, building, apartment"
-                          value={shippingAddress.addressLine1}
-                          onChange={(e) => setShippingAddress({ ...shippingAddress, addressLine1: e.target.value })}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-text-muted mb-1">City</label>
-                        <input
-                          type="text"
-                          required
-                          className="input-field text-sm"
-                          value={shippingAddress.city}
-                          onChange={(e) => setShippingAddress({ ...shippingAddress, city: e.target.value })}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-text-muted mb-1">State</label>
-                        <input
-                          type="text"
-                          required
-                          className="input-field text-sm"
-                          value={shippingAddress.state}
-                          onChange={(e) => setShippingAddress({ ...shippingAddress, state: e.target.value })}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-text-muted mb-1">Pincode</label>
-                        <input
-                          type="text"
-                          required
-                          className="input-field text-sm"
-                          value={shippingAddress.pinCode}
-                          onChange={(e) => setShippingAddress({ ...shippingAddress, pinCode: e.target.value })}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* 3. Payment Method */}
-                <div>
-                  <h4 className="font-bold text-white text-sm mb-3 flex items-center gap-1.5">
-                    <DollarSign size={16} className="text-primary" /> Payment Selection
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <label className={`p-4 border rounded-xl cursor-pointer flex gap-3 transition-all ${paymentMethod === 'Direct' ? 'border-primary bg-primary/5' : 'border-glass-border hover:bg-surface-hover'}`}>
-                      <input
-                        type="radio"
-                        name="payment"
-                        checked={paymentMethod === 'Direct'}
-                        onChange={() => setPaymentMethod('Direct')}
-                        className="accent-primary"
-                      />
-                      <div>
-                        <p className="font-bold text-xs text-white">Direct Checkout</p>
-                        <p className="text-[10px] text-text-muted">Instant transfer / Order confirmation</p>
-                      </div>
-                    </label>
-
-                    <label className={`p-4 border rounded-xl cursor-pointer flex gap-3 transition-all ${paymentMethod === 'COD' ? 'border-primary bg-primary/5' : 'border-glass-border hover:bg-surface-hover'}`}>
-                      <input
-                        type="radio"
-                        name="payment"
-                        checked={paymentMethod === 'COD'}
-                        onChange={() => setPaymentMethod('COD')}
-                        className="accent-primary"
-                      />
-                      <div>
-                        <p className="font-bold text-xs text-white">Cash on Delivery (COD)</p>
-                        <p className="text-[10px] text-text-muted">Pay with cash upon package receipt</p>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-
-                {/* Submit button */}
-                <div className="pt-4 border-t border-glass-border flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedProduct(null)}
-                    className="btn btn-secondary flex-1 py-3 text-sm font-bold"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={orderProcessing || profileLoading}
-                    className="btn btn-primary flex-1 py-3 text-sm font-bold shadow-glow"
-                  >
-                    {orderProcessing ? 'Processing...' : 'Confirm and Place Order'}
-                  </button>
-                </div>
-              </form>
+                <button className="bo-success-close" onClick={closeModal}>Back to Products</button>
+              </div>
             )}
-
           </div>
         </div>
       )}

@@ -18,6 +18,7 @@ import AdminProducts from './pages/admin/AdminProducts';
 import AdminOrders from './pages/admin/AdminOrders';
 import AdminReturns from './pages/admin/AdminReturns';
 import AdminCoupons from './pages/admin/AdminCoupons';
+import AdminVouchers from './pages/admin/AdminVouchers';
 import AdminCategories from './pages/admin/AdminCategories';
 import AdminPremiumSellers from './pages/admin/AdminPremiumSellers';
 import AdminPremiumSellerDashboard from './pages/admin/AdminPremiumSellerDashboard';
@@ -50,6 +51,7 @@ function AppRoutes() {
           <Route path="/admin/orders" element={<AdminOrders />} />
           <Route path="/admin/returns" element={<AdminReturns />} />
           <Route path="/admin/coupons" element={<AdminCoupons />} />
+          <Route path="/admin/vouchers" element={<AdminVouchers />} />
           <Route path="/admin/premium-sellers" element={<AdminPremiumSellers />} />
           <Route path="/admin/premium-seller-dashboard" element={<AdminPremiumSellerDashboard />} />
           <Route path="/admin/categories" element={<AdminCategories />} />

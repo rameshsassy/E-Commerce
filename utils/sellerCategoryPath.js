@@ -2,7 +2,7 @@ import Product from "../models/Product.js";
 import { isOtherCategoryLabel } from "../data/sellerCategoryTaxonomy.js";
 
 export const FREE_PLAN_CATEGORY_PATH_MESSAGE =
-  "You are on the Free Plan. You can add products only under your selected category. Upgrade to Premium to add products in multiple categories.";
+  "You are on the Free Plan. You can add products only under your selected category. Upgrade to Pro or Premium to add products in multiple categories.";
 
 export function normalizeCategoryPath(categoryValue, premiumType = "") {
   const raw = String(categoryValue || "").trim();

@@ -47,8 +47,12 @@ function daysBetween(from, to) {
   return Math.max(0, Math.ceil(ms / (24 * 60 * 60 * 1000)));
 }
 
-export function estimateCostFromProduct(product, variantLines) {
-  const unitPrice = Number(product?.price ?? product?.bulkPrice ?? 0);
+export function estimateCostFromProduct(product, variantLines, row = {}) {
+  let unitPrice = Number(product?.price ?? product?.bulkPrice ?? 0);
+  if (!unitPrice && row.productPrice) {
+    const priceStr = String(row.productPrice).replace(/[^\d]/g, "");
+    unitPrice = Number(priceStr) || 0;
+  }
   if (!unitPrice) return null;
   const totalUnits = variantLines.reduce((sum, v) => {
     const n = parseInt(String(v.quantity).replace(/\D/g, ""), 10);
@@ -82,7 +86,7 @@ export async function mapBulkInquiryForSeller(row, { persistId = true } = {}) {
   const estimatedCost =
     row.estimatedCost != null
       ? Number(row.estimatedCost)
-      : estimateCostFromProduct(product, variantLines);
+      : estimateCostFromProduct(product, variantLines, row);
 
   const placedAt = row.createdAt;
   const requestedDeliveryDate =
@@ -118,7 +122,7 @@ export async function mapBulkInquiryForSeller(row, { persistId = true } = {}) {
     requestedDeliveryDate
   );
 
-  const primaryImage = product?.images?.[0] || "";
+  const primaryImage = product?.images?.[0] || row.productImage || "";
 
   return {
     _id: row._id,
@@ -145,7 +149,7 @@ export async function mapBulkInquiryForSeller(row, { persistId = true } = {}) {
     product: {
       _id: productId,
       title: product?.title || row.productTitle || "—",
-      images: product?.images || [],
+      images: product?.images || (row.productImage ? [row.productImage] : []),
       primaryImage,
     },
     variantLines,

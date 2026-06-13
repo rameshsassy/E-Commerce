@@ -1,10 +1,11 @@
+import { isSubscribedSeller } from "./productInventoryRules.js";
+
 const DEFAULT_MIN = 1;
 const DEFAULT_MAX_FREE = 5;
 const DEFAULT_MAX_PREMIUM = 100;
 
 export function getMaxOrderQuantityLimit(seller) {
-  const subscribed =
-    seller?.sellerType === "premium" && seller?.subscriptionActive === true;
+  const subscribed = isSubscribedSeller(seller);
   return subscribed ? DEFAULT_MAX_PREMIUM : DEFAULT_MAX_FREE;
 }
 

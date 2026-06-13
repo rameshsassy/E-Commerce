@@ -248,11 +248,18 @@ const ProductDetail = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <h4 className="font-bold text-lg">{product.sellerId?.businessName || `${product.sellerId?.firstName} ${product.sellerId?.lastName}`}</h4>
-                    {isPremiumSeller && (
-                      <span className="text-xs font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-warning/20 text-warning border border-warning/30">
-                        Premium seller
-                      </span>
-                    )}
+                    {isPremiumSeller && (() => {
+                      const sellerPlan = product.sellerId?.subscriptionPlan || (isPremiumSeller ? 'premium' : 'free');
+                      return (
+                        <span className={`text-xs font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border ${
+                          sellerPlan === 'premium'
+                            ? 'bg-warning/20 text-warning border-warning/30'
+                            : 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30'
+                        }`}>
+                          {sellerPlan === 'premium' ? 'Premium seller' : 'Pro seller'}
+                        </span>
+                      );
+                    })()}
                   </div>
                   <p className="text-sm text-text-muted flex items-center gap-1 mt-1">
                     <MapPin size={14} /> Verified Platform Seller

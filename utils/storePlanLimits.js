@@ -4,17 +4,28 @@ export const PLAN_ERROR_CODE = "PREMIUM_REQUIRED";
 
 /** Free sellers: one storefront. Premium: multiple (capped). */
 export const FREE_MAX_STORES = 1;
-export const PREMIUM_MAX_STORES = 10;
+export const PRO_MAX_STORES = 5;
+export const PREMIUM_MAX_STORES = 999999;
 
 export function getStorePlanLimits(seller) {
   const subscribed = isSubscribedSeller(seller);
-  const maxStores = subscribed ? PREMIUM_MAX_STORES : FREE_MAX_STORES;
+  const plan = seller?.subscriptionPlan || (subscribed ? "premium" : "free");
+  
+  let maxStores = FREE_MAX_STORES;
+  if (plan === "premium") {
+    maxStores = PREMIUM_MAX_STORES;
+  } else if (plan === "pro") {
+    maxStores = PRO_MAX_STORES;
+  }
+
+  const maxStoresLabel = maxStores >= 999999 ? "unlimited" : maxStores;
+
   return {
     isSubscribedSeller: subscribed,
     maxStores,
     allowMultipleAddresses: subscribed,
     storeAddressHint: subscribed
-      ? "Add extra pickup or warehouse addresses below."
+      ? `Add extra pickup or warehouse addresses below (up to ${maxStoresLabel}).`
       : "Free plan includes one store address only.",
   };
 }
@@ -28,16 +39,23 @@ export function createPremiumRequiredError(message, upgradeFeature = "premium") 
 }
 
 export function assertCanCreateStore(seller, currentStoreCount) {
-  const { maxStores, isSubscribedSeller: subscribed } = getStorePlanLimits(seller);
+  const { maxStores } = getStorePlanLimits(seller);
   if (currentStoreCount >= maxStores) {
-    if (!subscribed) {
+    const plan = seller?.subscriptionPlan || (isSubscribedSeller(seller) ? "premium" : "free");
+    if (plan === "free") {
       throw createPremiumRequiredError(
-        "Free plan includes one store only. Upgrade to premium to create additional stores.",
+        "Free plan includes one store only. Upgrade to Pro or Premium to create additional stores.",
         "multiple_stores"
       );
+    } else if (plan === "pro") {
+      throw createPremiumRequiredError(
+        "Pro plan includes up to 5 stores. Upgrade to Premium to create unlimited stores.",
+        "multiple_stores"
+      );
+    } else {
+      const err = new Error(`You can create up to ${maxStores} stores on your plan.`);
+      err.statusCode = 400;
+      throw err;
     }
-    const err = new Error(`You can create up to ${maxStores} stores on your plan.`);
-    err.statusCode = 400;
-    throw err;
   }
 }

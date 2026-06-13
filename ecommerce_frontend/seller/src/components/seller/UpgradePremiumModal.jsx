@@ -2,33 +2,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { Zap, X } from 'lucide-react';
-
-const COPY = {
-  multiple_addresses: {
-    title: 'Upgrade to add more addresses',
-    body: 'Your free plan includes one store address. Upgrade to Premium to add pickup and warehouse locations.',
-  },
-  multiple_stores: {
-    title: 'Upgrade to create more stores',
-    body: 'Your free plan includes one storefront. Upgrade to Premium to run multiple branded stores.',
-  },
-  multiple_categories: {
-    title: 'Upgrade required',
-    body: 'You need to upgrade to Premium to use multiple category paths.',
-  },
-  free_category_path: {
-    title: 'Free plan category limit',
-    body: 'You are on the Free Plan. You can add products only under your selected category. Upgrade to Premium to add products in multiple categories.',
-  },
-  bulk_purchase: {
-    title: 'Upgrade required',
-    body: 'You need to upgrade to Premium to enable Bulk Purchase / B2B and receive wholesale inquiries.',
-  },
-  premium: {
-    title: 'Upgrade required',
-    body: 'You need to upgrade to unlock more categories, bulk orders, B2B inquiries, and more seller tools.',
-  },
-};
+import { useAuth } from '../../context/AuthContext';
 
 const DEFAULT_REDIRECT_MS = 4500;
 
@@ -41,6 +15,39 @@ export default function UpgradePremiumModal({
 }) {
   const navigate = useNavigate();
   const [secondsLeft, setSecondsLeft] = useState(Math.ceil(redirectDelayMs / 1000));
+  const { user } = useAuth();
+  const plan = user?.subscriptionPlan || 'free';
+
+  const COPY = {
+    multiple_addresses: {
+      title: 'Upgrade to add more addresses',
+      body: plan === 'pro'
+        ? 'Your pro plan has a limit on store addresses. Upgrade to Premium to add unlimited pickup and warehouse locations.'
+        : 'Your free plan includes one store address. Upgrade to Pro or Premium to add pickup and warehouse locations.',
+    },
+    multiple_stores: {
+      title: 'Upgrade to create more stores',
+      body: plan === 'pro'
+        ? 'Your pro plan includes up to 5 storefronts. Upgrade to Premium to run unlimited stores.'
+        : 'Your free plan includes one storefront. Upgrade to Pro or Premium to run multiple branded stores.',
+    },
+    multiple_categories: {
+      title: 'Upgrade required',
+      body: 'You need to upgrade to Pro or Premium to use multiple category paths.',
+    },
+    free_category_path: {
+      title: 'Pro and Premium Feature',
+      body: 'Listing products under multiple categories is only available for Pro and Premium sellers. Upgrade to Pro or Premium to list products in multiple categories.',
+    },
+    bulk_purchase: {
+      title: 'Pro and Premium Feature',
+      body: 'Bulk Purchase / B2B is only available for Pro and Premium sellers. Upgrade to Pro or Premium to enable B2B inquiries.',
+    },
+    premium: {
+      title: 'Pro and Premium Feature',
+      body: 'Subscription and Custom Order purchase types are only available for Pro and Premium sellers. Upgrade to Pro or Premium to unlock these options.',
+    },
+  };
 
   useEffect(() => {
     if (!open || !autoRedirect) return undefined;

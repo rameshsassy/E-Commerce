@@ -73,8 +73,10 @@ export async function findReferrerByCode(code) {
 
 export const REFERRAL_REWARDS = {
   FREE_APPROVED_CREDIT: 500,
+  PRO_APPROVED_CREDIT: 750,
   PREMIUM_APPROVED_CREDIT: 750,
   FREE_PREMIUM_BONUS: 500,
+  PRO_PREMIUM_BONUS: 1000,
   PREMIUM_PREMIUM_BONUS: 1500,
 };
 
@@ -102,12 +104,18 @@ export async function getReferralStatsForSeller(referrerId, referrerUser, { limi
     .limit(Math.max(1, Math.min(Number(limit) || 100, 100)));
 
   const referrerIsPremium = isPremiumSeller(referrerUser);
-  const approvedCredit = referrerIsPremium
-    ? REFERRAL_REWARDS.PREMIUM_APPROVED_CREDIT
-    : REFERRAL_REWARDS.FREE_APPROVED_CREDIT;
-  const premiumBonus = referrerIsPremium
-    ? REFERRAL_REWARDS.PREMIUM_PREMIUM_BONUS
-    : REFERRAL_REWARDS.FREE_PREMIUM_BONUS;
+  const activePlan = referrerUser.subscriptionPlan || (referrerIsPremium ? "premium" : "free");
+
+  let approvedCredit = REFERRAL_REWARDS.FREE_APPROVED_CREDIT;
+  let premiumBonus = REFERRAL_REWARDS.FREE_PREMIUM_BONUS;
+
+  if (activePlan === "premium") {
+    approvedCredit = REFERRAL_REWARDS.PREMIUM_APPROVED_CREDIT;
+    premiumBonus = REFERRAL_REWARDS.PREMIUM_PREMIUM_BONUS;
+  } else if (activePlan === "pro") {
+    approvedCredit = REFERRAL_REWARDS.PRO_APPROVED_CREDIT;
+    premiumBonus = REFERRAL_REWARDS.PRO_PREMIUM_BONUS;
+  }
 
   let totalApproved = 0;
   let totalPending = 0;
@@ -190,7 +198,6 @@ export async function getReferralStatsForSeller(referrerId, referrerUser, { limi
   const creditsEarnedCount = allReferred.filter((u) => u.kycStatus === "approved").length;
 
   // 6. My Plan: active subscription plan index (0 = Free, 1 = Pro, 2 = Premium)
-  const activePlan = referrerUser.subscriptionPlan || (referrerIsPremium ? "premium" : "free");
   let myPlan = 0;
   if (activePlan === "premium") {
     myPlan = 2;

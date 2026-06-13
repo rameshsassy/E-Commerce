@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 import Product from "../models/Product.js";
 import User from "../models/User.js";
 import BulkInquiry from "../models/BulkInquiry.js";
@@ -91,26 +92,43 @@ export const createBulkInquiry = async (req, res) => {
       });
     }
 
-    const product = await Product.findById(id).populate({
-      path: "sellerId",
-      select:
-        "firstName lastName email businessName sellerType subscriptionActive bulkPurchaseEnabled",
-    });
+    const isMock = !mongoose.Types.ObjectId.isValid(id);
+    let seller;
+    let product = null;
 
-    if (!product) {
-      return res.status(404).json({ message: "Product not found" });
-    }
-
-    if (!product.isActive || product.approvalStatus !== "approved") {
-      return res.status(404).json({ message: "Product not available" });
-    }
-
-    const seller = product.sellerId;
-    if (!sellerIsPremium(seller)) {
-      return res.status(403).json({
-        message:
-          "Bulk orders are only available for products sold by Premium sellers. This seller is not eligible.",
+    if (!isMock) {
+      product = await Product.findById(id).populate({
+        path: "sellerId",
+        select:
+          "firstName lastName email businessName sellerType subscriptionActive bulkPurchaseEnabled",
       });
+
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+
+      if (!product.isActive || product.approvalStatus !== "approved") {
+        return res.status(404).json({ message: "Product not available" });
+      }
+
+      seller = product.sellerId;
+      if (!sellerIsPremium(seller)) {
+        return res.status(403).json({
+          message:
+            "Bulk orders are only available for products sold by Premium sellers. This seller is not eligible.",
+        });
+      }
+    } else {
+      const resolvedSellerId = req.body.sellerId || req.user?._id;
+      if (!resolvedSellerId || !mongoose.Types.ObjectId.isValid(resolvedSellerId)) {
+        return res.status(400).json({ message: "Valid sellerId is required for custom products." });
+      }
+      seller = await User.findById(resolvedSellerId).select(
+        "firstName lastName email businessName sellerType subscriptionActive bulkPurchaseEnabled"
+      );
+      if (!seller) {
+        return res.status(404).json({ message: "Seller not found" });
+      }
     }
 
     const buyerId = await optionalCustomerId(req);
@@ -129,12 +147,18 @@ export const createBulkInquiry = async (req, res) => {
       1,
       Math.ceil((deliveryDate - placedAt) / (24 * 60 * 60 * 1000))
     );
-    const estimatedCost = estimateCostFromProduct(product, variantLines);
+    const estimatedCost = isMock
+      ? estimateCostFromProduct(null, variantLines, { productPrice: req.body.productPrice })
+      : estimateCostFromProduct(product, variantLines);
     const displayBulkRequestId = await generateBulkRequestId(seller._id, placedAt);
 
     const inquiry = await BulkInquiry.create({
       sellerId: seller._id,
-      productId: product._id,
+      productId: isMock ? null : product._id,
+      productTitle: isMock ? req.body.productTitle : undefined,
+      productPrice: isMock ? req.body.productPrice : undefined,
+      productImage: isMock ? req.body.productImage : undefined,
+      productMinQty: isMock ? req.body.productMinQty : undefined,
       buyerId,
       buyerName: name.trim(),
       buyerEmail: email.trim().toLowerCase(),
@@ -163,9 +187,9 @@ export const createBulkInquiry = async (req, res) => {
       buyerPhone: inquiry.buyerPhone,
       quantityRequired: inquiry.quantityRequired,
       message: inquiry.message,
-      productTitle: product.title,
-      productId: product._id,
-      productUrl: `${appBaseUrl()}/product/${product._id}`,
+      productTitle: isMock ? req.body.productTitle : product.title,
+      productId: isMock ? id : product._id,
+      productUrl: isMock ? "#" : `${appBaseUrl()}/product/${product._id}`,
     };
 
     await Promise.allSettled([

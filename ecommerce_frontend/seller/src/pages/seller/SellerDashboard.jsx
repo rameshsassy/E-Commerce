@@ -237,7 +237,7 @@ const SellerDashboard = () => {
             </div>
             <div>
               <p className="text-text-muted text-sm font-medium">Total Sales</p>
-              <h3 className="text-2xl font-bold">${stats.sales}</h3>
+              <h3 className="text-2xl font-bold">₹ {stats.sales}</h3>
             </div>
           </div>
           <button

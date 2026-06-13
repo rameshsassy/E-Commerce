@@ -1022,7 +1022,7 @@ export const getProductById = async (req, res) => {
     const product = await Product.findById(req.params.id).populate({
       path: "sellerId",
       select:
-        "firstName lastName businessName email mobile sellerType subscriptionActive bulkPurchaseEnabled",
+        "firstName lastName businessName email mobile sellerType subscriptionActive subscriptionPlan bulkPurchaseEnabled",
     });
 
     if (!product) {

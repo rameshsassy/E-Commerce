@@ -122,12 +122,12 @@ export default function ProductPricingInventoryFields({
 
   const addressesLocked = editingProduct?.approvalStatus === 'approved';
   const hasStoreAddresses = (inventoryOptions?.storeAddresses || []).length > 0;
-  const isFreeSeller = inventoryOptions?.isSubscribedSeller === false;
   const isPremium = inventoryOptions?.isSubscribedSeller === true;
+  const isFreeSeller = !isPremium;
 
   const promptUpgrade = (feature) => {
     if (isPremium) return false;
-    onRequestUpgrade?.(feature);
+    onRequestUpgrade?.(feature, { autoRedirect: true });
     return true;
   };
 
@@ -533,7 +533,7 @@ export default function ProductPricingInventoryFields({
                           } ${!isSelectable ? 'opacity-70' : ''}`}
                           onClick={() => {
                             if (!isSelectable) {
-                              onRequestUpgrade?.('premium');
+                              onRequestUpgrade?.('premium', { autoRedirect: true });
                             } else {
                               setProductData({ ...productData, purchaseType: opt.value });
                             }
@@ -634,8 +634,15 @@ export default function ProductPricingInventoryFields({
       </div>
 
       {/* Bulk Purchase / B2B — visible to all; premium can edit */}
-      <div className="border border-[#E1E3E5] rounded-lg overflow-hidden">
-        <div className="px-4 py-3 bg-[#F6F6F7] flex items-center justify-between">
+      <div
+        className={`border border-[#E1E3E5] rounded-lg overflow-hidden ${!isPremium ? 'cursor-pointer' : ''}`}
+        onClick={() => {
+          if (!isPremium) {
+            promptUpgrade('bulk_purchase');
+          }
+        }}
+      >
+        <div className={`px-4 py-3 bg-[#F6F6F7] flex items-center justify-between ${!isPremium ? 'pointer-events-none' : ''}`}>
           <div className="flex items-center gap-2 text-[#202223] font-semibold">
             <span>Bulk Purchase/B2B</span>
             <Crown size={18} className="text-[#B98900]" />
@@ -647,13 +654,7 @@ export default function ProductPricingInventoryFields({
           </div>
 
           <label
-            className={`flex items-center gap-3 text-[13px] text-[#202223] ${!isPremium ? 'cursor-pointer' : ''}`}
-            onClick={(e) => {
-              if (!isPremium) {
-                e.preventDefault();
-                promptUpgrade('bulk_purchase');
-              }
-            }}
+            className="flex items-center gap-3 text-[13px] text-[#202223]"
           >
             <span className="font-medium">Available</span>
             <input
@@ -676,20 +677,7 @@ export default function ProductPricingInventoryFields({
           </label>
         </div>
 
-        <div
-          className={`px-4 py-4 bg-white ${!isPremium ? 'cursor-pointer' : ''}`}
-          onClick={() => {
-            if (!isPremium) promptUpgrade('bulk_purchase');
-          }}
-          onKeyDown={(e) => {
-            if (!isPremium && (e.key === 'Enter' || e.key === ' ')) {
-              e.preventDefault();
-              promptUpgrade('bulk_purchase');
-            }
-          }}
-          role={!isPremium ? 'button' : undefined}
-          tabIndex={!isPremium ? 0 : undefined}
-        >
+        <div className={`px-4 py-4 bg-white ${!isPremium ? 'pointer-events-none' : ''}`}>
           <label className="block text-[14px] font-semibold text-[#202223] mb-2">
             Minimum Order Quantity (Pieces/Units)
           </label>
@@ -718,51 +706,45 @@ export default function ProductPricingInventoryFields({
                   bulkPurchaseMinOrderQuantity: e.target.value,
                 }));
               }}
-              onClick={(e) => {
-                if (!isPremium) {
-                  e.stopPropagation();
-                  promptUpgrade('bulk_purchase');
-                }
-              }}
             />
 
             <div className="flex flex-col">
-              <button
-                type="button"
-                disabled={!isPremium || !productData.bulkPurchaseEnabled}
-                className="h-1/2 px-3 border border-[#8C9196] rounded-t-md bg-white text-[#202223] hover:bg-[#F6F6F7] disabled:opacity-50"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (promptUpgrade('bulk_purchase')) return;
-                  const cur = Number(productData.bulkPurchaseMinOrderQuantity ?? 50);
-                  const next = Number.isFinite(cur) ? cur + 1 : 50;
-                  setProductData((prev) => ({
-                    ...prev,
-                    bulkPurchaseMinOrderQuantity: next,
-                  }));
-                }}
-                aria-label="Increase minimum order quantity"
-              >
-                ▲
-              </button>
-              <button
-                type="button"
-                disabled={!isPremium || !productData.bulkPurchaseEnabled}
-                className="h-1/2 px-3 border border-t-0 border-[#8C9196] rounded-b-md bg-white text-[#202223] hover:bg-[#F6F6F7] disabled:opacity-50"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (promptUpgrade('bulk_purchase')) return;
-                  const cur = Number(productData.bulkPurchaseMinOrderQuantity ?? 50);
-                  const next = Number.isFinite(cur) ? Math.max(1, cur - 1) : 50;
-                  setProductData((prev) => ({
-                    ...prev,
-                    bulkPurchaseMinOrderQuantity: next,
-                  }));
-                }}
-                aria-label="Decrease minimum order quantity"
-              >
-                ▼
-              </button>
+               <button
+                 type="button"
+                 disabled={!isPremium || !productData.bulkPurchaseEnabled}
+                 className="h-1/2 px-3 border border-[#8C9196] rounded-t-md bg-white text-[#202223] hover:bg-[#F6F6F7] disabled:opacity-50"
+                 onClick={(e) => {
+                   e.stopPropagation();
+                   if (promptUpgrade('bulk_purchase')) return;
+                   const cur = Number(productData.bulkPurchaseMinOrderQuantity ?? 50);
+                   const next = Number.isFinite(cur) ? cur + 1 : 50;
+                   setProductData((prev) => ({
+                     ...prev,
+                     bulkPurchaseMinOrderQuantity: next,
+                   }));
+                 }}
+                 aria-label="Increase minimum order quantity"
+               >
+                 ▲
+               </button>
+               <button
+                 type="button"
+                 disabled={!isPremium || !productData.bulkPurchaseEnabled}
+                 className="h-1/2 px-3 border border-t-0 border-[#8C9196] rounded-b-md bg-white text-[#202223] hover:bg-[#F6F6F7] disabled:opacity-50"
+                 onClick={(e) => {
+                   e.stopPropagation();
+                   if (promptUpgrade('bulk_purchase')) return;
+                   const cur = Number(productData.bulkPurchaseMinOrderQuantity ?? 50);
+                   const next = Number.isFinite(cur) ? Math.max(1, cur - 1) : 50;
+                   setProductData((prev) => ({
+                     ...prev,
+                     bulkPurchaseMinOrderQuantity: next,
+                   }));
+                 }}
+                 aria-label="Decrease minimum order quantity"
+               >
+                 ▼
+               </button>
             </div>
           </div>
 
@@ -808,6 +790,10 @@ export default function ProductPricingInventoryFields({
                 type="button"
                 className="w-full flex items-center justify-between border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] bg-white hover:bg-[#F6F6F7]"
                 onClick={() => {
+                  if (!isPremium && lockedCategoryPath) {
+                    onRequestUpgrade?.('free_category_path', { autoRedirect: true });
+                    return;
+                  }
                   setMainOpen((v) => !v);
                   setSubOpen(false);
                   setTypeOpen(false);
@@ -875,6 +861,10 @@ export default function ProductPricingInventoryFields({
                   }`}
                   disabled={!mainKey}
                   onClick={() => {
+                    if (!isPremium && lockedCategoryPath) {
+                      onRequestUpgrade?.('free_category_path', { autoRedirect: true });
+                      return;
+                    }
                     if (!mainKey) return;
                     setSubOpen((v) => !v);
                     setMainOpen(false);
@@ -945,6 +935,10 @@ export default function ProductPricingInventoryFields({
                   }`}
                   disabled={!mainKey || !subKey}
                   onClick={() => {
+                    if (!isPremium && lockedCategoryPath) {
+                      onRequestUpgrade?.('free_category_path', { autoRedirect: true });
+                      return;
+                    }
                     if (!mainKey || !subKey) return;
                     setTypeOpen((v) => !v);
                     setMainOpen(false);

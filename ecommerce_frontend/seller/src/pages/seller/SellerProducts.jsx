@@ -89,7 +89,7 @@ const SellerProducts = () => {
   const [upgradeAutoRedirect, setUpgradeAutoRedirect] = useState(false);
   const [actionOpenId, setActionOpenId] = useState(null);
 
-  const openUpgradeModal = (feature = 'premium', { autoRedirect = false } = {}) => {
+  const openUpgradeModal = (feature = 'premium', { autoRedirect = true } = {}) => {
     setUpgradeFeature(feature);
     setUpgradeAutoRedirect(autoRedirect);
     setUpgradeModalOpen(true);

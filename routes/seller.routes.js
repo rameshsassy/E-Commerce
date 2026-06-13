@@ -153,8 +153,19 @@ router.post("/test/set-subscription", protect, authorizeRoles("seller"), setSubs
 router.post("/test/run-reminders", protect, authorizeRoles("seller"), triggerRemindersForTest);
 router.post("/test/run-referral-followups", protect, authorizeRoles("seller"), triggerReferralFollowUpsForTest);
 
+import {
+  createVoucher,
+  getSellerVouchers,
+  deleteVoucher
+} from "../controllers/voucher.controller.js";
+
 // 🛍️ Seller Buy Products Flow
 router.get("/buy-products", protect, authorizeRoles("seller"), getBuyProducts);
 router.post("/buy-products/order", protect, authorizeRoles("seller"), placeSellerOrder);
+
+// 🏷️ Seller Vouchers
+router.get("/vouchers", protect, authorizeRoles("seller"), getSellerVouchers);
+router.post("/vouchers", protect, authorizeRoles("seller"), createVoucher);
+router.delete("/vouchers/:id", protect, authorizeRoles("seller"), deleteVoucher);
 
 export default router;

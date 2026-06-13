@@ -58,39 +58,52 @@ const AdminPremiumSellers = () => {
               <tr>
                 <th className="p-4 font-medium">Name</th>
                 <th className="p-4 font-medium">Email</th>
+                <th className="p-4 font-medium text-center">Plan</th>
                 <th className="p-4 font-medium text-center">Bulk Purchase</th>
-                <th className="p-4 font-medium text-center">Subscription</th>
-                <th className="p-4 font-medium text-center">Status</th>
+                <th className="p-4 font-medium text-center">Subscription Status</th>
+                <th className="p-4 font-medium text-center">KYC Status</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map(seller => (
-                <tr key={seller._id} className="border-b border-glass-border hover:bg-surface/30 transition-colors">
-                  <td className="p-4 font-medium">{seller.firstName} {seller.lastName}</td>
-                  <td className="p-4 text-text-muted">{seller.email}</td>
-                  <td className="p-4 text-center">
-                    {seller.bulkPurchaseEnabled ? (
-                      <span className="badge badge-success">Enabled</span>
-                    ) : (
-                      <span className="badge badge-warning">Disabled</span>
-                    )}
-                  </td>
-                  <td className="p-4 text-center">
-                    {seller.subscriptionActive ? (
-                      <span className="badge badge-success">Active</span>
-                    ) : (
-                      <span className="badge badge-warning">Inactive</span>
-                    )}
-                  </td>
-                  <td className="p-4 text-center">
-                    {seller.status === 'approved' ? (
-                      <span className="badge badge-success">Approved</span>
-                    ) : (
-                      <span className="badge badge-warning capitalize">{seller.status}</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {filtered.map(seller => {
+                const plan = seller.subscriptionPlan || (seller.sellerType === 'premium' && seller.subscriptionActive ? 'premium' : 'free');
+                return (
+                  <tr key={seller._id} className="border-b border-glass-border hover:bg-surface/30 transition-colors">
+                    <td className="p-4 font-medium">{seller.firstName} {seller.lastName}</td>
+                    <td className="p-4 text-text-muted">{seller.email}</td>
+                    <td className="p-4 text-center">
+                      {plan === 'premium' ? (
+                        <span className="badge bg-warning/20 text-warning border border-warning/30 font-bold">Premium</span>
+                      ) : plan === 'pro' ? (
+                        <span className="badge bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 font-bold">Pro</span>
+                      ) : (
+                        <span className="badge badge-secondary">Free</span>
+                      )}
+                    </td>
+                    <td className="p-4 text-center">
+                      {seller.bulkPurchaseEnabled ? (
+                        <span className="badge badge-success">Enabled</span>
+                      ) : (
+                        <span className="badge badge-warning">Disabled</span>
+                      )}
+                    </td>
+                    <td className="p-4 text-center">
+                      {seller.subscriptionActive ? (
+                        <span className="badge badge-success">Active</span>
+                      ) : (
+                        <span className="badge badge-warning">Inactive</span>
+                      )}
+                    </td>
+                    <td className="p-4 text-center">
+                      {seller.status === 'approved' ? (
+                        <span className="badge badge-success">Approved</span>
+                      ) : (
+                        <span className="badge badge-warning capitalize">{seller.status}</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
           </ResponsiveTable>

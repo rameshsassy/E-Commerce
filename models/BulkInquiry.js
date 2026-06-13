@@ -12,8 +12,23 @@ const bulkInquirySchema = new mongoose.Schema(
     productId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Product",
-      required: true,
+      required: false,
       index: true,
+    },
+    productTitle: {
+      type: String,
+      trim: true,
+    },
+    productPrice: {
+      type: String,
+      trim: true,
+    },
+    productImage: {
+      type: String,
+      trim: true,
+    },
+    productMinQty: {
+      type: Number,
     },
     /** Display id: sequence + DDMMYYYY — e.g. 0328052025 */
     displayBulkRequestId: { type: String, trim: true, index: true },

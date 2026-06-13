@@ -295,8 +295,7 @@ export function applyProductFields(
   }
 
   // Premium-only bulk purchase / B2B
-  const subscribedSeller =
-    seller?.sellerType === "premium" && seller?.subscriptionActive === true;
+  const subscribedSeller = isSubscribedSeller(seller);
 
   const wantsBulk =
     bulkPurchaseEnabled === true ||
@@ -313,7 +312,7 @@ export function applyProductFields(
   if (bulkPurchaseEnabled !== undefined) {
     if (wantsBulk && !subscribedSeller) {
       throw createPremiumRequiredError(
-        "You need to upgrade to Premium to enable Bulk Purchase / B2B.",
+        "You need to upgrade to Pro or Premium to enable Bulk Purchase / B2B.",
         "bulk_purchase"
       );
     }
@@ -328,7 +327,7 @@ export function applyProductFields(
   if (shouldValidateBulkMin) {
     if (product.bulkPurchaseEnabled && !subscribedSeller) {
       throw createPremiumRequiredError(
-        "You need to upgrade to Premium to enable Bulk Purchase / B2B.",
+        "You need to upgrade to Pro or Premium to enable Bulk Purchase / B2B.",
         "bulk_purchase"
       );
     }

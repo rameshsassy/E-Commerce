@@ -5,6 +5,12 @@ import {
   authorizeAdminRole,
   requireAdminSection,
 } from "../middleware/adminAccess.middleware.js";
+import {
+  getAdminVouchers,
+  getVoucherSearchData,
+  createAdminVoucher,
+  deleteAdminVoucher,
+} from "../controllers/adminVoucher.controller.js";
 
 import {
   getAllSellers,
@@ -130,5 +136,13 @@ router.delete("/roles/staff/:id", protect, authorizeSuperAdmin, deleteAdminStaff
 router.get("/website-requests", protect, authorizeAdminRole, getAllWebsiteRequests);
 router.put("/website-requests/:id/status", protect, authorizeAdminRole, updateWebsiteRequestStatus);
 router.delete("/website-requests/:id", protect, authorizeAdminRole, deleteWebsiteRequest);
+
+// ===============================
+// 🎟️ ADMIN VOUCHERS
+// ===============================
+router.get("/vouchers", protect, authorizeAdminRole, requireAdminSection("coupons"), getAdminVouchers);
+router.get("/vouchers/search-data", protect, authorizeAdminRole, requireAdminSection("coupons"), getVoucherSearchData);
+router.post("/vouchers", protect, authorizeAdminRole, requireAdminSection("coupons"), createAdminVoucher);
+router.delete("/vouchers/:id", protect, authorizeAdminRole, requireAdminSection("coupons"), deleteAdminVoucher);
 
 export default router;

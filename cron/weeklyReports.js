@@ -49,9 +49,17 @@ export async function getWeeklySellerReportData(seller) {
   }).select("kycStatus sellerType subscriptionActive");
 
   let referralEarnings = 0;
-  const referrerIsPremium = seller.sellerType === "premium" && seller.subscriptionActive === true;
-  const approvedCredit = referrerIsPremium ? 750 : 500;
-  const premiumBonus = referrerIsPremium ? 1500 : 500;
+  const activePlan = seller.subscriptionPlan || (seller.sellerType === "premium" && seller.subscriptionActive ? "premium" : "free");
+  let approvedCredit = 500;
+  let premiumBonus = 500;
+
+  if (activePlan === "premium") {
+    approvedCredit = 750;
+    premiumBonus = 1500;
+  } else if (activePlan === "pro") {
+    approvedCredit = 750;
+    premiumBonus = 1000;
+  }
 
   for (const ref of referredSellers) {
     if (ref.kycStatus === "approved") {
@@ -78,7 +86,7 @@ export async function getWeeklySellerReportData(seller) {
 
 export async function runWeeklySellerReports() {
   const sellers = await User.find({ role: "seller", status: "approved" })
-    .select("firstName email sellerType subscriptionActive")
+    .select("firstName email sellerType subscriptionActive subscriptionPlan")
     .limit(300);
 
   for (const seller of sellers) {

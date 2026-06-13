@@ -894,7 +894,7 @@ export const getAnalytics = async (req, res) => {
         to: toDate ? formatYmdUtc(toDate) : null,
         chartBucket: useMonthlyChart ? "month" : "day",
       },
-      plan: isPremium ? "premium" : "free",
+      plan: req.user.subscriptionPlan || (isPremium ? "premium" : "free"),
       totalRevenue,
       totalOrders,
       productsSold,
@@ -1042,9 +1042,9 @@ export const getSellerProfile = async (req, res) => {
       kycStatus: user.kycStatus,
       sellerType: user.sellerType,
       subscriptionActive: user.subscriptionActive,
-      subscriptionPlan: user.subscriptionPlan || (user.sellerType === "premium" && user.subscriptionActive ? "pro" : "free"),
+      subscriptionPlan: user.subscriptionPlan || (user.sellerType === "premium" && user.subscriptionActive ? "premium" : "free"),
       subscriptionValidUntil: user.subscriptionValidUntil || null,
-      plan: isPremium ? "Premium" : "Free",
+      plan: user.subscriptionPlan === "premium" ? "Premium" : user.subscriptionPlan === "pro" ? "Pro" : "Free",
     });
 
   } catch (error) {
@@ -1298,7 +1298,7 @@ export const submitKycStep1 = async (req, res) => {
       if (!subscribed && parsedStoreAddresses.length > 1) {
         return res.status(403).json({
           message:
-            "Only one store address allowed for free users. Upgrade to premium to add more addresses.",
+            "Only one store address allowed for free users. Upgrade to Pro or Premium to add more addresses.",
           code: "PREMIUM_REQUIRED",
           upgradeFeature: "multiple_addresses",
         });
@@ -1516,7 +1516,7 @@ export const submitKycComplete = async (req, res) => {
         if (!subscribed && parsedStoreAddresses.length > 1) {
           return res.status(403).json({
             message:
-              "Only one store address allowed for free users. Upgrade to premium to add more addresses.",
+              "Only one store address allowed for free users. Upgrade to Pro or Premium to add more addresses.",
             code: "PREMIUM_REQUIRED",
             upgradeFeature: "multiple_addresses",
           });
@@ -1613,7 +1613,7 @@ export const submitKycComplete = async (req, res) => {
       if (!subscribed && parsedStoreAddresses.length > 1) {
         return res.status(403).json({
           message:
-            "Only one store address allowed for free users. Upgrade to premium to add more addresses.",
+            "Only one store address allowed for free users. Upgrade to Pro or Premium to add more addresses.",
           code: "PREMIUM_REQUIRED",
           upgradeFeature: "multiple_addresses",
         });
@@ -1751,10 +1751,9 @@ export const createSubscriptionOrder = async (req, res) => {
       return res.status(400).json({ message: "Invalid plan selection. Choose either pro or premium." });
     }
 
-    if (user.sellerType === "premium" && user.subscriptionActive === true) {
-      if (user.subscriptionPlan === "premium" || plan === "pro") {
-        return res.status(400).json({ message: "You are already subscribed to this or a higher plan." });
-      }
+    const activePlan = user.subscriptionPlan || (user.sellerType === "premium" && user.subscriptionActive === true ? "premium" : "free");
+    if (activePlan === "premium" || activePlan === plan) {
+      return res.status(400).json({ message: "You are already subscribed to this or a higher plan." });
     }
 
     let rzp;
@@ -2049,7 +2048,7 @@ export const getPremiumPageDetails = async (req, res) => {
       data: {
         sellerType: user.sellerType,
         subscriptionActive: user.subscriptionActive,
-        subscriptionPlan: user.subscriptionPlan || (user.sellerType === "premium" && user.subscriptionActive ? "pro" : "free"),
+        subscriptionPlan: user.subscriptionPlan || (user.sellerType === "premium" && user.subscriptionActive ? "premium" : "free"),
         subscriptionValidUntil: user.subscriptionValidUntil || null,
         stats: {
           productsListed,
@@ -2107,7 +2106,7 @@ export const getReferAndEarn = async (req, res) => {
       limit: referredLimit,
     });
     const isPremium = user.sellerType === "premium" && user.subscriptionActive === true;
-    const activePlan = user.subscriptionPlan || (isPremium ? "pro" : "free");
+    const activePlan = user.subscriptionPlan || (isPremium ? "premium" : "free");
     const currentPlanLabel = activePlan === "premium" ? "Premium" : activePlan === "pro" ? "Pro" : "Free";
     const senderName =
       user.businessName?.trim() ||

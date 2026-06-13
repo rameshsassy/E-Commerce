@@ -11,8 +11,12 @@ export const PURCHASE_TYPE_LABELS = {
 };
 
 export function isSubscribedSeller(seller) {
+  if (seller?.subscriptionPlan === "free") return false;
   return (
-    seller?.sellerType === "premium" && seller?.subscriptionActive === true
+    (seller?.sellerType === "premium" ||
+      seller?.subscriptionPlan === "pro" ||
+      seller?.subscriptionPlan === "premium") &&
+    seller?.subscriptionActive === true
   );
 }
 
@@ -86,7 +90,7 @@ export function validateInventoryFields(seller, body, { partial = false, require
       !isSubscribedSeller(seller)
     ) {
       const err = new Error(
-        `${PURCHASE_TYPE_LABELS[purchaseType]} is only available for subscribed sellers. Upgrade to premium to use this option.`
+        `${PURCHASE_TYPE_LABELS[purchaseType]} is only available for subscribed sellers. Upgrade to Pro or Premium to use this option.`
       );
       err.statusCode = 403;
       err.code = "PREMIUM_REQUIRED";

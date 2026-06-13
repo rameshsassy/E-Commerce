@@ -53,6 +53,7 @@ const ADMIN_PATH_SECTIONS = [
   [/^\/admin\/orders/, 'orders'],
   [/^\/admin\/returns/, 'returns'],
   [/^\/admin\/coupons/, 'coupons'],
+  [/^\/admin\/vouchers/, 'coupons'],
   [/^\/admin\/categories/, 'categories'],
   [/^\/admin\/menu/, 'categories'],
   [/^\/admin\/premium-sellers/, 'sellers'],
@@ -326,6 +327,16 @@ const DashboardLayout = ({ variant }) => {
                 >
                   <Tag size={20} className="text-text-muted" />
                   Promo Codes
+                </Link>
+              )}
+
+              {showAdminLink('coupons') && (
+                <Link
+                  to="/admin/vouchers"
+                  className={adminNavLinkClass(location.pathname, location.hash, '/admin/vouchers')}
+                >
+                  <Tag size={20} className="text-text-muted" />
+                  Vouchers
                 </Link>
               )}
 

@@ -25,6 +25,7 @@ import SellerPremium from './pages/seller/SellerPremium';
 import SellerChat from './pages/seller/SellerChat';
 import SellerBuyProducts from './pages/seller/SellerBuyProducts';
 import SellerRequestWebsite from './pages/seller/SellerRequestWebsite';
+import SellerVouchers from './pages/seller/SellerVouchers';
 
 // Footer links displayed in dashboard layouts
 import TermsAndConditions from './pages/public/TermsAndConditions';
@@ -65,6 +66,7 @@ function AppRoutes() {
         <Route path="/seller/about-us" element={<SellerAboutUs />} />
         <Route path="/seller/buy-products" element={<SellerBuyProducts />} />
         <Route path="/seller/request-website" element={<SellerRequestWebsite />} />
+        <Route path="/seller/vouchers" element={<SellerVouchers />} />
         <Route path="/terms" element={<TermsAndConditions />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/about-us" element={<AboutUs />} />
