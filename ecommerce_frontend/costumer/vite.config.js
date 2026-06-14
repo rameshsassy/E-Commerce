@@ -33,7 +33,14 @@ export default defineConfig({
     react(),
   ],
   server: {
-    host: "::",
+    host: "0.0.0.0",
     port: 5174,
+    allowedHosts: [
+      "aashansh.org",
+      "seller.aashansh.org",
+      "superadmin.aashansh.org",
+      "localhost",
+      "127.0.0.1",
+    ],
   },
 });
