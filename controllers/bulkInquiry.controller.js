@@ -24,7 +24,7 @@ import {
 } from "../services/sellerActivity.service.js";
 
 const appBaseUrl = () =>
-  (process.env.FRONTEND_URL || "http://localhost:5174").replace(/\/$/, "");
+  (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
 
 function sellerIsPremium(seller) {
   if (!seller) return false;

@@ -4,8 +4,8 @@
  */
 
 const DEFAULT_SELLER_HOSTS = 'seller.localhost';
-const DEFAULT_CUSTOMER_ORIGIN = 'http://localhost:5174';
-const DEFAULT_SELLER_ORIGIN = 'http://seller.localhost:5175';
+const DEFAULT_CUSTOMER_ORIGIN = 'http://localhost:5173';
+const DEFAULT_SELLER_ORIGIN = 'http://seller.localhost:5174';
 
 function isLocalHostname(hostname) {
   const h = String(hostname).toLowerCase();
@@ -48,7 +48,7 @@ export function isSellerPortal(
 }
 
 function isPendingSellerDomain(url) {
-  return /seller\.aashansh\.org/i.test(String(url || ''));
+  return false;
 }
 
 /** Seller portal base URL — uses same host on Vercel until seller.aashansh.org DNS exists. */
@@ -186,6 +186,10 @@ export { isLocalHostname };
 
 function sanitizePortalRedirect(url) {
   if (!url || typeof window === 'undefined') return url;
+  const h = window.location.hostname.toLowerCase();
+  if (h !== 'localhost' && h !== '127.0.0.1' && !h.endsWith('.localhost')) {
+    return url;
+  }
   if (!/seller\.aashansh\.org/i.test(url)) return url;
   try {
     const parsed = new URL(url);

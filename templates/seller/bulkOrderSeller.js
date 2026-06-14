@@ -37,7 +37,7 @@ function featureCard(iconUrl, title, description) {
  */
 export default function bulkOrderSeller(seller, payload) {
   const firstName = escapeHtml(seller.firstName || "there");
-  const dashboardUrl = `${process.env.FRONTEND_URL || "http://localhost:5174"}/seller/dashboard`;
+  const dashboardUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/seller/dashboard`;
 
   // Parse the quantity string into individual product/variant lines
   // The quantityRequired field can be "250" or "250, 500" or multi-line

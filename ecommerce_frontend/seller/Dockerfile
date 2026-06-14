@@ -13,7 +13,7 @@ RUN npm ci
 COPY . .
 
 # Expose frontend dev server port
-EXPOSE 5175
+EXPOSE 5174
 
 # Start development server with host mapping
 CMD ["npm", "run", "dev", "--", "--host"]

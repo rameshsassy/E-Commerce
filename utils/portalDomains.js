@@ -95,20 +95,20 @@ export function getPortalFromRequest(req) {
 export function getSellerPortalOrigin() {
   const list = parseOriginList(process.env.SELLER_FRONTEND_URL);
   const configured = list[0];
-  if (configured && !/seller\.aashansh\.org/i.test(configured)) return configured;
+  if (configured) return configured;
   const customer = parseOriginList(process.env.FRONTEND_URL)[0];
   if (customer) {
     try {
       const parsed = new URL(customer);
       if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
-        return `${parsed.protocol}//${parsed.hostname}:5175`;
+        return `${parsed.protocol}//${parsed.hostname}:5174`;
       }
     } catch {
       // ignore
     }
     return customer;
   }
-  return "http://localhost:5175";
+  return "http://localhost:5174";
 }
 
 export function getCustomerPortalOrigin() {
@@ -173,7 +173,11 @@ export function portalLoginRedirectUrl(expectedPortal, req) {
 
       // Custom domain, expectedPortal is seller, prepends seller.
       if (expectedPortal === "seller") {
-        const sellerHost = `seller.${host}`;
+        let sellerHost = `seller.${host}`;
+        const mainDomain = (process.env.CUSTOMER_PORTAL_HOST || "aashansh.org").toLowerCase();
+        if (host === mainDomain || host.endsWith("." + mainDomain)) {
+          sellerHost = `seller.${mainDomain}`;
+        }
         const portStr = parsed.port ? `:${parsed.port}` : "";
         return `${parsed.protocol}//${sellerHost}${portStr}/login?portal=seller`;
       }
