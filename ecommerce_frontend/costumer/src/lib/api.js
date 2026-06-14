@@ -1,6 +1,25 @@
-// Customer API client. Uses HttpOnly cookies (credentials: include) and auto refreshes on 401.
-export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+function resolveApiBaseUrl() {
+  const baked = import.meta.env.VITE_API_BASE_URL;
+  const inBrowser = typeof window !== "undefined";
+
+  if (baked && !/localhost|127\.0\.0\.1/i.test(baked)) {
+    return baked;
+  }
+
+  if (inBrowser) {
+    // Relative path /api avoids Private Network Access (PNA) / CORS blocks in the browser
+    return "/api";
+  }
+
+  // Server-side (SSR) environments fallback
+  const serverBase = typeof process !== "undefined" && process.env
+    ? (process.env.VITE_API_PROXY_URL || process.env.VITE_API_BASE_URL)
+    : undefined;
+
+  return serverBase || "http://localhost:5000/api";
+}
+
+export const API_BASE_URL = resolveApiBaseUrl();
 
 export class ApiError extends Error {
   constructor(message, status, data) {
@@ -14,7 +33,7 @@ let refreshPromise = null;
 
 async function tryRefresh() {
   if (!refreshPromise) {
-    refreshPromise = fetch(`${API_BASE_URL}/auth/refresh-token`, {
+    refreshPromise = fetch(buildUrl("/auth/refresh-token"), {
       method: "POST",
       credentials: "include",
     })
@@ -28,8 +47,15 @@ async function tryRefresh() {
 }
 
 function buildUrl(path, params) {
+  let base = API_BASE_URL;
+  if (!base.startsWith("http")) {
+    base = typeof window !== "undefined"
+      ? window.location.origin + (base.startsWith("/") ? base : "/" + base)
+      : "http://backend:5000/api";
+  }
+
   const url = new URL(
-    `${API_BASE_URL}${path.startsWith("/") ? path : "/" + path}`,
+    `${base}${path.startsWith("/") ? path : "/" + path}`
   );
   if (params) {
     Object.entries(params).forEach(([k, v]) => {
