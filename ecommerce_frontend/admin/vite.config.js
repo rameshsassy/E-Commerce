@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: true,
-    port: 5175,
+    port: 5173,
     allowedHosts: ['superadmin.aashansh.org', 'localhost', '127.0.0.1'],
     proxy: {
       '/api': {

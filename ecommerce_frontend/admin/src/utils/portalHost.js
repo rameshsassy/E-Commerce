@@ -1,11 +1,11 @@
 /**
- * Customer portal: localhost:5173 (prod: aashansh.org later)
- * Seller portal: seller.localhost:5173 or /seller/* on localhost (prod: seller.aashansh.org later)
+ * Customer portal: localhost:5174 (prod: aashansh.org later)
+ * Seller portal: seller.localhost:5175 or /seller/* on localhost (prod: seller.aashansh.org later)
  */
 
 const DEFAULT_SELLER_HOSTS = 'seller.localhost';
-const DEFAULT_CUSTOMER_ORIGIN = 'http://localhost:5173';
-const DEFAULT_SELLER_ORIGIN = 'http://seller.localhost:5173';
+const DEFAULT_CUSTOMER_ORIGIN = 'http://localhost:5174';
+const DEFAULT_SELLER_ORIGIN = 'http://seller.localhost:5175';
 
 function isLocalHostname(hostname) {
   const h = String(hostname).toLowerCase();

@@ -101,14 +101,14 @@ export function getSellerPortalOrigin() {
     try {
       const parsed = new URL(customer);
       if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
-        return `${parsed.protocol}//${parsed.hostname}:5174`;
+        return `${parsed.protocol}//${parsed.hostname}:5175`;
       }
     } catch {
       // ignore
     }
     return customer;
   }
-  return "http://localhost:5174";
+  return "http://localhost:5175";
 }
 
 export function getCustomerPortalOrigin() {

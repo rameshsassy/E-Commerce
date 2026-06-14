@@ -43,14 +43,14 @@ services:
   # 3. Customer React Client
   customer:
     build:
-      context: ./ecommerce_frontend/customer
+      context: ./ecommerce_frontend/costumer
       dockerfile: Dockerfile
     container_name: aashansh_customer
     restart: always
     ports:
-      - "5173:5173"
+      - "5174:5174"
     volumes:
-      - ./ecommerce_frontend/customer:/app
+      - ./ecommerce_frontend/costumer:/app
       - /app/node_modules
     environment:
       - VITE_API_PROXY_URL=http://backend:5000
@@ -67,7 +67,7 @@ services:
     container_name: aashansh_seller
     restart: always
     ports:
-      - "5174:5174"
+      - "5175:5175"
     volumes:
       - ./ecommerce_frontend/seller:/app
       - /app/node_modules
@@ -86,7 +86,7 @@ services:
     container_name: aashansh_admin
     restart: always
     ports:
-      - "5175:5175"
+      - "5173:5173"
     volumes:
       - ./ecommerce_frontend/admin:/app
       - /app/node_modules

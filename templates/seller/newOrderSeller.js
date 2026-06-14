@@ -29,7 +29,7 @@ function featureCard(iconUrl, title, description) {
  */
 export default function newOrderSeller(seller, customerName, customerPhone, address, order, items) {
   const firstName = escapeHtml(seller.firstName || "there");
-  const dashboardUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/seller/dashboard`;
+  const dashboardUrl = `${process.env.FRONTEND_URL || "http://localhost:5174"}/seller/dashboard`;
 
   // Build the ordered product list rows
   const productRows = (items || [])

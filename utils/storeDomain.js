@@ -7,7 +7,7 @@ export function getPlatformStoreHost() {
   if (fromEnv) return fromEnv.replace(/^https?:\/\//, "").replace(/\/$/, "");
   try {
     const url = new URL(
-      process.env.FRONTEND_URL || "http://localhost:5173"
+      process.env.FRONTEND_URL || "http://localhost:5174"
     );
     return url.hostname;
   } catch {

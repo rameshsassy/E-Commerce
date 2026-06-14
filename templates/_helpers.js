@@ -1,5 +1,5 @@
 export const appBaseUrl = () =>
-  (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
+  (process.env.FRONTEND_URL || "http://localhost:5174").replace(/\/$/, "");
 
 export function formatShippingAddress(address) {
   if (!address) return "—";

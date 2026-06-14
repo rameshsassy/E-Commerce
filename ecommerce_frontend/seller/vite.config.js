@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: true,
-    port: 5174,
+    port: 5175,
     allowedHosts: ['seller.aashansh.org', 'localhost', '127.0.0.1'],
     proxy: {
       '/api': { target: process.env.VITE_API_PROXY_URL || 'http://localhost:5000', changeOrigin: true },
