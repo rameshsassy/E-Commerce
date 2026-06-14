@@ -92,6 +92,15 @@ export const issueTokensAndSetCookie = async (user, res, req) => {
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
   });
 
+  // Also set access token as HttpOnly cookie for the customer frontend
+  res.cookie('accessToken', accessToken, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite,
+    path: '/',
+    maxAge: 24 * 60 * 60 * 1000, // 1 day (matches JWT access token TTL)
+  });
+
   return accessToken;
 };
 
@@ -419,6 +428,24 @@ export const refreshTokenHandler = async (req, res) => {
       // Generate new Access Token
       const accessToken = generateAccessToken(dbToken.user);
 
+      // Also refresh the accessToken cookie for the customer frontend
+      const isProd = process.env.NODE_ENV === 'production';
+      let sameSite = isProd ? 'strict' : 'lax';
+      if (isProd && req?.headers?.origin) {
+        try {
+          const apiHost = new URL(`${req.protocol || 'https'}://${req.get('host')}`).hostname;
+          const originHost = new URL(req.headers.origin).hostname;
+          if (apiHost !== originHost) sameSite = 'none';
+        } catch { /* keep strict */ }
+      }
+      res.cookie('accessToken', accessToken, {
+        httpOnly: true,
+        secure: isProd,
+        sameSite,
+        path: '/',
+        maxAge: 24 * 60 * 60 * 1000, // 1 day
+      });
+
       res.json({ token: accessToken, user: buildSafeUser(dbToken.user) });
     });
   } catch (error) {
@@ -438,8 +465,14 @@ export const logoutUser = async (req, res) => {
       await RefreshToken.deleteOne({ token: refreshToken });
     }
 
-    // Clear cookie
+    // Clear cookies
     res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      path: '/',
+    });
+    res.clearCookie('accessToken', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',

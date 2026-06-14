@@ -37,7 +37,7 @@ export function resolveApiBaseUrl() {
     return baked;
   }
 
-  // Local dev: same-origin so Vite proxies /api → http://127.0.0.1:5000 (see vite.config.js)
+  // Local dev: same-origin so Vite proxies /api → http://localhost:5000 (see vite.config.js)
   if (onLocal && inBrowser) {
     return window.location.origin;
   }

@@ -1,6 +1,6 @@
 /**
  * Run before deploy: node scripts/verify-deploy.mjs [API_BASE_URL]
- * Default API_BASE_URL: http://127.0.0.1:5000
+ * Default API_BASE_URL: http://localhost:5000
  */
 import fs from 'fs';
 import path from 'path';
@@ -8,7 +8,7 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const frontendRoot = path.join(__dirname, '..');
-const apiBase = (process.argv[2] || 'http://127.0.0.1:5000').replace(/\/$/, '');
+const apiBase = (process.argv[2] || 'http://localhost:5000').replace(/\/$/, '');
 
 let failed = 0;
 

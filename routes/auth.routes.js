@@ -27,6 +27,7 @@ router.post("/logout", logoutUser);
 // 🔑 PASSWORD RESET ROUTES
 // ===============================
 router.post("/forgot-password", forgotPassword);
+router.post("/reset-password/:token", resetPassword); // frontend sends POST
 router.put("/reset-password/:token", resetPassword);
 
 export default router;

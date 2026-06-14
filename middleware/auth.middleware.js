@@ -12,7 +12,12 @@ export const protect = async (req, res, next) => {
       token = req.headers.authorization.split(" ")[1];
     }
 
-    console.log("TOKEN:", token);
+    // Fallback: read access token from HttpOnly cookie (Loveable customer frontend)
+    if (!token && req.cookies?.accessToken) {
+      token = req.cookies.accessToken;
+    }
+
+    console.log("TOKEN:", token ? "present" : "missing");
 
     if (!token) {
       return res.status(401).json({ message: "Not authorized, no token" });

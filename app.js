@@ -22,6 +22,7 @@ import formDraftRoutes from "./routes/formDraft.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
 import websiteRequestRoutes from "./routes/websiteRequest.routes.js";
 import menuRoutes from "./routes/menu.routes.js";
+import { wishlistRouter, cartRouter } from "./routes/customerFrontend.routes.js";
 
 import { errorHandler } from "./middleware/error.middleware.js";
 import { clientDeviceMiddleware } from "./middleware/clientDevice.middleware.js";
@@ -215,6 +216,8 @@ app.use("/api/public", publicStoreRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/website-requests", websiteRequestRoutes);
 app.use("/api/menu", menuRoutes);
+app.use("/api/wishlist", wishlistRouter); // ✅ Customer frontend alias
+app.use("/api/cart", cartRouter);         // ✅ Customer frontend alias
 
 // ===============================
 // 🏠 ROOT ROUTE

@@ -77,6 +77,7 @@ router.delete("/cart", protect, authorizeRoles("customer"), clearCart);
 router.post("/order", protect, authorizeRoles("customer"), createOrder);
 router.get("/orders", protect, authorizeRoles("customer"), getMyOrders);
 router.get("/order/:id", protect, authorizeRoles("customer"), getOrderById);
+router.get("/orders/:id", protect, authorizeRoles("customer"), getOrderById); // alias for frontend
 
 router.post("/order/razorpay", protect, authorizeRoles("customer"), createRazorpayOrder);
 router.post("/order/razorpay/verify", protect, authorizeRoles("customer"), verifyRazorpayPayment);
