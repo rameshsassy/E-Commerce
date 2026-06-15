@@ -5,7 +5,7 @@ const bulkInquirySchema = new mongoose.Schema(
   {
     sellerId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Seller",
       required: true,
       index: true,
     },
@@ -34,7 +34,7 @@ const bulkInquirySchema = new mongoose.Schema(
     displayBulkRequestId: { type: String, trim: true, index: true },
     buyerId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Customer",
       default: null,
     },
     buyerName: {

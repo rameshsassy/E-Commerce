@@ -1,4 +1,4 @@
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import {
   Outlet,
   createRootRouteWithContext,
@@ -13,8 +13,10 @@ import appCss from "../styles.css?url";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { WishlistProvider } from "@/contexts/WishlistContext";
-import { Header } from "@/components/customer/Header";
+import { Header } from "@/components/header/Header";
 import { Footer } from "@/components/customer/Footer";
+import { AnnouncementBar } from "@/components/home/AnnouncementBar";
+import { publicApi } from "@/lib/services";
 
 function NotFoundComponent() {
   return (
@@ -118,6 +120,24 @@ function RootShell({ children }) {
   );
 }
 
+function RootLayout() {
+  const { data: settings } = useQuery({
+    queryKey: ["homepageSettings"],
+    queryFn: () => publicApi.getHomepageSettings(),
+  });
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      <AnnouncementBar config={settings?.announcementBar} />
+      <Header />
+      <main className="flex-1">
+        <Outlet />
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
@@ -125,13 +145,7 @@ function RootComponent() {
       <AuthProvider>
         <WishlistProvider>
           <CartProvider>
-            <div className="flex min-h-screen flex-col">
-              <Header />
-              <main className="flex-1">
-                <Outlet />
-              </main>
-              <Footer />
-            </div>
+            <RootLayout />
             <Toaster richColors position="top-right" />
           </CartProvider>
         </WishlistProvider>

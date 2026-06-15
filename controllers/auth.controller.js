@@ -1,4 +1,7 @@
 import User from "../models/User.js";
+import Customer from "../models/Customer.js";
+import Seller from "../models/Seller.js";
+import { generateCustomerId, generateSellerId } from "../utils/idGenerator.js";
 import RefreshToken from "../models/RefreshToken.js";
 import ReferralInvite from "../models/ReferralInvite.js";
 import bcrypt from "bcryptjs";
@@ -30,6 +33,12 @@ const buildSafeUser = (user) => {
   if (user.role === "admin_staff") {
     o.adminAccessLevel = user.adminAccessLevel;
     o.adminAllowedSections = user.adminAllowedSections || [];
+  }
+  if (user.role === "customer" && user.customerId) {
+    o.customerId = user.customerId;
+  }
+  if (user.role === "seller" && user.sellerId) {
+    o.sellerId = user.sellerId;
   }
   return o;
 };
@@ -132,7 +141,7 @@ export const registerSeller = async (req, res) => {
       });
     }
 
-    const exists = await User.findOne({ email });
+    const exists = await User.findOne({ email }) || await Customer.findOne({ email }) || await Seller.findOne({ email });
     if (exists) {
       return res.status(400).json({ message: "Hold up! This email is already partying in our database. Try logging in instead! 🕺" });
     }
@@ -147,9 +156,11 @@ export const registerSeller = async (req, res) => {
     }
 
     let user = null;
+    const sellerId = await generateSellerId();
     for (let attempt = 0; attempt < 8 && !user; attempt++) {
       try {
-        user = await User.create({
+        user = await Seller.create({
+          sellerId,
           firstName,
           lastName,
           email,
@@ -172,7 +183,7 @@ export const registerSeller = async (req, res) => {
     }
 
     if (referrer) {
-      await User.findByIdAndUpdate(referrer._id, {
+      await Seller.findByIdAndUpdate(referrer._id, {
         $inc: { referralSignups: 1 },
       });
     }
@@ -244,14 +255,16 @@ export const registerCustomer = async (req, res) => {
       });
     }
 
-    const exists = await User.findOne({ email });
+    const exists = await User.findOne({ email }) || await Customer.findOne({ email }) || await Seller.findOne({ email });
     if (exists) {
       return res.status(400).json({ message: "Hold up! This email is already partying in our database. Try logging in instead! 🕺" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await User.create({
+    const customerId = await generateCustomerId();
+    const user = await Customer.create({
+      customerId,
       firstName,
       lastName,
       email,
@@ -306,7 +319,7 @@ export const createAdmin = async (req, res) => {
       return res.status(400).json({ message: "Required fields missing" });
     }
 
-    const exists = await User.findOne({ email: normalizedEmail });
+    const exists = await User.findOne({ email: normalizedEmail }) || await Customer.findOne({ email: normalizedEmail }) || await Seller.findOne({ email: normalizedEmail });
     if (exists) {
       return res.status(400).json({ message: "Hold up! This email is already partying in our database. Try logging in instead! 🕺" });
     }
@@ -352,10 +365,22 @@ export const loginUser = async (req, res) => {
       return res.status(400).json({ message: "Email & password required" });
     }
 
-    const user = await User.findOne({ email: emailNorm || rawEmail }).collation({
+    let user = await User.findOne({ email: emailNorm || rawEmail }).collation({
       locale: "en",
       strength: 2,
     });
+    if (!user) {
+      user = await Customer.findOne({ email: emailNorm || rawEmail }).collation({
+        locale: "en",
+        strength: 2,
+      });
+    }
+    if (!user) {
+      user = await Seller.findOne({ email: emailNorm || rawEmail }).collation({
+        locale: "en",
+        strength: 2,
+      });
+    }
 
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials" });
@@ -497,10 +522,22 @@ export const forgotPassword = async (req, res) => {
       return res.status(400).json({ message: "Email is required" });
     }
 
-    const user = await User.findOne({ email: emailNorm || rawEmail }).collation({
+    let user = await User.findOne({ email: emailNorm || rawEmail }).collation({
       locale: "en",
       strength: 2,
     });
+    if (!user) {
+      user = await Customer.findOne({ email: emailNorm || rawEmail }).collation({
+        locale: "en",
+        strength: 2,
+      });
+    }
+    if (!user) {
+      user = await Seller.findOne({ email: emailNorm || rawEmail }).collation({
+        locale: "en",
+        strength: 2,
+      });
+    }
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -543,10 +580,22 @@ export const resetPassword = async (req, res) => {
       .update(token)
       .digest("hex");
 
-    const user = await User.findOne({
+    let user = await User.findOne({
       resetPasswordToken: hashedToken,
       resetPasswordExpire: { $gt: Date.now() },
     });
+    if (!user) {
+      user = await Customer.findOne({
+        resetPasswordToken: hashedToken,
+        resetPasswordExpire: { $gt: Date.now() },
+      });
+    }
+    if (!user) {
+      user = await Seller.findOne({
+        resetPasswordToken: hashedToken,
+        resetPasswordExpire: { $gt: Date.now() },
+      });
+    }
 
     if (!user) {
       return res.status(400).json({ message: "Invalid or expired token" });

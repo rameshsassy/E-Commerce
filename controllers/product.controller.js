@@ -1,4 +1,6 @@
 import Product from "../models/Product.js";
+import Category from "../models/Category.js";
+import Seller from "../models/Seller.js";
 import fs from "fs";
 import path from "path";
 import csv from "csv-parser";
@@ -408,6 +410,55 @@ export const getCategoryPageSeo = async (req, res) => {
 };
 
 // ===============================
+// 🔍 INSTANT SEARCH SUGGESTIONS (public)
+// ===============================
+export const getSearchSuggestions = async (req, res) => {
+  try {
+    const q = req.query.q || "";
+    if (!q || !q.trim()) {
+      return res.json({ products: [], categories: [], brands: [] });
+    }
+
+    const escapeRegex = (str) => String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(escapeRegex(q.trim()), "i");
+
+    // 1. Fetch matching products
+    const products = await Product.find({
+      title: regex,
+      isActive: true,
+      isDraft: { $ne: true },
+      approvalStatus: "approved",
+    })
+      .select("title _id category images price")
+      .limit(5);
+
+    // 2. Fetch matching categories
+    const categoriesObj = await Category.find({
+      name: regex,
+      isActive: true,
+    })
+      .select("name slug _id")
+      .limit(5);
+
+    // 3. Fetch matching brands (sellers)
+    const sellers = await Seller.find({
+      businessName: regex,
+      status: "approved",
+    })
+      .select("businessName _id")
+      .limit(5);
+
+    res.json({
+      products,
+      categories: categoriesObj.map((c) => ({ _id: c._id, name: c.name, slug: c.slug })),
+      brands: sellers.map((s) => ({ _id: s._id, name: s.businessName })),
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ===============================
 // 📦 GET ALL PRODUCTS (FULL FIX)
 // ===============================
 export const getAllProducts = async (req, res) => {
@@ -439,6 +490,10 @@ export const getAllProducts = async (req, res) => {
       isDraft: { $ne: true },
       approvalStatus: "approved",
     };
+
+    if (req.query.bulkPurchaseEnabled === "true") {
+      query.bulkPurchaseEnabled = true;
+    }
 
     if (keyword) {
       query.$or = [

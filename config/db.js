@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { ensureKycEntityTypesSeeded } from "../utils/kycEntityTypes.js";
+import { runMigration } from "../utils/migrateUsers.js";
 
 const connectDB = async () => {
   const uri = process.env.MONGO_URI?.trim();
@@ -31,6 +32,7 @@ const connectDB = async () => {
     const conn = await mongoose.connect(uri);
     console.log(`MongoDB Connected: ${conn.connection.host}`);
     await ensureKycEntityTypesSeeded();
+    await runMigration();
   } catch (error) {
     const msg = error?.message || String(error);
     console.error("Database connection failed:", msg);
@@ -50,6 +52,7 @@ const connectDB = async () => {
         const conn = await mongoose.connect(fallbackUri);
         console.log(`MongoDB Connected (fallback): ${conn.connection.host}`);
         await ensureKycEntityTypesSeeded();
+        await runMigration();
         return;
       } catch (fallbackErr) {
         console.error(

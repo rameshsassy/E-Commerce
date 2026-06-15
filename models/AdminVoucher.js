@@ -63,7 +63,7 @@ const adminVoucherSchema = new mongoose.Schema(
     selectedSellers: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        ref: "Seller",
       },
     ],
     sellerProductScope: {

@@ -1,5 +1,7 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import Customer from "../models/Customer.js";
+import Seller from "../models/Seller.js";
 
 export const protect = async (req, res, next) => {
   try {
@@ -27,8 +29,20 @@ export const protect = async (req, res, next) => {
 
     console.log("DECODED:", decoded);
 
-    // ✅ VERY IMPORTANT LINE
-    const user = await User.findById(decoded.id).select("-password");
+    let user = null;
+    if (decoded.role === "admin" || decoded.role === "admin_staff") {
+      user = await User.findById(decoded.id).select("-password");
+    } else if (decoded.role === "customer") {
+      user = await Customer.findById(decoded.id).select("-password");
+    } else if (decoded.role === "seller") {
+      user = await Seller.findById(decoded.id).select("-password");
+    }
+
+    if (!user) {
+      user = await User.findById(decoded.id).select("-password");
+      if (!user) user = await Customer.findById(decoded.id).select("-password");
+      if (!user) user = await Seller.findById(decoded.id).select("-password");
+    }
 
     if (!user) {
       return res.status(401).json({ message: "User not found" });

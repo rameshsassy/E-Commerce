@@ -4,7 +4,7 @@ const reviewSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Customer",
       required: true,
     },
     product: {
@@ -32,7 +32,7 @@ const reviewSchema = new mongoose.Schema(
     },
     helpfulVotes: [{
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Customer",
     }],
   },
   { timestamps: true }

@@ -86,12 +86,13 @@ const SellerPremium = () => {
                  AASHANSH MARKETPLACE
                PREMIUM SELLER INVOICE
 ==================================================
-Invoice ID: INV-SUB-${user?._id?.toString().slice(-6).toUpperCase()}-${Date.now()}
+Invoice ID: INV-SUB-${(user?.sellerId || user?._id?.toString().slice(-6)).toUpperCase()}-${Date.now()}
 Date: ${new Date().toLocaleDateString('en-IN')}
 Plan Duration: 1 Year (365 Days)
 Valid Until: ${formatValidUntil(statsData.subscriptionValidUntil)}
 --------------------------------------------------
 BILL TO:
+Seller ID: ${user?.sellerId || 'N/A'}
 Seller Name: ${user?.firstName || ''} ${user?.lastName || ''}
 Business Name: ${user?.businessName || 'N/A'}
 Email: ${user?.email || 'N/A'}
@@ -176,6 +177,7 @@ Unlock your seller superpowers and grow your B2B business.
         digitalMedia: 'Yes',
         b2bListing: 'Yes (Premium)',
         fundraising: 'Yes',
+        commission: '5% + 18% GST',
         referProgram: 'Premium'
       };
     }
@@ -189,6 +191,7 @@ Unlock your seller superpowers and grow your B2B business.
       digitalMedia: 'Yes (Limited)',
       b2bListing: 'Yes',
       fundraising: 'Yes',
+      commission: '8% + 18% GST',
       referProgram: 'Pro'
     };
   };
@@ -565,6 +568,22 @@ Unlock your seller superpowers and grow your B2B business.
                   <td className="p-4 sm:p-5 text-center text-emerald-600 font-bold">Yes</td>
                 </tr>
 
+                {/* Commission */}
+                <tr className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                  <td className="p-4 sm:p-5 font-semibold text-slate-700">
+                    • Commission
+                  </td>
+                  <td className="p-4 sm:p-5 text-center text-slate-600 font-medium">
+                    <span className="font-bold">10.5%</span> + 18% GST
+                  </td>
+                  <td className="p-4 sm:p-5 text-center text-emerald-600 font-medium">
+                    <span className="font-bold">8%</span> + 18% GST
+                  </td>
+                  <td className="p-4 sm:p-5 text-center text-emerald-600 font-medium">
+                    <span className="font-bold">5%</span> + 18% GST
+                  </td>
+                </tr>
+
                 {/* Refer and Earn Plan */}
                 <tr className="hover:bg-slate-50/50 transition-colors">
                   <td className="p-4 sm:p-5 font-semibold text-slate-700">
@@ -740,6 +759,10 @@ Unlock your seller superpowers and grow your B2B business.
               <div className="flex justify-between text-xs sm:text-sm pb-2 border-b border-slate-100">
                 <span className="text-slate-500 font-semibold">• Fundraising*</span>
                 <span className="text-emerald-600 font-extrabold">{getPlanDetails(selectedPlan).fundraising}</span>
+              </div>
+              <div className="flex justify-between text-xs sm:text-sm pb-2 border-b border-slate-100">
+                <span className="text-slate-500 font-semibold">• Commission</span>
+                <span className="text-emerald-600 font-extrabold">{getPlanDetails(selectedPlan).commission}</span>
               </div>
               <div className="flex justify-between text-xs sm:text-sm pb-2">
                 <span className="text-slate-500 font-semibold">• Refer and earn plan</span>

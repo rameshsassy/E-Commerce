@@ -1,4 +1,6 @@
 import User from "../models/User.js";
+import Customer from "../models/Customer.js";
+import Seller from "../models/Seller.js";
 import bcrypt from "bcryptjs";
 
 
@@ -9,8 +11,7 @@ export const getProfile = async (req, res) => {
   try {
     const user = req.user;
 
-    // Safe response (no password)
-    res.json({
+    const responseData = {
       _id: user._id,
       firstName: user.firstName,
       lastName: user.lastName,
@@ -18,14 +19,23 @@ export const getProfile = async (req, res) => {
       mobile: user.mobile,
       role: user.role,
       status: user.status,
+    };
 
-      // Seller-specific fields (will be undefined for customers)
-      businessName: user.businessName,
-      address: user.address,
-      city: user.city,
-      state: user.state,
-      pincode: user.pincode,
-    });
+    if (user.role === "customer" && user.customerId) {
+      responseData.customerId = user.customerId;
+    }
+
+    if (user.role === "seller") {
+      responseData.sellerId = user.sellerId;
+      responseData.businessName = user.businessName;
+      responseData.address = user.address;
+      responseData.city = user.city;
+      responseData.state = user.state;
+      responseData.pincode = user.pincode;
+      responseData.kycStatus = user.kycStatus;
+    }
+
+    res.json(responseData);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -67,23 +77,33 @@ export const updateProfile = async (req, res) => {
 
     const isAutosave = req.method === "PATCH";
 
+    const responseData = {
+      _id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      mobile: user.mobile,
+      role: user.role,
+      status: user.status,
+    };
+
+    if (user.role === "customer" && user.customerId) {
+      responseData.customerId = user.customerId;
+    }
+
+    if (user.role === "seller") {
+      responseData.sellerId = user.sellerId;
+      responseData.businessName = user.businessName;
+      responseData.address = user.address;
+      responseData.city = user.city;
+      responseData.state = user.state;
+      responseData.pincode = user.pincode;
+    }
+
     res.json({
       message: isAutosave ? "Profile auto-saved" : "Profile updated successfully",
       autoSaved: isAutosave,
-      user: {
-        _id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        mobile: user.mobile,
-        role: user.role,
-        status: user.status,
-        businessName: user.businessName,
-        address: user.address,
-        city: user.city,
-        state: user.state,
-        pincode: user.pincode,
-      },
+      user: responseData,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -103,7 +123,15 @@ export const updatePassword = async (req, res) => {
     }
 
     // Fetch user from DB to include password field
-    const dbUser = await User.findById(user._id);
+    let dbUser = null;
+    if (user.role === "admin" || user.role === "admin_staff") {
+      dbUser = await User.findById(user._id);
+    } else if (user.role === "customer") {
+      dbUser = await Customer.findById(user._id);
+    } else if (user.role === "seller") {
+      dbUser = await Seller.findById(user._id);
+    }
+
     if (!dbUser) {
       return res.status(404).json({ message: "User not found" });
     }

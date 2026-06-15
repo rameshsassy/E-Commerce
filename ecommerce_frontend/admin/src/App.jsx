@@ -12,6 +12,7 @@ import ResetPassword from './pages/auth/ResetPassword';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminSellers from './pages/admin/AdminSellers';
+import AdminCustomers from './pages/admin/AdminCustomers';
 import AdminKYC from './pages/admin/AdminKYC';
 import AdminKycEntityTypes from './pages/admin/AdminKycEntityTypes';
 import AdminProducts from './pages/admin/AdminProducts';
@@ -27,6 +28,7 @@ import AdminEmailLogs from './pages/admin/AdminEmailLogs';
 import AdminChat from './pages/admin/AdminChat';
 import AdminWebsiteRequests from './pages/admin/AdminWebsiteRequests';
 import AdminMenu from './pages/admin/AdminMenu';
+import HeaderManagement from './pages/admin/homepage-management/HeaderManagement';
 
 import FloatingChat from './components/chat/FloatingChat';
 
@@ -45,6 +47,7 @@ function AppRoutes() {
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/roles" element={<AdminRoles />} />
           <Route path="/admin/sellers" element={<AdminSellers />} />
+          <Route path="/admin/customers" element={<AdminCustomers />} />
           <Route path="/admin/kyc" element={<AdminKYC />} />
           <Route path="/admin/kyc-entity-types" element={<AdminKycEntityTypes />} />
           <Route path="/admin/products" element={<AdminProducts />} />
@@ -56,6 +59,7 @@ function AppRoutes() {
           <Route path="/admin/premium-seller-dashboard" element={<AdminPremiumSellerDashboard />} />
           <Route path="/admin/categories" element={<AdminCategories />} />
           <Route path="/admin/menu" element={<AdminMenu />} />
+          <Route path="/admin/homepage-management" element={<HeaderManagement />} />
           <Route path="/admin/email-logs" element={<AdminEmailLogs />} />
           <Route path="/admin/chats" element={<AdminChat />} />
           <Route path="/admin/website-requests" element={<AdminWebsiteRequests />} />

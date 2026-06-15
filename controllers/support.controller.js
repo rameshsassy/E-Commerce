@@ -15,6 +15,7 @@ export const createTicket = async (req, res) => {
 
     const ticket = await SupportTicket.create({
       user: req.user._id,
+      userModel: req.user.role === "seller" ? "Seller" : "Customer",
       order: orderId || null,
       subject,
       issueType,

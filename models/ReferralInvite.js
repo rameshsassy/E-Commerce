@@ -4,7 +4,7 @@ const referralInviteSchema = new mongoose.Schema(
   {
     referrerId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Seller",
       required: true,
       index: true,
     },

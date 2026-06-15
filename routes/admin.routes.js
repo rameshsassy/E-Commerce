@@ -14,6 +14,7 @@ import {
 
 import {
   getAllSellers,
+  getAllCustomers,
   getPendingSellers,
   approveSeller,
   rejectSeller,
@@ -60,9 +61,10 @@ const router = express.Router();
 router.post("/signup", adminSignupRateLimiter, signupAdmin);
 
 // ===============================
-// 👥 SELLER MANAGEMENT
+// 👥 SELLER & CUSTOMER MANAGEMENT
 // ===============================
 router.get("/sellers", protect, authorizeAdminRole, requireAdminSection("sellers"), getAllSellers);
+router.get("/customers", protect, authorizeAdminRole, requireAdminSection("sellers"), getAllCustomers);
 router.get("/pending-sellers", protect, authorizeAdminRole, requireAdminSection("sellers"), getPendingSellers);
 router.put("/approve/:id", protect, authorizeAdminRole, requireAdminSection("sellers"), approveSeller);
 router.put("/reject/:id", protect, authorizeAdminRole, requireAdminSection("sellers"), rejectSeller);

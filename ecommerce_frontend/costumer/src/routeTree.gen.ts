@@ -19,6 +19,7 @@ import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as CartRouteImport } from './routes/cart'
+import { Route as BulkPurchaseRouteImport } from './routes/bulk-purchase'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AddressesRouteImport } from './routes/addresses'
 import { Route as IndexRouteImport } from './routes/index'
@@ -76,6 +77,11 @@ const CartRoute = CartRouteImport.update({
   path: '/cart',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BulkPurchaseRoute = BulkPurchaseRouteImport.update({
+  id: '/bulk-purchase',
+  path: '/bulk-purchase',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -111,6 +117,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/addresses': typeof AddressesRoute
   '/auth': typeof AuthRoute
+  '/bulk-purchase': typeof BulkPurchaseRoute
   '/cart': typeof CartRoute
   '/chat': typeof ChatRoute
   '/checkout': typeof CheckoutRoute
@@ -129,6 +136,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/addresses': typeof AddressesRoute
   '/auth': typeof AuthRoute
+  '/bulk-purchase': typeof BulkPurchaseRoute
   '/cart': typeof CartRoute
   '/chat': typeof ChatRoute
   '/checkout': typeof CheckoutRoute
@@ -148,6 +156,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/addresses': typeof AddressesRoute
   '/auth': typeof AuthRoute
+  '/bulk-purchase': typeof BulkPurchaseRoute
   '/cart': typeof CartRoute
   '/chat': typeof ChatRoute
   '/checkout': typeof CheckoutRoute
@@ -168,6 +177,7 @@ export interface FileRouteTypes {
     | '/'
     | '/addresses'
     | '/auth'
+    | '/bulk-purchase'
     | '/cart'
     | '/chat'
     | '/checkout'
@@ -186,6 +196,7 @@ export interface FileRouteTypes {
     | '/'
     | '/addresses'
     | '/auth'
+    | '/bulk-purchase'
     | '/cart'
     | '/chat'
     | '/checkout'
@@ -204,6 +215,7 @@ export interface FileRouteTypes {
     | '/'
     | '/addresses'
     | '/auth'
+    | '/bulk-purchase'
     | '/cart'
     | '/chat'
     | '/checkout'
@@ -223,6 +235,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AddressesRoute: typeof AddressesRoute
   AuthRoute: typeof AuthRoute
+  BulkPurchaseRoute: typeof BulkPurchaseRoute
   CartRoute: typeof CartRoute
   ChatRoute: typeof ChatRoute
   CheckoutRoute: typeof CheckoutRoute
@@ -308,6 +321,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CartRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/bulk-purchase': {
+      id: '/bulk-purchase'
+      path: '/bulk-purchase'
+      fullPath: '/bulk-purchase'
+      preLoaderRoute: typeof BulkPurchaseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -380,6 +400,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AddressesRoute: AddressesRoute,
   AuthRoute: AuthRoute,
+  BulkPurchaseRoute: BulkPurchaseRoute,
   CartRoute: CartRoute,
   ChatRoute: ChatRoute,
   CheckoutRoute: CheckoutRoute,

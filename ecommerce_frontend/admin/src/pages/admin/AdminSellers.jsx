@@ -50,7 +50,11 @@ const AdminSellers = () => {
     }
   };
 
-  const filtered = sellers.filter(s => ((s.firstName || '') + ' ' + (s.lastName || '')).toLowerCase().includes(searchTerm.toLowerCase()) || s.email.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filtered = sellers.filter(s => 
+    ((s.firstName || '') + ' ' + (s.lastName || '')).toLowerCase().includes(searchTerm.toLowerCase()) || 
+    s.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (s.sellerId || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="animate-fade-in w-full min-w-0">
@@ -67,6 +71,7 @@ const AdminSellers = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-surface border-b border-glass-border">
+                <th className="p-4 font-medium">Seller ID</th>
                 <th className="p-4 font-medium">Name</th>
                 <th className="p-4 font-medium">Email</th>
                 <th className="p-4 font-medium">Status</th>
@@ -75,12 +80,13 @@ const AdminSellers = () => {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan="4" className="p-8 text-center text-text-muted">Loading sellers...</td></tr>
+                <tr><td colSpan="5" className="p-8 text-center text-text-muted">Loading sellers...</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan="4" className="p-8 text-center text-text-muted">No sellers found.</td></tr>
+                <tr><td colSpan="5" className="p-8 text-center text-text-muted">No sellers found.</td></tr>
               ) : (
                 filtered.map(seller => (
                   <tr key={seller._id} className="border-b border-glass-border hover:bg-surface/30 transition-colors">
+                    <td className="p-4 font-mono font-bold text-primary">{seller.sellerId}</td>
                     <td className="p-4 font-medium">{seller.firstName} {seller.lastName}</td>
                     <td className="p-4 text-text-muted">{seller.email}</td>
                     <td className="p-4">

@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import User from "../models/User.js";
+import Seller from "../models/Seller.js";
 import Product from "../models/Product.js";
 import Order from "../models/Order.js";
 
@@ -50,7 +50,7 @@ export async function ensureSellerReferralCode(user) {
 
   for (let attempt = 0; attempt < 8; attempt++) {
     const candidate = buildReferralCode();
-    const taken = await User.findOne({ sellerReferralCode: candidate }).select("_id");
+    const taken = await Seller.findOne({ sellerReferralCode: candidate }).select("_id");
     if (taken) continue;
 
     user.sellerReferralCode = candidate;
@@ -65,7 +65,7 @@ export async function findReferrerByCode(code) {
   if (!code || typeof code !== "string") return null;
   const normalized = code.trim().toUpperCase();
   if (!normalized) return null;
-  return User.findOne({
+  return Seller.findOne({
     role: "seller",
     sellerReferralCode: normalized,
   }).select("_id firstName businessName sellerReferralCode");
@@ -93,7 +93,7 @@ function referralStatusFor(user) {
 
 /** Aggregate referral stats and referred-seller list for the Refer and Earn page. */
 export async function getReferralStatsForSeller(referrerId, referrerUser, { limit = 100 } = {}) {
-  const referred = await User.find({
+  const referred = await Seller.find({
     role: "seller",
     referredBySellerId: referrerId,
   })
@@ -150,7 +150,7 @@ export async function getReferralStatsForSeller(referrerId, referrerUser, { limi
   });
 
   // Fetch all referred sellers to calculate aggregate metrics (ignoring page limit)
-  const allReferred = await User.find({
+  const allReferred = await Seller.find({
     role: "seller",
     referredBySellerId: referrerId,
   }).select("_id subscriptionActive subscriptionPlan kycStatus");

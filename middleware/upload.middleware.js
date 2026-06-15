@@ -21,6 +21,8 @@ const storage = multer.diskStorage({
       rel = "support";
     } else if (req.originalUrl.includes("/store")) {
       rel = "stores";
+    } else if (req.originalUrl.includes("homepage")) {
+      rel = "homepage";
     }
 
     const uploadPath = path.join(base, rel);

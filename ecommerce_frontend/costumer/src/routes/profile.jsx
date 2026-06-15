@@ -94,6 +94,12 @@ function ProfilePage() {
                 />
               </div>
             </div>
+            {user?.customerId && (
+              <div className="space-y-1.5">
+                <Label>Customer ID</Label>
+                <Input value={user.customerId} disabled />
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label>Email</Label>
               <Input value={user?.email || ""} disabled />

@@ -7,6 +7,7 @@ import {
   addProduct,
   getAllProducts,
   getCategoryPageSeo,
+  getSearchSuggestions,
   bulkUploadProducts,
   getProductById,
   updateProduct,
@@ -40,6 +41,7 @@ const sellerImageUpload = upload.fields([
 // ===============================
 
 router.get("/category-seo", getCategoryPageSeo);
+router.get("/search-suggestions", getSearchSuggestions);
 router.get("/", getAllProducts);
 
 router.get("/shipping/delivery-options", getDeliveryOptions);

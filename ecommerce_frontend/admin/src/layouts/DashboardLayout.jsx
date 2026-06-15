@@ -26,6 +26,7 @@ import {
   X,
   MessageSquare,
   Globe,
+  Sliders,
 } from 'lucide-react';
 
 const SELLER_NAV = [
@@ -47,6 +48,7 @@ const SELLER_NAV = [
 const ADMIN_PATH_SECTIONS = [
   [/^\/admin\/dashboard/, 'dashboard'],
   [/^\/admin\/sellers/, 'sellers'],
+  [/^\/admin\/customers/, 'sellers'],
   [/^\/admin\/website-requests/, 'sellers'],
   [/^\/admin\/kyc/, 'kyc'],
   [/^\/admin\/products/, 'products'],
@@ -117,7 +119,7 @@ const DashboardLayout = ({ variant }) => {
   }
 
   if (isAdmin) {
-    if (user.role === 'admin_staff' && location.pathname.startsWith('/admin/roles')) {
+    if (user.role === 'admin_staff' && (location.pathname.startsWith('/admin/roles') || location.pathname.startsWith('/admin/homepage-management'))) {
       return <Navigate to="/admin/dashboard" replace />;
     }
     const required = adminSectionForPath(location.pathname);
@@ -272,6 +274,16 @@ const DashboardLayout = ({ variant }) => {
 
               {showAdminLink('sellers') && (
                 <Link
+                  to="/admin/customers"
+                  className={adminNavLinkClass(location.pathname, location.hash, '/admin/customers')}
+                >
+                  <Users size={20} className="text-text-muted" />
+                  Manage Customers
+                </Link>
+              )}
+
+              {showAdminLink('sellers') && (
+                <Link
                   to="/admin/website-requests"
                   className={adminNavLinkClass(location.pathname, location.hash, '/admin/website-requests')}
                 >
@@ -360,6 +372,8 @@ const DashboardLayout = ({ variant }) => {
                 </Link>
               )}
 
+
+
               {showAdminLink('sellers') && (
                 <Link
                   to="/admin/premium-sellers"
@@ -388,6 +402,21 @@ const DashboardLayout = ({ variant }) => {
                   <Shield size={20} className="text-primary" />
                   Roles
                 </Link>
+              )}
+
+              {user.role === 'admin' && (
+                <>
+                  <div className="px-3 py-1.5 text-[10px] font-bold text-text-muted uppercase tracking-wider mt-2 border-t border-white/10 pt-3">
+                    Website Settings
+                  </div>
+                  <Link
+                    to="/admin/homepage-management"
+                    className={adminNavLinkClass(location.pathname, location.hash, '/admin/homepage-management')}
+                  >
+                    <Sliders size={20} className="text-primary" />
+                    Homepage Management
+                  </Link>
+                </>
               )}
 
               {(user.role === 'admin' || user.role === 'admin_staff') && (

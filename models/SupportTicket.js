@@ -3,8 +3,14 @@ import mongoose from 'mongoose';
 const supportTicketSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    refPath: 'userModel',
     required: true,
+  },
+  userModel: {
+    type: String,
+    required: true,
+    enum: ['Customer', 'Seller'],
+    default: 'Customer',
   },
   order: {
     type: mongoose.Schema.Types.ObjectId,

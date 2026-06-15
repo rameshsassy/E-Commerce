@@ -114,4 +114,7 @@ export const notificationApi = {
 export const publicApi = {
   menu: () => api.get("/menu"),
   newsletter: (email) => api.post("/public/newsletter/subscribe", { email }),
+  getHomepageSettings: () => api.get("/homepage-settings"),
+  getHeaderCategories: () => api.get("/homepage-settings/categories"),
+  getSearchSuggestions: (q) => api.get("/products/search-suggestions", { q }),
 };

@@ -101,6 +101,12 @@ const SellerProfile = () => {
           </div>
           
           <div className="flex gap-4 mb-6 text-sm">
+            {profile?.sellerId && (
+              <div>
+                <p className="text-text-muted">Seller ID</p>
+                <span className="font-bold">{profile.sellerId}</span>
+              </div>
+            )}
             <div>
               <p className="text-text-muted">Status</p>
               {profile?.status === 'approved' ? <span className="text-success font-bold flex items-center"><CheckCircle size={14} className="mr-1"/> Approved</span> : <span className="text-warning font-bold">Pending</span>}

@@ -4,7 +4,7 @@ const productViewEventSchema = new mongoose.Schema(
   {
     sellerId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Seller",
       required: true,
       index: true,
     },
@@ -16,7 +16,7 @@ const productViewEventSchema = new mongoose.Schema(
     },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Customer",
       default: null,
       index: true,
     },

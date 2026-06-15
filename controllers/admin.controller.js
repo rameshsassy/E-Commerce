@@ -1,5 +1,7 @@
 import bcrypt from "bcryptjs";
 import User from "../models/User.js";
+import Customer from "../models/Customer.js";
+import Seller from "../models/Seller.js";
 import Product from "../models/Product.js";
 import Order from "../models/Order.js";
 import ReturnRequest from "../models/ReturnRequest.js";
@@ -16,7 +18,7 @@ import { normalizeEmail, issueTokensAndSetCookie } from "./auth.controller.js";
 // ===============================
 export const getAllSellers = async (req, res) => {
   try {
-    const sellers = await User.find({ role: "seller" }).select("-password");
+    const sellers = await Seller.find().select("-password");
 
     res.json({
       count: sellers.length,
@@ -28,12 +30,27 @@ export const getAllSellers = async (req, res) => {
 };
 
 // ===============================
+// 📋 GET ALL CUSTOMERS
+// ===============================
+export const getAllCustomers = async (req, res) => {
+  try {
+    const customers = await Customer.find().select("-password");
+
+    res.json({
+      count: customers.length,
+      customers,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ===============================
 // 🔍 GET PENDING SELLERS
 // ===============================
 export const getPendingSellers = async (req, res) => {
   try {
-    const sellers = await User.find({
-      role: "seller",
+    const sellers = await Seller.find({
       status: "pending",
     }).select("-password");
 
@@ -51,8 +68,7 @@ export const getPendingSellers = async (req, res) => {
 // ===============================
 export const getPendingKYC = async (req, res) => {
   try {
-    const sellers = await User.find({
-      role: "seller",
+    const sellers = await Seller.find({
       kycStatus: "pending",
     }).select("-password");
 
@@ -89,9 +105,9 @@ export const getPendingProducts = async (req, res) => {
 // ===============================
 export const approveSeller = async (req, res) => {
   try {
-    const seller = await User.findById(req.params.id);
+    const seller = await Seller.findById(req.params.id);
 
-    if (!seller || seller.role !== "seller") {
+    if (!seller) {
       return res.status(404).json({ message: "Seller not found" });
     }
 
@@ -115,9 +131,9 @@ export const approveSeller = async (req, res) => {
 // ===============================
 export const rejectSeller = async (req, res) => {
   try {
-    const seller = await User.findById(req.params.id);
+    const seller = await Seller.findById(req.params.id);
 
-    if (!seller || seller.role !== "seller") {
+    if (!seller) {
       return res.status(404).json({ message: "Seller not found" });
     }
 
@@ -141,9 +157,9 @@ export const rejectSeller = async (req, res) => {
 // ===============================
 export const approveKYC = async (req, res) => {
   try {
-    const seller = await User.findById(req.params.id);
+    const seller = await Seller.findById(req.params.id);
 
-    if (!seller || seller.role !== "seller") {
+    if (!seller) {
       return res.status(404).json({ message: "Seller not found" });
     }
 
@@ -168,9 +184,9 @@ export const approveKYC = async (req, res) => {
 // ===============================
 export const rejectKYC = async (req, res) => {
   try {
-    const seller = await User.findById(req.params.id);
+    const seller = await Seller.findById(req.params.id);
 
-    if (!seller || seller.role !== "seller") {
+    if (!seller) {
       return res.status(404).json({ message: "Seller not found" });
     }
 
@@ -248,11 +264,11 @@ export const rejectProduct = async (req, res) => {
 // ===============================
 export const getAnalytics = async (req, res) => {
   try {
-    const totalUsers = await User.countDocuments({ role: "customer" });
-    const totalSellers = await User.countDocuments({ role: "seller" });
-    const premiumSellers = await User.countDocuments({ role: "seller", subscriptionActive: true });
+    const totalUsers = await Customer.countDocuments();
+    const totalSellers = await Seller.countDocuments();
+    const premiumSellers = await Seller.countDocuments({ subscriptionActive: true });
     
-    const pendingKYCs = await User.countDocuments({ role: "seller", kycStatus: "pending" });
+    const pendingKYCs = await Seller.countDocuments({ kycStatus: "pending" });
     
     const totalProducts = await Product.countDocuments();
     const totalOrders = await Order.countDocuments();
@@ -290,7 +306,7 @@ export const getAnalytics = async (req, res) => {
 export const getAllOrders = async (req, res) => {
   try {
     const orders = await Order.find()
-      .populate("user", "firstName lastName email")
+      .populate("user", "firstName lastName email customerId")
       .sort({ createdAt: -1 });
     res.json(orders);
   } catch (error) {
@@ -488,9 +504,9 @@ export const deleteAdminStaff = async (req, res) => {
 // ===============================
 export const sendWeeklyRecapAction = async (req, res) => {
   try {
-    const seller = await User.findById(req.params.id);
+    const seller = await Seller.findById(req.params.id);
 
-    if (!seller || seller.role !== "seller") {
+    if (!seller) {
       return res.status(404).json({ message: "Seller not found" });
     }
 

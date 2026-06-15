@@ -96,7 +96,10 @@ const AdminKYC = () => {
                     </div>
                   )}
                   <div>
-                    <h3 className="text-xl font-bold mb-1">{seller.officialName || seller.businessName || `${seller.firstName} ${seller.lastName}`}</h3>
+                    <h3 className="text-xl font-bold mb-1">
+                      {seller.officialName || seller.businessName || `${seller.firstName} ${seller.lastName}`}
+                      {seller.sellerId && ` (${seller.sellerId})`}
+                    </h3>
                     <p className="text-text-muted">{seller.email}</p>
                   </div>
                 </div>

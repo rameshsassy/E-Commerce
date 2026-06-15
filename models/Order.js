@@ -4,7 +4,7 @@ const orderSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Customer",
       required: true,
     },
     items: [
@@ -16,7 +16,7 @@ const orderSchema = new mongoose.Schema(
         },
         seller: {
           type: mongoose.Schema.Types.ObjectId,
-          ref: "User",
+          ref: "Seller",
           required: true,
         },
         title: String,
@@ -101,6 +101,14 @@ const orderSchema = new mongoose.Schema(
     thankYouEmailSent: {
       type: Boolean,
       default: false,
+    },
+    couponCode: {
+      type: String,
+      default: null,
+    },
+    discountAmount: {
+      type: Number,
+      default: 0,
     },
   },
   { timestamps: true }
