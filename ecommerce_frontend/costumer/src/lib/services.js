@@ -118,3 +118,7 @@ export const publicApi = {
   getHeaderCategories: () => api.get("/homepage-settings/categories"),
   getSearchSuggestions: (q) => api.get("/products/search-suggestions", { q }),
 };
+
+export const storeApi = {
+  getStoreConfig: (handle) => api.get(`/store/${handle}`),
+};

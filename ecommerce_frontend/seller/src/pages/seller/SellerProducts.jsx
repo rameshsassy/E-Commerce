@@ -13,7 +13,9 @@ import {
   Zap,
   Download,
   ExternalLink,
+  Layout,
 } from 'lucide-react';
+import MyStoreTab from '../../components/store/MyStoreTab';
 import StoreFormFields, { isStoreFormValid } from '../../components/seller/StoreFormFields';
 import useFormAutosave from '../../hooks/useFormAutosave';
 import FormAutosaveStatus from '../../components/common/FormAutosaveStatus';
@@ -880,6 +882,15 @@ const SellerProducts = () => {
 
       <div className="flex flex-wrap gap-4 mb-8 border-b border-glass-border pb-2">
         <button
+          className={`pb-2 px-4 font-medium transition-colors border-b-2 flex items-center gap-2 ${activeTab === 'mystore' ? 'border-primary text-primary' : 'border-transparent text-[#94a3b8] hover:text-white'}`}
+          onClick={() => {
+            setActiveTab('mystore');
+            setSingleMsg('');
+          }}
+        >
+          <Layout size={18} /> MyStore
+        </button>
+        <button
           className={`pb-2 px-4 font-medium transition-colors border-b-2 flex items-center gap-2 ${activeTab === 'store' ? 'border-primary text-primary' : 'border-transparent text-[#94a3b8] hover:text-white'}`}
           onClick={() => {
             setActiveTab('store');
@@ -925,7 +936,9 @@ const SellerProducts = () => {
       </div>
 
       <div className="glass-panel p-8 rounded-2xl">
-        {activeTab === 'store' ? (
+        {activeTab === 'mystore' ? (
+          <MyStoreTab />
+        ) : activeTab === 'store' ? (
           <div className="text-[#202223]">
             {storeView === 'hub' ? (
               <div className="bg-white rounded-lg border border-[#E1E3E5] p-6 shadow-sm">

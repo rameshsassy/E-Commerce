@@ -23,6 +23,7 @@ import { Route as BulkPurchaseRouteImport } from './routes/bulk-purchase'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AddressesRouteImport } from './routes/addresses'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as StoreHandleRouteImport } from './routes/store.$handle'
 import { Route as ResetPasswordTokenRouteImport } from './routes/reset-password.$token'
 import { Route as ProductsIdRouteImport } from './routes/products.$id'
 import { Route as OrdersIdRouteImport } from './routes/orders.$id'
@@ -97,6 +98,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StoreHandleRoute = StoreHandleRouteImport.update({
+  id: '/store/$handle',
+  path: '/store/$handle',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordTokenRoute = ResetPasswordTokenRouteImport.update({
   id: '/reset-password/$token',
   path: '/reset-password/$token',
@@ -131,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/orders/$id': typeof OrdersIdRoute
   '/products/$id': typeof ProductsIdRoute
   '/reset-password/$token': typeof ResetPasswordTokenRoute
+  '/store/$handle': typeof StoreHandleRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -150,6 +157,7 @@ export interface FileRoutesByTo {
   '/orders/$id': typeof OrdersIdRoute
   '/products/$id': typeof ProductsIdRoute
   '/reset-password/$token': typeof ResetPasswordTokenRoute
+  '/store/$handle': typeof StoreHandleRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -170,6 +178,7 @@ export interface FileRoutesById {
   '/orders/$id': typeof OrdersIdRoute
   '/products/$id': typeof ProductsIdRoute
   '/reset-password/$token': typeof ResetPasswordTokenRoute
+  '/store/$handle': typeof StoreHandleRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -191,6 +200,7 @@ export interface FileRouteTypes {
     | '/orders/$id'
     | '/products/$id'
     | '/reset-password/$token'
+    | '/store/$handle'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -210,6 +220,7 @@ export interface FileRouteTypes {
     | '/orders/$id'
     | '/products/$id'
     | '/reset-password/$token'
+    | '/store/$handle'
   id:
     | '__root__'
     | '/'
@@ -229,6 +240,7 @@ export interface FileRouteTypes {
     | '/orders/$id'
     | '/products/$id'
     | '/reset-password/$token'
+    | '/store/$handle'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -247,6 +259,7 @@ export interface RootRouteChildren {
   SupportRoute: typeof SupportRoute
   WishlistRoute: typeof WishlistRoute
   ResetPasswordTokenRoute: typeof ResetPasswordTokenRoute
+  StoreHandleRoute: typeof StoreHandleRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -349,6 +362,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/store/$handle': {
+      id: '/store/$handle'
+      path: '/store/$handle'
+      fullPath: '/store/$handle'
+      preLoaderRoute: typeof StoreHandleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password/$token': {
       id: '/reset-password/$token'
       path: '/reset-password/$token'
@@ -412,6 +432,7 @@ const rootRouteChildren: RootRouteChildren = {
   SupportRoute: SupportRoute,
   WishlistRoute: WishlistRoute,
   ResetPasswordTokenRoute: ResetPasswordTokenRoute,
+  StoreHandleRoute: StoreHandleRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

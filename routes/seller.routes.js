@@ -39,6 +39,10 @@ import {
   updateStore,
   checkSubdomainAvailability,
 } from "../controllers/store.controller.js";
+import {
+  getSellerStoreConfig,
+  updateSellerStoreConfig,
+} from "../controllers/storeConfig.controller.js";
 import { listSellerKycEntityTypes } from "../controllers/kycEntityType.controller.js";
 import {
   getBuyProducts,
@@ -96,6 +100,8 @@ router.get(
   authorizeRoles("seller"),
   checkSubdomainAvailability
 );
+router.get("/store-config", protect, authorizeRoles("seller"), getSellerStoreConfig);
+router.put("/store-config", protect, authorizeRoles("seller"), updateSellerStoreConfig);
 
 // 📦 Products
 router.get("/products", protect, authorizeRoles("seller"), getSellerProducts);
