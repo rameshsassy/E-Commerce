@@ -2089,7 +2089,7 @@ export const getRecentActivity = async (req, res) => {
 // ===============================
 export const getReferAndEarn = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
+    const user = req.user;
     if (!user) {
       return res.status(404).json({ message: "Seller not found" });
     }
@@ -2194,7 +2194,7 @@ export const sendReferralInvite = async (req, res) => {
       return res.status(400).json({ message: "Please enter a valid email" });
     }
 
-    const user = await User.findById(req.user._id);
+    const user = req.user;
     if (!user || user.role !== "seller") {
       return res.status(404).json({ message: "Seller not found" });
     }
