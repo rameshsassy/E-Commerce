@@ -210,18 +210,19 @@ export default function SellerReferAndEarn() {
   const isPro = currentPlan === 'Pro';
   const isPremium = currentPlan === 'Premium';
   const shareTemplate = program?.shareTemplate || "Hey! Join me on Aashansh - sell your products to bulk buyers, individual customers, earn rewards, and more. Click to join: {{Link}} Use my code {{CODE}} and get 25% discount on premium plans. Let’s grow together!";
-  
+
   const getWorkingReferralLink = () => {
     if (!referralLink) return '';
+    // On production, use the backend-provided link as-is.
+    // On localhost only, swap the host to the current dev server origin.
+    if (!window.location.hostname.includes('localhost')) {
+      return referralLink;
+    }
     try {
       const url = new URL(referralLink);
-      let targetOrigin = window.location.origin;
-      if (window.location.hostname.includes('localhost')) {
-        targetOrigin = import.meta.env.VITE_CUSTOMER_PORTAL_URL || 'https://e-commerce-snj1.vercel.app';
-      }
-      const targetUrl = new URL(targetOrigin);
-      url.protocol = targetUrl.protocol;
-      url.host = targetUrl.host;
+      const localUrl = new URL(window.location.origin);
+      url.protocol = localUrl.protocol;
+      url.host = localUrl.host;
       return url.toString();
     } catch {
       return referralLink;

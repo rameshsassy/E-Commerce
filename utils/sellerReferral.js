@@ -14,12 +14,17 @@ export function buildReferralCode() {
 }
 
 export function sellerPortalBaseUrl(req) {
+  // If request comes from localhost, return the local origin directly
+  // so referral links work correctly during local development
   if (req) {
     const raw = req.headers?.origin || req.headers?.referer;
     if (raw) {
       try {
         const parsed = new URL(raw);
-        if (!parsed.hostname.includes("localhost")) {
+        if (
+          parsed.hostname === "localhost" ||
+          parsed.hostname === "127.0.0.1"
+        ) {
           return parsed.origin;
         }
       } catch {
@@ -27,11 +32,32 @@ export function sellerPortalBaseUrl(req) {
       }
     }
   }
+
+  // For production requests, always use the configured seller portal URL
   const fromEnv = process.env.SELLER_FRONTEND_URL?.split(",")[0]?.trim();
-  if (fromEnv && !fromEnv.includes("localhost")) return fromEnv.replace(/\/$/, "");
+  if (fromEnv) return fromEnv.replace(/\/$/, "");
+
+  // Fallback: use non-localhost request origin
+  if (req) {
+    const raw = req.headers?.origin || req.headers?.referer;
+    if (raw) {
+      try {
+        const parsed = new URL(raw);
+        if (
+          parsed.hostname !== "localhost" &&
+          parsed.hostname !== "127.0.0.1"
+        ) {
+          return parsed.origin;
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+  }
 
   const customerEnv = process.env.FRONTEND_URL?.split(",")[0]?.trim();
-  if (customerEnv && !customerEnv.includes("localhost")) return customerEnv.replace(/\/$/, "");
+  if (customerEnv && !customerEnv.includes("localhost"))
+    return customerEnv.replace(/\/$/, "");
 
   return "https://e-commerce-snj1.vercel.app";
 }
