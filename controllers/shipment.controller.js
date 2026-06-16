@@ -11,6 +11,7 @@ import {
 } from "../utils/sellerOrderStatus.js";
 import { enrichShipmentsList, mapShipmentForSeller } from "../utils/shipmentSellerView.js";
 import { logOrderStatusActivity } from "../services/sellerActivity.service.js";
+import { processOrderReward } from "../services/rewardEngine.service.js";
 
 // @desc    List shipments for logged in seller (or admin filter)
 // @route   GET /api/shipments/seller
@@ -177,6 +178,13 @@ export const updateShipmentStatus = async (req, res) => {
     if (nextLegacy === "Delivered") shipment.actualDeliveryDate = Date.now();
 
     await shipment.save();
+
+    // ✅ REWARD ENGINE: Process reward asynchronously when order is delivered
+    if (nextLegacy === "Delivered" && shipment.order?._id) {
+      processOrderReward(shipment.order._id).catch((err) =>
+        console.error("[RewardEngine] Non-blocking error:", err.message)
+      );
+    }
 
     if (req.user.role === "seller" && (nextSellerStatus || nextLegacy)) {
       logOrderStatusActivity(

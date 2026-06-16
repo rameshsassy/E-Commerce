@@ -4,6 +4,8 @@ import bcrypt from "bcryptjs";
 import User from "../models/User.js";
 import KycEntityType from "../models/KycEntityType.js";
 import Category from "../models/Category.js";
+import HeaderCategory from "../models/HeaderCategory.js";
+import HomepageSetting from "../models/HomepageSetting.js";
 import { DEFAULT_KYC_ENTITY_TYPES } from "../data/kycEntityTypesSeed.js";
 import { SELLER_MAIN_CATEGORIES } from "../data/sellerMainCategories.js";
 
@@ -84,6 +86,64 @@ const seedDatabase = async () => {
       }
     }
     console.log(`Seeded ${categorySeededCount} new category/categories.`);
+
+    // 4. Seed Default Header Categories
+    console.log("Seeding Header Categories...");
+    const defaultHeaderCats = [
+      { name: "Books & Stationery", slug: "books-stationery", displayOrder: 1 },
+      { name: "Grocery & Gourmet", slug: "grocery-gourmet", displayOrder: 2 },
+      { name: "Fashion", slug: "fashion", displayOrder: 3 },
+      { name: "Beauty & Personal Care", slug: "beauty-personal-care", displayOrder: 4 },
+      { name: "Health & Wellness", slug: "health-wellness", displayOrder: 5 },
+      { name: "Electronics", slug: "electronics", displayOrder: 6 },
+      { name: "Home & Kitchen", slug: "home-kitchen", displayOrder: 7 },
+      { name: "Home Appliances", slug: "home-appliances", displayOrder: 8 },
+    ];
+    let headerCatsCount = 0;
+    for (const item of defaultHeaderCats) {
+      const existing = await HeaderCategory.findOne({ slug: item.slug });
+      if (!existing) {
+        await HeaderCategory.create(item);
+        headerCatsCount++;
+      }
+    }
+    console.log(`Seeded ${headerCatsCount} header categories.`);
+
+    // 5. Seed/Update Homepage Settings
+    console.log("Seeding Homepage Settings...");
+    const correctSettings = {
+      key: "header_settings",
+      logo: {
+        url: "/brand/aashansh-logo.png",
+        enabled: true,
+      },
+      announcementBar: {
+        enabled: true,
+        scrolling: true,
+        text: "conscious, inclusive, and impactful consumption",
+        backgroundColor: "#ffd401",
+        textColor: "#000000",
+      },
+      heroBanner: {
+        enabled: true,
+        image: "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=1200&q=80",
+        headlineEnabled: true,
+        headline: "Authentic. Ethical. Empowering.",
+        headlineAlignment: "center",
+        subtitleEnabled: true,
+        subtitle: "Crafted with Purpose, Delivered with Heart ❤️",
+        ctaEnabled: true,
+        ctaText: "SHOP NOW",
+        ctaLink: "/products",
+        ctaColor: "#ffd401",
+      },
+    };
+    await HomepageSetting.updateOne(
+      { key: "header_settings" },
+      { $set: correctSettings },
+      { upsert: true }
+    );
+    console.log("Seeded/updated default homepage settings.");
 
     console.log("Database seeding completed successfully!");
     process.exit(0);

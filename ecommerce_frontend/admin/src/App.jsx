@@ -29,6 +29,8 @@ import AdminChat from './pages/admin/AdminChat';
 import AdminWebsiteRequests from './pages/admin/AdminWebsiteRequests';
 import AdminMenu from './pages/admin/AdminMenu';
 import HeaderManagement from './pages/admin/homepage-management/HeaderManagement';
+import AdminDataMigration from './pages/admin/AdminDataMigration';
+import AdminRewards from './pages/admin/AdminRewards';
 
 import FloatingChat from './components/chat/FloatingChat';
 
@@ -63,6 +65,8 @@ function AppRoutes() {
           <Route path="/admin/email-logs" element={<AdminEmailLogs />} />
           <Route path="/admin/chats" element={<AdminChat />} />
           <Route path="/admin/website-requests" element={<AdminWebsiteRequests />} />
+          <Route path="/admin/data-migration" element={<AdminDataMigration />} />
+          <Route path="/admin/rewards" element={<AdminRewards />} />
         </Route>
 
         <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />

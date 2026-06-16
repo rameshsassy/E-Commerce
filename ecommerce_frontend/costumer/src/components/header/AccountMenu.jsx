@@ -7,6 +7,7 @@ import {
   MessageCircle,
   LogOut,
   ChevronDown,
+  Gift,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -42,13 +43,13 @@ export function AccountMenu({ config }) {
             <Button
               variant="ghost"
               size="sm"
-              className="flex items-center gap-1.5 h-10 px-3 rounded-full hover:bg-muted/80 transition-colors"
+              className="flex items-center gap-1.5 h-10 px-2 rounded-full hover:bg-muted/85 transition-colors"
               aria-label="Account Menu"
             >
-              <div className="h-6 w-6 rounded-full bg-primary/15 text-primary flex items-center justify-center font-bold text-xs">
-                {user?.firstName ? user.firstName[0].toUpperCase() : "U"}
+              <div className="h-7 w-7 rounded-full bg-rose-400 text-white flex items-center justify-center font-bold text-xs select-none">
+                {user?.firstName ? user.firstName[0].toUpperCase() : "T"}
               </div>
-              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground hidden sm:block" />
+              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56 p-1.5 rounded-2xl border border-border bg-popover/90 backdrop-blur-md shadow-elegant z-[100]">
@@ -101,6 +102,13 @@ export function AccountMenu({ config }) {
               <Link to="/chat" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-accent cursor-pointer transition-colors">
                 <MessageCircle className="h-4 w-4 text-muted-foreground" />
                 Live Chat
+              </Link>
+            </DropdownMenuItem>
+
+            <DropdownMenuItem asChild>
+              <Link to="/rewards" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-amber-500/10 cursor-pointer transition-colors" style={{ color: 'var(--color-warning, #fbbf24)' }}>
+                <Gift className="h-4 w-4" style={{ color: '#fbbf24' }} />
+                My Rewards
               </Link>
             </DropdownMenuItem>
 

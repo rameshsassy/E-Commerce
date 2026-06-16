@@ -11,6 +11,7 @@ import {
   LogOut,
   Sparkles,
   Search,
+  Gift,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -188,6 +189,16 @@ export function MobileMenu({ config, categories = [] }) {
                     >
                       <MessageCircle className="h-4.5 w-4.5 text-muted-foreground" />
                       Live Chat
+                    </Link>
+                  </SheetClose>
+                  <SheetClose asChild>
+                    <Link
+                      to="/rewards"
+                      className="flex items-center gap-3 p-3 rounded-xl hover:bg-amber-500/10 text-sm font-semibold transition-colors animate-fade-in"
+                      style={{ color: '#fbbf24' }}
+                    >
+                      <Gift className="h-4.5 w-4.5" style={{ color: '#fbbf24' }} />
+                      My Rewards
                     </Link>
                   </SheetClose>
                   <button

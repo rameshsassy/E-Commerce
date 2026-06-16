@@ -27,6 +27,7 @@ import {
   MessageSquare,
   Globe,
   Sliders,
+  Database,
 } from 'lucide-react';
 
 const SELLER_NAV = [
@@ -427,6 +428,28 @@ const DashboardLayout = ({ variant }) => {
                   <MessageSquare size={20} className="text-primary" />
                   Chats
                 </Link>
+              )}
+
+              {user.role === 'admin' && (
+                <>
+                  <div className="px-3 py-1.5 text-[10px] font-bold text-text-muted uppercase tracking-wider mt-2 border-t border-white/10 pt-3">
+                    Migration Tools
+                  </div>
+                  <Link
+                    to="/admin/data-migration"
+                    className={adminNavLinkClass(location.pathname, location.hash, '/admin/data-migration')}
+                    style={location.pathname.startsWith('/admin/data-migration') ? { background: 'linear-gradient(135deg, rgba(99,102,241,0.2), rgba(236,72,153,0.2))', borderColor: 'rgba(99,102,241,0.5)' } : {}}
+                  >
+                    <Database size={20} style={{ color: location.pathname.startsWith('/admin/data-migration') ? '#6366f1' : '' }} /> Data Migration
+                  </Link>
+                  <Link
+                    to="/admin/rewards"
+                    className={adminNavLinkClass(location.pathname, location.hash, '/admin/rewards')}
+                    style={location.pathname.startsWith('/admin/rewards') ? { background: 'linear-gradient(135deg, rgba(251,191,36,0.2), rgba(139,92,246,0.2))', borderColor: 'rgba(251,191,36,0.5)' } : {}}
+                  >
+                    <Gift size={20} style={{ color: location.pathname.startsWith('/admin/rewards') ? '#fbbf24' : '' }} /> Rewards Management
+                  </Link>
+                </>
               )}
             </div>
           )}

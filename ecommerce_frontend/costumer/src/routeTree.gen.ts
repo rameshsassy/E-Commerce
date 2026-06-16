@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WishlistRouteImport } from './routes/wishlist'
 import { Route as SupportRouteImport } from './routes/support'
+import { Route as RewardsRouteImport } from './routes/rewards'
 import { Route as ReturnsRouteImport } from './routes/returns'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ProductsRouteImport } from './routes/products'
@@ -36,6 +37,11 @@ const WishlistRoute = WishlistRouteImport.update({
 const SupportRoute = SupportRouteImport.update({
   id: '/support',
   path: '/support',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RewardsRoute = RewardsRouteImport.update({
+  id: '/rewards',
+  path: '/rewards',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReturnsRoute = ReturnsRouteImport.update({
@@ -132,6 +138,7 @@ export interface FileRoutesByFullPath {
   '/products': typeof ProductsRouteWithChildren
   '/profile': typeof ProfileRoute
   '/returns': typeof ReturnsRoute
+  '/rewards': typeof RewardsRoute
   '/support': typeof SupportRoute
   '/wishlist': typeof WishlistRoute
   '/orders/$id': typeof OrdersIdRoute
@@ -152,6 +159,7 @@ export interface FileRoutesByTo {
   '/products': typeof ProductsRouteWithChildren
   '/profile': typeof ProfileRoute
   '/returns': typeof ReturnsRoute
+  '/rewards': typeof RewardsRoute
   '/support': typeof SupportRoute
   '/wishlist': typeof WishlistRoute
   '/orders/$id': typeof OrdersIdRoute
@@ -173,6 +181,7 @@ export interface FileRoutesById {
   '/products': typeof ProductsRouteWithChildren
   '/profile': typeof ProfileRoute
   '/returns': typeof ReturnsRoute
+  '/rewards': typeof RewardsRoute
   '/support': typeof SupportRoute
   '/wishlist': typeof WishlistRoute
   '/orders/$id': typeof OrdersIdRoute
@@ -195,6 +204,7 @@ export interface FileRouteTypes {
     | '/products'
     | '/profile'
     | '/returns'
+    | '/rewards'
     | '/support'
     | '/wishlist'
     | '/orders/$id'
@@ -215,6 +225,7 @@ export interface FileRouteTypes {
     | '/products'
     | '/profile'
     | '/returns'
+    | '/rewards'
     | '/support'
     | '/wishlist'
     | '/orders/$id'
@@ -235,6 +246,7 @@ export interface FileRouteTypes {
     | '/products'
     | '/profile'
     | '/returns'
+    | '/rewards'
     | '/support'
     | '/wishlist'
     | '/orders/$id'
@@ -256,6 +268,7 @@ export interface RootRouteChildren {
   ProductsRoute: typeof ProductsRouteWithChildren
   ProfileRoute: typeof ProfileRoute
   ReturnsRoute: typeof ReturnsRoute
+  RewardsRoute: typeof RewardsRoute
   SupportRoute: typeof SupportRoute
   WishlistRoute: typeof WishlistRoute
   ResetPasswordTokenRoute: typeof ResetPasswordTokenRoute
@@ -276,6 +289,13 @@ declare module '@tanstack/react-router' {
       path: '/support'
       fullPath: '/support'
       preLoaderRoute: typeof SupportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rewards': {
+      id: '/rewards'
+      path: '/rewards'
+      fullPath: '/rewards'
+      preLoaderRoute: typeof RewardsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/returns': {
@@ -429,6 +449,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProductsRoute: ProductsRouteWithChildren,
   ProfileRoute: ProfileRoute,
   ReturnsRoute: ReturnsRoute,
+  RewardsRoute: RewardsRoute,
   SupportRoute: SupportRoute,
   WishlistRoute: WishlistRoute,
   ResetPasswordTokenRoute: ResetPasswordTokenRoute,

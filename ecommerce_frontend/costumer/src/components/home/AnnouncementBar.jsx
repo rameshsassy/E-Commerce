@@ -3,7 +3,8 @@ import React from 'react';
 export function AnnouncementBar({ config }) {
   if (!config || !config.enabled || !config.text?.trim()) return null;
 
-  const isLongText = config.text.length > 55;
+  // scrolling defaults to true if field not present (legacy records)
+  const shouldScroll = config.scrolling !== false;
 
   return (
     <div
@@ -17,22 +18,22 @@ export function AnnouncementBar({ config }) {
     >
       <style>{`
         @keyframes customerMarquee {
-          0% { transform: translateX(100%); }
+          0%   { transform: translateX(100vw); }
           100% { transform: translateX(-100%); }
         }
         .customer-marquee {
           display: inline-block;
           white-space: nowrap;
-          animation: customerMarquee 20s linear infinite;
+          animation: customerMarquee 18s linear infinite;
         }
         .customer-marquee:hover {
           animation-play-state: paused;
         }
       `}</style>
 
-      {isLongText ? (
+      {shouldScroll ? (
         <div className="w-full overflow-hidden relative flex items-center">
-          <div className="customer-marquee w-full cursor-pointer">
+          <div className="customer-marquee cursor-pointer">
             {config.text}
           </div>
         </div>

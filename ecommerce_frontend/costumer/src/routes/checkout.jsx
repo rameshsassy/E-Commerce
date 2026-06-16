@@ -4,14 +4,14 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { ProtectedRoute } from "@/components/customer/ProtectedRoute";
 import { useCart } from "@/contexts/CartContext";
-import { customerApi, couponApi, productApi } from "@/lib/services";
+import { customerApi, couponApi, productApi, rewardsApi } from "@/lib/services";
 import { AddressCard } from "@/components/customer/AddressCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { EmptyState, LoadingSpinner } from "@/components/customer/EmptyState";
-import { MapPin, CreditCard, ShoppingBag, Tag, Check } from "lucide-react";
+import { MapPin, CreditCard, ShoppingBag, Tag, Check, Gift } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/checkout")({
@@ -35,7 +35,15 @@ function CheckoutPage() {
   const [payment, setPayment] = useState("razorpay");
   const [coupon, setCoupon] = useState("");
   const [couponInfo, setCouponInfo] = useState(null);
+  const [rewardVoucher, setRewardVoucher] = useState(null); // selected wallet voucher
+  const [rewardDiscount, setRewardDiscount] = useState(0);
   const [busy, setBusy] = useState(false);
+
+  const walletQ = useQuery({
+    queryKey: ["rewards-wallet-checkout"],
+    queryFn: () => rewardsApi.getWallet(),
+  });
+  const activeVouchers = (walletQ.data?.wallet || []).filter(w => w.status === "active" && new Date(w.expiryDate) > new Date());
 
   if (items.length === 0) {
     return (
@@ -61,7 +69,7 @@ function CheckoutPage() {
   const activeAddr = addressList.find((a) => a._id === activeAddrId);
 
   const discount = couponInfo?.discount || 0;
-  const total = couponInfo?.finalAmount ?? Math.max(0, subtotal - discount);
+  const total = couponInfo?.finalAmount ?? Math.max(0, subtotal - discount - rewardDiscount);
 
   const applyCoupon = async () => {
     if (!coupon) return;
@@ -108,6 +116,8 @@ function CheckoutPage() {
       const payload = {
         addressId: activeAddr._id,
         couponCode: couponInfo?.code,
+        rewardVoucherCode: rewardVoucher?.voucherCode || null,
+        rewardDiscountAmount: rewardDiscount || 0,
       };
 
       if (payment === "cod") {
@@ -245,6 +255,12 @@ function CheckoutPage() {
                 <span>−₹{discount.toLocaleString("en-IN")}</span>
               </div>
             )}
+            {rewardDiscount > 0 && (
+              <div className="flex justify-between" style={{ color: "#6366f1" }}>
+                <span>🎫 Reward ({rewardVoucher?.voucherCode})</span>
+                <span>−₹{rewardDiscount.toLocaleString("en-IN")}</span>
+              </div>
+            )}
             <div className="my-2 border-t" />
             <div className="flex justify-between text-base font-bold">
               <span>Total</span>
@@ -286,6 +302,40 @@ function CheckoutPage() {
               </div>
             )}
           </div>
+
+          {/* Reward Vouchers */}
+          {activeVouchers.length > 0 && (
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1 text-xs">
+                <Gift className="h-3 w-3" /> Apply Reward Voucher
+              </Label>
+              {rewardVoucher ? (
+                <div className="flex items-center justify-between rounded-lg border p-2" style={{ borderColor: "rgba(99,102,241,0.3)", background: "rgba(99,102,241,0.05)" }}>
+                  <span className="text-sm font-medium" style={{ color: "#818cf8" }}>
+                    <Check className="mr-1 inline h-3 w-3" />
+                    {rewardVoucher.voucherCode} — saves ₹{rewardDiscount.toLocaleString("en-IN")}
+                  </span>
+                  <Button variant="ghost" size="sm" onClick={() => { setRewardVoucher(null); setRewardDiscount(0); }}>
+                    Remove
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                  {activeVouchers.map(v => (
+                    <button key={v._id} onClick={() => { setRewardVoucher(v); setRewardDiscount(Math.min(v.rewardValue, total)); }}
+                      className="w-full flex items-center justify-between rounded-lg border p-2.5 text-left hover:bg-muted/20 transition-colors"
+                      style={{ borderColor: "rgba(99,102,241,0.2)" }}>
+                      <div>
+                        <code className="text-xs font-mono font-bold" style={{ color: "#818cf8" }}>{v.voucherCode}</code>
+                        <div className="text-xs text-muted-foreground">{v.campaign?.campaignName} · Exp. {new Date(v.expiryDate).toLocaleDateString("en-IN")}</div>
+                      </div>
+                      <span className="text-sm font-bold" style={{ color: "#22c55e" }}>₹{v.rewardValue}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <Button
             size="lg"

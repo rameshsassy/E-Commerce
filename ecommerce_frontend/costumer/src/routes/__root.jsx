@@ -120,6 +120,14 @@ function RootShell({ children }) {
   );
 }
 
+const defaultAnnouncementConfig = {
+  enabled: true,
+  scrolling: true,
+  text: "conscious, inclusive, and impactful consumption",
+  backgroundColor: "#ffd401",
+  textColor: "#000000",
+};
+
 function RootLayout() {
   const { data: settings } = useQuery({
     queryKey: ["homepageSettings"],
@@ -128,7 +136,7 @@ function RootLayout() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <AnnouncementBar config={settings?.announcementBar} />
+      <AnnouncementBar config={settings?.announcementBar || defaultAnnouncementConfig} />
       <Header />
       <main className="flex-1">
         <Outlet />

@@ -6,6 +6,7 @@ import { Eye, EyeOff, Loader2 } from 'lucide-react';
 const AnnouncementBarManagement = ({ settings, onUpdate }) => {
   const [formData, setFormData] = useState({
     enabled: true,
+    scrolling: true,
     text: '',
     backgroundColor: '#000000',
     textColor: '#ffffff',
@@ -19,6 +20,7 @@ const AnnouncementBarManagement = ({ settings, onUpdate }) => {
     if (settings && settings.announcementBar) {
       setFormData({
         enabled: settings.announcementBar.enabled ?? true,
+        scrolling: settings.announcementBar.scrolling !== false, // default true for legacy records
         text: settings.announcementBar.text || '',
         backgroundColor: settings.announcementBar.backgroundColor || '#000000',
         textColor: settings.announcementBar.textColor || '#ffffff',
@@ -105,19 +107,17 @@ const AnnouncementBarManagement = ({ settings, onUpdate }) => {
     }
   };
 
-  const isTextLong = formData.text.length > 55;
-
   return (
     <div className="glass-panel p-6 rounded-2xl border border-glass-border">
       <style>{`
         @keyframes adminMarquee {
-          0% { transform: translateX(100%); }
+          0%   { transform: translateX(100%); }
           100% { transform: translateX(-100%); }
         }
         .admin-marquee {
           display: inline-block;
           white-space: nowrap;
-          animation: adminMarquee 15s linear infinite;
+          animation: adminMarquee 12s linear infinite;
         }
         .admin-marquee:hover {
           animation-play-state: paused;
@@ -185,6 +185,27 @@ const AnnouncementBarManagement = ({ settings, onUpdate }) => {
             )}
           </div>
 
+          {/* Scrolling Marquee Toggle */}
+          <div className="flex items-center justify-between p-3 rounded-xl border border-glass-border bg-surface/50">
+            <div>
+              <p className="text-sm font-semibold">Scrolling Marquee</p>
+              <p className="text-xs text-text-muted mt-0.5">
+                When on, text continuously scrolls across the bar (regardless of length).
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                name="scrolling"
+                checked={formData.scrolling}
+                onChange={handleInputChange}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-glass-border rounded-full peer peer-checked:bg-primary transition-colors duration-200"></div>
+              <div className="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 peer-checked:translate-x-5"></div>
+            </label>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <ColorPickerField
               label="Background Color"
@@ -225,9 +246,15 @@ const AnnouncementBarManagement = ({ settings, onUpdate }) => {
                 }}
                 className="w-full py-2.5 px-4 rounded-xl text-xs font-semibold overflow-hidden relative"
               >
-                <div className={isTextLong ? 'admin-marquee cursor-pointer' : 'text-center'}>
-                  {formData.text || 'Enter announcement text...'}
-                </div>
+                {formData.scrolling ? (
+                  <div className="admin-marquee cursor-pointer">
+                    {formData.text || 'Enter announcement text...'}
+                  </div>
+                ) : (
+                  <div className="text-center">
+                    {formData.text || 'Enter announcement text...'}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center text-xs text-text-muted border border-dashed border-glass-border rounded-xl py-6">
@@ -235,7 +262,9 @@ const AnnouncementBarManagement = ({ settings, onUpdate }) => {
               </div>
             )}
             <span className="text-[10px] text-text-muted text-center mt-1">
-              (Preview pauses when hover state is active on long scrolling text)
+              {formData.scrolling
+                ? '(Scrolling marquee — hover to pause)'
+                : '(Static centered text)'}
             </span>
           </div>
         </div>

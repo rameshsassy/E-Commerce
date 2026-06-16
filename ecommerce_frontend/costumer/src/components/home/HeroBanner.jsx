@@ -29,7 +29,7 @@ export function HeroBanner({ config }) {
             className="absolute inset-0 w-full h-full object-cover object-center scale-100 group-hover:scale-101 transition-transform duration-700 ease-out"
           />
           {/* Backdrop dimming filter to ensure text contrast/readability */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20 z-10" />
+          <div className="absolute inset-0 bg-black/45 z-10" />
         </>
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-primary/25 via-primary-glow/15 to-transparent z-10" />
@@ -44,15 +44,22 @@ export function HeroBanner({ config }) {
           'items-center text-center'
         )}
       >
-        <div className="max-w-xl md:max-w-2xl flex flex-col gap-2 md:gap-3">
+        <div
+          className={cn(
+            "max-w-xl md:max-w-3xl flex flex-col gap-2 md:gap-4",
+            config.headlineAlignment === 'left' ? 'items-start' :
+            config.headlineAlignment === 'right' ? 'items-end' :
+            'items-center mx-auto'
+          )}
+        >
           {config.headlineEnabled && config.headline && (
-            <h1 className="text-xl sm:text-2xl md:text-3.5xl lg:text-4.5xl font-extrabold tracking-tight leading-none drop-shadow-md select-none text-white animate-fade-in font-display">
+            <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight drop-shadow-md select-none text-white animate-fade-in font-display">
               {config.headline}
             </h1>
           )}
 
           {config.subtitleEnabled && config.subtitle && (
-            <p className="text-xs sm:text-sm md:text-base lg:text-lg text-zinc-200 font-medium leading-relaxed drop-shadow select-none max-w-lg animate-fade-in">
+            <p className="text-xs sm:text-sm md:text-base lg:text-xl text-zinc-100 font-medium leading-relaxed drop-shadow select-none max-w-2xl animate-fade-in">
               {config.subtitle}
             </p>
           )}
@@ -65,7 +72,7 @@ export function HeroBanner({ config }) {
                   backgroundColor: config.ctaColor || '#ffd401',
                   color: '#000000',
                 }}
-                className="font-extrabold uppercase text-[10px] sm:text-xs md:text-sm tracking-wider px-6 py-2.5 sm:py-5 md:py-6 rounded-full shadow-soft hover:brightness-105 hover:shadow-elegant active:scale-98 transition-all shrink-0"
+                className="font-extrabold uppercase text-xs sm:text-sm tracking-wider px-8 py-3 sm:py-5 md:py-6 rounded-full shadow-soft hover:brightness-105 hover:shadow-elegant active:scale-98 transition-all shrink-0"
               >
                 <Link to={config.ctaLink}>
                   {config.ctaText}

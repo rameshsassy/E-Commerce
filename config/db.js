@@ -29,7 +29,7 @@ const connectDB = async () => {
   if (mongoose.connection.readyState === 1) return;
 
   try {
-    const conn = await mongoose.connect(uri);
+    const conn = await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 });
     console.log(`MongoDB Connected: ${conn.connection.host}`);
     await ensureKycEntityTypesSeeded();
     await runMigration();
@@ -42,14 +42,15 @@ const connectDB = async () => {
       msg.includes("querySrv") ||
       msg.includes("ENOTFOUND") ||
       msg.includes("ECONNREFUSED") ||
-      msg.includes("EAI_AGAIN");
+      msg.includes("EAI_AGAIN") ||
+      msg.includes("selection timed out");
 
     if (isSrvResolutionFailure) {
       try {
         console.warn(
           `[db] Atlas connection failed, trying fallback MongoDB: ${fallbackUri}`
         );
-        const conn = await mongoose.connect(fallbackUri);
+        const conn = await mongoose.connect(fallbackUri, { serverSelectionTimeoutMS: 5000 });
         console.log(`MongoDB Connected (fallback): ${conn.connection.host}`);
         await ensureKycEntityTypesSeeded();
         await runMigration();

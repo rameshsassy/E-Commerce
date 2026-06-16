@@ -4,14 +4,65 @@ import { categoryApi, productApi, publicApi } from "@/lib/services";
 import { ProductCard } from "@/components/customer/ProductCard";
 import { SkeletonGrid } from "@/components/customer/EmptyState";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Sparkles, Truck, ShieldCheck, Heart } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { 
+  ArrowRight, 
+  Shirt, 
+  Sparkles, 
+  Flower2, 
+  Monitor, 
+  Soup, 
+  Cpu, 
+  ShoppingBasket, 
+  BookOpen, 
+  Truck, 
+  ShieldCheck, 
+  Award, 
+  Heart 
+} from "lucide-react";
 import { HeroBanner } from "@/components/home/HeroBanner";
+
+const defaultSettings = {
+  heroBanner: {
+    enabled: true,
+    image: "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=1200&q=80",
+    headlineEnabled: true,
+    headline: "Authentic. Ethical. Empowering.",
+    headlineAlignment: "center",
+    subtitleEnabled: true,
+    subtitle: "Crafted with Purpose, Delivered with Heart ❤️",
+    ctaEnabled: true,
+    ctaText: "SHOP NOW",
+    ctaLink: "/products",
+    ctaColor: "#ffd401",
+  },
+};
+
+const defaultHomeCategories = [
+  { _id: "fashion-id", name: "Fashion", slug: "fashion" },
+  { _id: "beauty-id", name: "Beauty & Personal Care", slug: "beauty-personal-care" },
+  { _id: "health-id", name: "Health & Wellness", slug: "health-wellness" },
+  { _id: "electronics-id", name: "Electronics", slug: "electronics" },
+  { _id: "home-kitchen-id", name: "Home & Kitchen", slug: "home-kitchen" },
+  { _id: "home-appliances-id", name: "Home Appliances", slug: "home-appliances" },
+  { _id: "grocery-id", name: "Grocery & Gourmet", slug: "grocery-gourmet" },
+  { _id: "books-id", name: "Books & Stationery", slug: "books-stationery" },
+];
+
+const categoryIconMap = {
+  "fashion": <Shirt className="h-6 w-6 stroke-[1.5] text-slate-800" />,
+  "beauty-personal-care": <Sparkles className="h-6 w-6 stroke-[1.5] text-slate-800" />,
+  "health-wellness": <Flower2 className="h-6 w-6 stroke-[1.5] text-slate-800" />,
+  "electronics": <Monitor className="h-6 w-6 stroke-[1.5] text-slate-800" />,
+  "home-kitchen": <Soup className="h-6 w-6 stroke-[1.5] text-slate-800" />,
+  "home-appliances": <Cpu className="h-6 w-6 stroke-[1.5] text-slate-800" />,
+  "grocery-gourmet": <ShoppingBasket className="h-6 w-6 stroke-[1.5] text-slate-800" />,
+  "books-stationery": <BookOpen className="h-6 w-6 stroke-[1.5] text-slate-800" />,
+};
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Aashansh — Shop the best of your neighborhood" },
+      { title: "Aashansh — Premium Hyperlocal Marketplace" },
       {
         name: "description",
         content:
@@ -23,7 +74,6 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  const { isAuthenticated } = useAuth();
   const products = useQuery({
     queryKey: ["products", "featured"],
     queryFn: () => productApi.list({ limit: 8 }),
@@ -40,112 +90,80 @@ function Home() {
   const productList = Array.isArray(products.data)
     ? products.data
     : products.data?.products || [];
-  const categoryList = (cats.data || []).slice(0, 8);
 
-  const showDynamicHero = settings.data?.heroBanner?.enabled === true;
-  const hideHero = settings.data?.heroBanner?.enabled === false;
+  const displaySettings = settings.data || defaultSettings;
+  const displayHeroConfig = displaySettings.heroBanner;
+
+  const categoryList = defaultHomeCategories.map((defCat) => {
+    const dbCat = (cats.data || []).find((c) => c.slug === defCat.slug);
+    return {
+      _id: dbCat?._id || defCat._id,
+      name: dbCat?.name || defCat.name,
+      slug: defCat.slug,
+    };
+  });
 
   return (
     <>
-      {!hideHero && (
-        showDynamicHero ? (
-          <HeroBanner config={settings.data.heroBanner} />
-        ) : (
-          <section className="relative overflow-hidden">
-            <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_oklch(0.94_0.05_75)_0%,_transparent_60%)]" />
-            <div className="container-page grid items-center gap-8 py-12 md:grid-cols-2 md:py-20">
-              <div>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-background px-3 py-1 text-xs font-medium shadow-card">
-                  <Sparkles className="h-3 w-3 text-primary" /> Premium hyperlocal
-                  marketplace
-                </span>
-                <h1 className="mt-4 text-4xl font-bold leading-[1.05] tracking-tight md:text-6xl">
-                  The best of your{" "}
-                  <span className="bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
-                    neighborhood
-                  </span>
-                  , delivered.
-                </h1>
-                <p className="mt-4 max-w-md text-base text-muted-foreground md:text-lg">
-                  Discover handpicked products from trusted local sellers — fast
-                  delivery, fair prices, and people you can count on.
-                </p>
-                <div className="mt-6 flex flex-wrap gap-3">
-                  <Button asChild size="lg">
-                    <Link to="/products">
-                      Shop now <ArrowRight className="ml-1 h-4 w-4" />
-                    </Link>
-                  </Button>
-                  {!isAuthenticated && (
-                    <Button asChild size="lg" variant="outline">
-                      <Link to="/auth">Create account</Link>
-                    </Button>
-                  )}
-                </div>
-                <div className="mt-8 grid max-w-md grid-cols-3 gap-4">
-                  <Feature
-                    icon={<Truck className="h-4 w-4" />}
-                    label="Fast delivery"
-                  />
-                  <Feature
-                    icon={<ShieldCheck className="h-4 w-4" />}
-                    label="Secure payments"
-                  />
-                  <Feature
-                    icon={<Heart className="h-4 w-4" />}
-                    label="Loved locally"
-                  />
-                </div>
-              </div>
-              <div className="relative aspect-square w-full max-w-md justify-self-center md:max-w-none">
-                <div className="absolute inset-0 rounded-[3rem] gradient-primary opacity-90 shadow-elegant" />
-                <img
-                  src="https://images.unsplash.com/photo-1483985988355-763728e1935b?w=900&q=80"
-                  alt="Shopping"
-                  className="absolute inset-4 h-[calc(100%-2rem)] w-[calc(100%-2rem)] rounded-[2.5rem] object-cover"
-                />
-              </div>
-            </div>
-          </section>
-        )
-      )}
+      {/* Hero section loads instantly using settings configuration or fallback */}
+      <HeroBanner config={displayHeroConfig} />
 
-      {categoryList.length > 0 && (
-        <section className="container-page py-10">
-          <div className="mb-6 flex items-end justify-between">
-            <h2 className="text-2xl font-bold">Shop by category</h2>
-          </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
-            {categoryList.map((c) => (
-              <Link
-                key={c._id}
-                to="/products"
-                search={{ category: c._id }}
-                className="group flex flex-col items-center gap-2 rounded-xl border bg-card p-3 text-center shadow-card transition hover:-translate-y-0.5 hover:shadow-elegant"
-              >
-                <div className="grid h-14 w-14 place-items-center overflow-hidden rounded-full bg-accent">
-                  {c.image ? (
-                    <img
-                      src={c.image}
-                      alt={c.name}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-lg font-bold">{c.name[0]}</span>
-                  )}
-                </div>
-                <span className="line-clamp-2 text-xs font-medium">
-                  {c.name}
-                </span>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
+      {/* Category listing with horizontal scroll on mobile */}
+      <section className="container-page py-10">
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-slate-900">Shop by category</h2>
+        </div>
+        <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-none sm:grid sm:grid-cols-4 lg:grid-cols-8 sm:overflow-visible sm:pb-0">
+          {categoryList.map((c) => (
+            <Link
+              key={c._id}
+              to="/products"
+              search={{ category: c._id }}
+              className="group flex flex-col items-center justify-center gap-3 rounded-2xl border border-slate-100 bg-white p-4 text-center shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all shrink-0 w-[115px] sm:w-auto sm:shrink sm:min-w-0 cursor-pointer"
+            >
+              <div className="grid h-14 w-14 place-items-center rounded-full bg-[#fef9c3] border border-yellow-200/50 shadow-inner group-hover:scale-105 transition-transform">
+                {categoryIconMap[c.slug] || <Sparkles className="h-6 w-6 text-slate-800" />}
+              </div>
+              <span className="text-[11px] font-bold text-slate-900 leading-snug line-clamp-2">
+                {c.name}
+              </span>
+            </Link>
+          ))}
+        </div>
+      </section>
 
+      {/* Bottom Features Bar inside a beige container */}
+      <section className="container-page py-6">
+        <div className="rounded-3xl bg-[#faf8f5] p-6 md:p-8 border border-amber-100/30">
+          <div className="grid grid-cols-2 gap-6 md:grid-cols-4 md:gap-8">
+            <FeatureItem
+              icon={<Truck className="h-5 w-5 text-slate-800" />}
+              title="Fast delivery"
+              subtitle="Quick & reliable delivery"
+            />
+            <FeatureItem
+              icon={<ShieldCheck className="h-5 w-5 text-slate-800" />}
+              title="Secure payments"
+              subtitle="100% secure transactions"
+            />
+            <FeatureItem
+              icon={<Award className="h-5 w-5 text-slate-800" />}
+              title="Quality assured"
+              subtitle="Handpicked for you"
+            />
+            <FeatureItem
+              icon={<Heart className="h-5 w-5 text-slate-800" />}
+              title="Loved locally"
+              subtitle="Supporting local businesses"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Products */}
       <section className="container-page py-10">
         <div className="mb-6 flex items-end justify-between">
-          <h2 className="text-2xl font-bold">Featured products</h2>
+          <h2 className="text-2xl font-bold text-slate-900">Featured products</h2>
           <Button asChild variant="ghost" size="sm">
             <Link to="/products">
               View all <ArrowRight className="ml-1 h-4 w-4" />
@@ -174,13 +192,20 @@ function Home() {
   );
 }
 
-function Feature({ icon, label }) {
+function FeatureItem({ icon, title, subtitle }) {
   return (
-    <div className="flex flex-col items-center gap-1 text-center text-xs text-muted-foreground">
-      <span className="grid h-9 w-9 place-items-center rounded-full bg-background shadow-card text-foreground">
+    <div className="flex items-center gap-3">
+      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#fef9c3] border border-yellow-200/50 shadow-sm">
         {icon}
-      </span>
-      {label}
+      </div>
+      <div className="min-w-0">
+        <h4 className="text-xs md:text-sm font-bold text-slate-900 truncate">
+          {title}
+        </h4>
+        <p className="text-[10px] md:text-xs text-slate-500 truncate mt-0.5">
+          {subtitle}
+        </p>
+      </div>
     </div>
   );
 }

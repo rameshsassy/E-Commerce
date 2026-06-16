@@ -122,3 +122,12 @@ export const publicApi = {
 export const storeApi = {
   getStoreConfig: (handle) => api.get(`/store/${handle}`),
 };
+
+// ---------- Rewards ----------
+export const rewardsApi = {
+  getSummary: () => api.get("/rewards/me"),
+  getWallet: () => api.get("/rewards/wallet"),
+  getHistory: () => api.get("/rewards/history"),
+  redeem: (voucherId, orderId, orderAmount) =>
+    api.post("/rewards/redeem", { voucherId, orderId, orderAmount }),
+};

@@ -9,7 +9,7 @@ const homepageSettingSchema = new mongoose.Schema(
       default: "header_settings",
     },
     logo: {
-      url: { type: String, default: "" },
+      url: { type: String, default: "/brand/aashansh-logo.png" },
       enabled: { type: Boolean, default: true },
     },
     bulkPurchase: {
@@ -29,18 +29,19 @@ const homepageSettingSchema = new mongoose.Schema(
     },
     announcementBar: {
       enabled: { type: Boolean, default: true },
+      scrolling: { type: Boolean, default: true },
       text: {
         type: String,
-        default: "Welcome to Aashansh! Discover amazing products and offers.",
+        default: "conscious, inclusive, and impactful consumption",
       },
-      backgroundColor: { type: String, default: "#000000" },
-      textColor: { type: String, default: "#ffffff" },
+      backgroundColor: { type: String, default: "#ffd401" },
+      textColor: { type: String, default: "#000000" },
     },
     heroBanner: {
       enabled: { type: Boolean, default: true },
-      image: { type: String, default: "" },
+      image: { type: String, default: "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=1200&q=80" },
       headlineEnabled: { type: Boolean, default: true },
-      headline: { type: String, default: "Discover Products Made for You" },
+      headline: { type: String, default: "Authentic. Ethical. Empowering." },
       headlineAlignment: {
         type: String,
         enum: ["left", "center", "right"],
@@ -49,10 +50,10 @@ const homepageSettingSchema = new mongoose.Schema(
       subtitleEnabled: { type: Boolean, default: true },
       subtitle: {
         type: String,
-        default: "Shop from trusted sellers across Aashansh.",
+        default: "Crafted with Purpose, Delivered with Heart ❤️",
       },
       ctaEnabled: { type: Boolean, default: true },
-      ctaText: { type: String, default: "Shop Now" },
+      ctaText: { type: String, default: "SHOP NOW" },
       ctaLink: { type: String, default: "/products" },
       ctaColor: { type: String, default: "#ffd401" },
     },

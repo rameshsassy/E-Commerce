@@ -110,6 +110,19 @@ const orderSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    // Reward integration
+    rewardVoucherCode: {
+      type: String,
+      default: null,
+    },
+    rewardDiscountAmount: {
+      type: Number,
+      default: 0,
+    },
+    rewardProcessed: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

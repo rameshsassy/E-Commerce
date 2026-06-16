@@ -25,6 +25,9 @@ import websiteRequestRoutes from "./routes/websiteRequest.routes.js";
 import menuRoutes from "./routes/menu.routes.js";
 import homepageRoutes from "./routes/homepage.routes.js";
 import { wishlistRouter, cartRouter } from "./routes/customerFrontend.routes.js";
+import importRoutes from "./routes/import.routes.js";
+import rewardRoutes from "./routes/rewards.routes.js";
+import adminRewardRoutes from "./routes/adminRewards.routes.js";
 
 import { errorHandler } from "./middleware/error.middleware.js";
 import { clientDeviceMiddleware } from "./middleware/clientDevice.middleware.js";
@@ -226,6 +229,9 @@ app.use("/api/menu", menuRoutes);
 app.use("/api/homepage-settings", homepageRoutes);
 app.use("/api/wishlist", wishlistRouter); // ✅ Customer frontend alias
 app.use("/api/cart", cartRouter);         // ✅ Customer frontend alias
+app.use("/api/superadmin/import", importRoutes); // ✅ Data Migration (Super Admin only)
+app.use("/api/rewards", rewardRoutes);            // ✅ Customer Rewards
+app.use("/api/admin/rewards", adminRewardRoutes);  // ✅ Admin Rewards Management
 
 // ===============================
 // 🏠 ROOT ROUTE

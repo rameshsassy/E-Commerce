@@ -64,6 +64,7 @@ export const updateSettings = async (req, res) => {
 
     if (announcementBar !== undefined) {
       if (announcementBar.enabled !== undefined) settings.announcementBar.enabled = announcementBar.enabled;
+      if (announcementBar.scrolling !== undefined) settings.announcementBar.scrolling = announcementBar.scrolling;
       if (announcementBar.text !== undefined) settings.announcementBar.text = announcementBar.text;
       if (announcementBar.backgroundColor !== undefined) settings.announcementBar.backgroundColor = announcementBar.backgroundColor;
       if (announcementBar.textColor !== undefined) settings.announcementBar.textColor = announcementBar.textColor;
