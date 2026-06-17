@@ -178,4 +178,25 @@ router.get("/vouchers", protect, authorizeRoles("seller"), getSellerVouchers);
 router.post("/vouchers", protect, authorizeRoles("seller"), createVoucher);
 router.delete("/vouchers/:id", protect, authorizeRoles("seller"), deleteVoucher);
 
+// 📄 Seller Invoices
+import {
+  getSubscriptionYears,
+  downloadSubscriptionInvoice,
+  getSalesProducts,
+  downloadSalesInvoiceByProduct,
+  downloadSalesInvoiceByDateRange,
+  getReferralPayoutReceipts,
+  downloadReferralReceiptByPayout,
+  downloadReferralReceiptByDateRange,
+} from "../controllers/invoice.controller.js";
+
+router.get("/invoices/subscription/years", protect, authorizeRoles("seller"), getSubscriptionYears);
+router.get("/invoices/subscription/download", protect, authorizeRoles("seller"), downloadSubscriptionInvoice);
+router.get("/invoices/sales/products", protect, authorizeRoles("seller"), getSalesProducts);
+router.get("/invoices/sales/download", protect, authorizeRoles("seller"), downloadSalesInvoiceByProduct);
+router.get("/invoices/sales/range/download", protect, authorizeRoles("seller"), downloadSalesInvoiceByDateRange);
+router.get("/invoices/referrals/payouts", protect, authorizeRoles("seller"), getReferralPayoutReceipts);
+router.get("/invoices/referrals/download", protect, authorizeRoles("seller"), downloadReferralReceiptByPayout);
+router.get("/invoices/referrals/range/download", protect, authorizeRoles("seller"), downloadReferralReceiptByDateRange);
+
 export default router;
