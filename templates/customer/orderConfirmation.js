@@ -1,5 +1,7 @@
+import { wrapCustomerEmail } from "../_helpers.js";
+
 export default function orderConfirmation(user, order) {
-  return `
+  const inner = `
     <h2>Order Confirmation - #${order._id.toString().slice(-8)}</h2>
     <p>Hi ${user.firstName || "there"},</p>
     <p>Thank you for your purchase! Your order has been confirmed and we are getting it ready.</p>
@@ -11,4 +13,5 @@ export default function orderConfirmation(user, order) {
     <p><b>Estimated Delivery:</b> 5-7 Business Days</p>
     <p>You can track your order in your profile dashboard.</p>
   `;
+  return wrapCustomerEmail(inner);
 }

@@ -18,10 +18,10 @@ export default function weeklyReport(seller, summary) {
       <td align="center">
         <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #FFFFFF; border-radius: 4px; overflow: hidden; max-width: 600px; border: 1px solid #e8e8e8;">
           
-          <!-- ===== LOGO ===== -->
+          <!-- ===== HERO BANNER ===== -->
           <tr>
-            <td align="center" style="padding: 25px 0 15px;">
-              <img src="${logoUrl}" width="50" style="display: block; border: 0;" alt="Aashansh Logo">
+            <td align="center" style="padding: 0;">
+              <img src="https://aashansh.org/brand/seller-welcome-banner.png" width="600" style="display: block; width: 100%; max-width: 600px; height: auto; border: 0;" alt="Welcome to Aashansh - Sell to crores of customers globally - B2B & B2C">
             </td>
           </tr>
 
@@ -153,7 +153,7 @@ export default function weeklyReport(seller, summary) {
               <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border: 1px solid #FFD600; border-radius: 12px; margin-bottom: 15px; background-color: #FFD600;">
                 <tr>
                   <td align="center" style="padding: 25px 20px;">
-                    <img src="https://img.icons8.com/ios/100/000000/fundraising.png" width="40" height="40" style="display: block; margin: 0 auto 12px;" alt="Business Fundraising">
+                    <img src="https://img.icons8.com/ios/100/000000/money-bag.png" width="40" height="40" style="display: block; margin: 0 auto 12px;" alt="Business Fundraising">
                     <div style="font-size: 14px; font-weight: bold; color: #333; margin-bottom: 6px;">Business Fundraising</div>
                     <div style="font-size: 13px; color: #555; line-height: 1.5;">Support in funding options, grants, and investor connects for growth</div>
                   </td>

@@ -1,6 +1,6 @@
 import { dispatchEmail } from "./emailService.js";
 import User from "../models/User.js";
-import { appBaseUrl } from "../templates/_helpers.js";
+import { appBaseUrl, wrapCustomerEmail } from "../templates/_helpers.js";
 import customerWelcome from "../templates/customer/customerWelcome.js";
 import orderConfirmation from "../templates/customer/orderConfirmation.js";
 import dispatchEmailTpl from "../templates/customer/dispatchEmail.js";
@@ -253,12 +253,12 @@ export const sendSubscriptionReminderEmail = async (user, type) => {
 };
 
 export const sendWelcomeEmail = async (user) => {
-  const html = `
+  const html = wrapCustomerEmail(`
     <h2>Welcome to Aashansh, ${user.firstName}!</h2>
     <p>We are thrilled to have you join our purpose-driven marketplace.</p>
     <p>Explore handcrafted products, empower women artisans, and enjoy a special 10% off your first purchase using code: <b>WELCOME10</b>.</p>
-    <a href="${base()}/products" style="padding: 10px 20px; background-color: #6366f1; color: white; text-decoration: none; border-radius: 5px;">Start Shopping</a>
-  `;
+    <p style="text-align: center;"><a href="${base()}/products" style="display: inline-block; padding: 12px 35px; background-color: #FFD600; color: #333; text-decoration: none; border-radius: 25px; font-weight: bold;">Start Shopping</a></p>
+  `);
   await dispatchEmail({
     templateType: "customer_welcome_legacy",
     to: user.email,
@@ -461,7 +461,7 @@ export const sendBulkInquiryAdminEmail = async (payload) => {
     console.warn("[email] No admin notify address for bulk inquiries");
     return;
   }
-  const html = `
+  const html = wrapCustomerEmail(`
     <h2>Bulk order inquiry (platform)</h2>
     <p><b>Inquiry ID:</b> ${payload.inquiryId}</p>
     <ul>
@@ -473,7 +473,7 @@ export const sendBulkInquiryAdminEmail = async (payload) => {
       ${payload.message ? `<li><b>Message:</b> ${escapeBulkHtml(payload.message)}</li>` : ""}
     </ul>
     <p><a href="${payload.productUrl}">Product page</a></p>
-  `;
+  `);
   await dispatchEmail({
     templateType: "admin_bulk_inquiry",
     to,
@@ -485,7 +485,7 @@ export const sendBulkInquiryAdminEmail = async (payload) => {
 };
 
 export const sendBulkInquiryBuyerConfirmation = async (payload) => {
-  const html = `
+  const html = wrapCustomerEmail(`
     <h2>We received your bulk inquiry</h2>
     <p>Hi ${payload.buyerName},</p>
     <p>Thank you for your interest in <b>${payload.productTitle}</b>.</p>
@@ -493,7 +493,7 @@ export const sendBulkInquiryBuyerConfirmation = async (payload) => {
     <p><b>Reference:</b> ${payload.inquiryId}</p>
     <p><a href="${payload.productUrl}">Back to product</a></p>
     <p>— Team Aashansh</p>
-  `;
+  `);
   await dispatchEmail({
     templateType: "customer_bulk_inquiry_confirmation",
     to: payload.buyerEmail,

@@ -55,6 +55,9 @@ const DEFAULT_CORS_ORIGINS = [
   "http://localhost:5175",
   "http://127.0.0.1:5175",
   "http://seller.localhost:5175",
+  "http://localhost:5176",
+  "http://127.0.0.1:5176",
+  "http://seller.localhost:5176",
   "http://localhost:3000",
   "http://127.0.0.1:3000",
 ];

@@ -142,10 +142,10 @@ export default function subscriptionNotification(name, type, dashboardLink) {
       <td align="center">
         <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #FFFFFF; border-radius: 4px; overflow: hidden; max-width: 600px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
 
-          <!-- ===== LOGO ===== -->
+          <!-- ===== HERO BANNER ===== -->
           <tr>
-            <td align="center" style="padding: 25px 0 15px;">
-              <img src="${logoUrl}" width="50" style="display: block; border: 0;" alt="Aashansh Logo">
+            <td align="center" style="padding: 0;">
+              <img src="https://aashansh.org/brand/seller-welcome-banner.png" width="600" style="display: block; width: 100%; max-width: 600px; height: auto; border: 0;" alt="Welcome to Aashansh - Sell to crores of customers globally - B2B & B2C">
             </td>
           </tr>
 

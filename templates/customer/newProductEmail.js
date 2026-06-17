@@ -1,7 +1,7 @@
-import { appBaseUrl } from "../_helpers.js";
+import { wrapCustomerEmail } from "../_helpers.js";
 
 export default function newProductEmail(customerName, productTitle, productUrl) {
-  return `
+  const inner = `
     <h2>New on Aashansh ✨</h2>
     <p>Hi ${customerName || "there"},</p>
     <p>A product you might like just went live: <b>${productTitle}</b>.</p>
@@ -9,4 +9,5 @@ export default function newProductEmail(customerName, productTitle, productUrl) 
     <p>You're receiving this because you opted in to new product alerts.</p>
     <p>— Team Aashansh</p>
   `;
+  return wrapCustomerEmail(inner);
 }

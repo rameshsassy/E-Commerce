@@ -62,7 +62,7 @@ export default function kycRejectionSeller(name, dashboardLink) {
       desc: "Promote products via targeted ads, social campaigns, and analytics",
     },
     {
-      icon: "https://img.icons8.com/ios/100/000000/fundraising.png",
+      icon: "https://img.icons8.com/ios/100/000000/money-bag.png",
       title: "Business Fundraising",
       desc: "Support in funding options, grants, and investor connects for growth",
     },
@@ -96,10 +96,10 @@ export default function kycRejectionSeller(name, dashboardLink) {
       <td align="center">
         <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #FFFFFF; border-radius: 4px; overflow: hidden; max-width: 600px;">
 
-          <!-- ===== LOGO ===== -->
+          <!-- ===== HERO BANNER ===== -->
           <tr>
-            <td align="center" style="padding: 25px 0 15px;">
-              <img src="https://aashansh.org/brand/aashansh-logo.png" width="50" style="display: block; border: 0;" alt="Aashansh Logo">
+            <td align="center" style="padding: 0;">
+              <img src="https://aashansh.org/brand/seller-welcome-banner.png" width="600" style="display: block; width: 100%; max-width: 600px; height: auto; border: 0;" alt="Welcome to Aashansh - Sell to crores of customers globally - B2B & B2C">
             </td>
           </tr>
 

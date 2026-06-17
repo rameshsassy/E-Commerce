@@ -60,7 +60,7 @@ export default function sellerWelcome(name, dashboardLink) {
       desc: "Promote products via targeted ads, social campaigns, and analytics",
     },
     {
-      icon: "https://img.icons8.com/ios/100/000000/fundraising.png",
+      icon: "https://img.icons8.com/ios/100/000000/money-bag.png",
       title: "Business Fundraising",
       desc: "Support in funding options, grants, and investor connects for growth",
     },
