@@ -155,3 +155,20 @@ export const rewardsApi = {
   redeem: (voucherId, orderId, orderAmount) =>
     api.post("/rewards/redeem", { voucherId, orderId, orderAmount }),
 };
+
+// ---------- FAQs ----------
+export const faqApi = {
+  list: () => api.get("/faqs"),
+  submitQuestion: (data) => api.post("/faqs/request", data),
+};
+
+// ---------- Policies ----------
+export const policyApi = {
+  get: (type) => api.get(`/policies/${type}`),
+  list: () => api.get("/policies"),
+};
+
+// ---------- Featured Products Layouts ----------
+export const featuredProductsApi = {
+  list: () => api.get("/featured-products"),
+};

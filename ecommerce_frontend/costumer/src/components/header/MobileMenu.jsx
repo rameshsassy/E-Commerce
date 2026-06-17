@@ -120,9 +120,9 @@ export function MobileMenu({ config, categories = [] }) {
               <SheetClose asChild>
                 <Link
                   to={config.bulkPurchase.link || "/bulk-purchase"}
-                  className="flex items-center gap-2.5 p-3 rounded-xl bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 text-sm font-bold transition-all"
+                  className="flex items-center gap-2.5 p-3 rounded-xl bg-[#ffd401]/15 text-[#0f172a] border border-[#ffd401]/40 hover:bg-[#ffd401]/25 text-sm font-bold transition-all"
                 >
-                  <Sparkles className="h-4 w-4 fill-current" />
+                  <Sparkles className="h-4 w-4 fill-[#b8960a] stroke-[#b8960a]" />
                   {config.bulkPurchase.text || "Bulk Purchase"}
                 </Link>
               </SheetClose>

@@ -104,7 +104,7 @@ export default function Footer() {
           <h4 className="font-bold text-sm text-white uppercase tracking-wider mb-2">Follow Us</h4>
           <div className="flex items-center gap-4 mt-2">
             <a
-              href="https://instagram.com"
+              href="https://www.instagram.com/aashansh/"
               target="_blank"
               rel="noopener noreferrer"
               className="text-text-muted hover:text-white transition-colors"
@@ -113,7 +113,7 @@ export default function Footer() {
               <InstagramIcon size={22} />
             </a>
             <a
-              href="https://facebook.com"
+              href="https://www.facebook.com/Aashansh"
               target="_blank"
               rel="noopener noreferrer"
               className="text-text-muted hover:text-white transition-colors"
@@ -122,7 +122,7 @@ export default function Footer() {
               <FacebookIcon size={22} />
             </a>
             <a
-              href="https://linkedin.com"
+              href="https://www.linkedin.com/company/aashansh"
               target="_blank"
               rel="noopener noreferrer"
               className="text-text-muted hover:text-white transition-colors"
@@ -153,7 +153,7 @@ export default function Footer() {
               <a href={customerPortalOrigin} className="hover:text-white transition-colors">Home</a>
             </li>
             <li>
-              <a href={sellerRegisterUrl} className="hover:text-white transition-colors">Sell with Aashansh</a>
+              <a href="https://seller.aashansh.org/register" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Sell with Aashansh</a>
             </li>
             <li>
               <Link to="/contact-info" className="hover:text-white transition-colors">Contact information</Link>
@@ -162,7 +162,7 @@ export default function Footer() {
               <Link to="/seller/refer-and-earn" className="hover:text-white transition-colors">Refer & Earn</Link>
             </li>
             <li>
-              <a href={`${customerPortalOrigin}/faq`} className="hover:text-white transition-colors">FAQs</a>
+              <a href="/faq" className="hover:text-white transition-colors">FAQs</a>
             </li>
             <li>
               <Link to="/seller/orders-enquiries" className="hover:text-white transition-colors">Track orders</Link>
@@ -175,22 +175,22 @@ export default function Footer() {
           <h4 className="font-bold text-sm text-white uppercase tracking-wider">Policy</h4>
           <ul className="space-y-2.5 text-sm text-text-muted font-medium list-disc pl-4">
             <li>
-              <Link to="/refund-policy" className="hover:text-white transition-colors">Refund policy</Link>
+              <Link to="/policies/refund-policy" className="hover:text-white transition-colors">Refund policy</Link>
             </li>
             <li>
-              <Link to="/return-policy" className="hover:text-white transition-colors">Return Policy</Link>
+              <Link to="/policies/return-policy" className="hover:text-white transition-colors">Return Policy</Link>
             </li>
             <li>
-              <Link to="/replacement-policy" className="hover:text-white transition-colors">Replacement Policy</Link>
+              <Link to="/policies/replacement-policy" className="hover:text-white transition-colors">Replacement Policy</Link>
             </li>
             <li>
-              <Link to="/terms" className="hover:text-white transition-colors">Terms of Use</Link>
+              <Link to="/policies/terms-of-use" className="hover:text-white transition-colors">Terms of Use</Link>
             </li>
             <li>
-              <Link to="/shipping-policy" className="hover:text-white transition-colors">Shipping Policy</Link>
+              <Link to="/policies/shipping-policy" className="hover:text-white transition-colors">Shipping Policy</Link>
             </li>
             <li>
-              <Link to="/seller-agreement" className="hover:text-white transition-colors">Seller Agreement</Link>
+              <Link to="/policies/seller-agreement" className="hover:text-white transition-colors">Seller Agreement</Link>
             </li>
           </ul>
         </div>

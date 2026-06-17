@@ -32,6 +32,9 @@ import reviewRoutes from "./routes/review.routes.js";
 import checkoutRoutes from "./routes/checkout.routes.js";
 import bulkPurchaseRoutes from "./routes/bulkPurchase.routes.js";
 import deliveryRoutes from "./routes/delivery.routes.js";
+import faqRoutes from "./routes/faq.routes.js";
+import policyRoutes from "./routes/policy.routes.js";
+import featuredProductLayoutRoutes from "./routes/featuredProductLayout.routes.js";
 
 import { errorHandler } from "./middleware/error.middleware.js";
 import { clientDeviceMiddleware } from "./middleware/clientDevice.middleware.js";
@@ -245,6 +248,9 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/checkout", checkoutRoutes);
 app.use("/api/bulk-purchase", bulkPurchaseRoutes);
 app.use("/api/delivery", deliveryRoutes);
+app.use("/api/faqs", faqRoutes);
+app.use("/api", policyRoutes);
+app.use("/api", featuredProductLayoutRoutes);
 
 // ===============================
 // 🏠 ROOT ROUTE

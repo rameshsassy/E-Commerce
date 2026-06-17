@@ -128,7 +128,7 @@ export function AccountMenu({ config }) {
           <Button asChild size="sm" variant="ghost" className="rounded-full font-semibold px-4 hover:bg-muted text-sm">
             <Link to="/auth">Sign in</Link>
           </Button>
-          <Button asChild size="sm" className="rounded-full font-semibold px-4 text-sm bg-primary text-primary-foreground hover:bg-primary/90">
+          <Button asChild size="sm" className="rounded-full font-semibold px-4 text-sm bg-[#ffd401] text-[#0f172a] hover:bg-[#e6bf00] border-none">
             <Link to="/auth" search={{ tab: "register" }}>Sign up</Link>
           </Button>
         </div>

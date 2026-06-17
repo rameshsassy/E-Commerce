@@ -1,9 +1,56 @@
 import { Link } from "@tanstack/react-router";
-import { MapPin, Phone, Mail, Instagram, Facebook, Linkedin } from "lucide-react";
+import { MapPin, Phone, Mail, Instagram, Facebook, Linkedin, Truck, ShieldCheck, Award, Heart } from "lucide-react";
+
+function FeatureItem({ icon, title, subtitle }) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#fef9c3] border border-yellow-200/50 shadow-sm">
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <h4 className="text-xs md:text-sm font-bold text-slate-900 truncate">
+          {title}
+        </h4>
+        <p className="text-[10px] md:text-xs text-slate-500 truncate mt-0.5">
+          {subtitle}
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export function Footer() {
   return (
-    <footer className="mt-24 bg-[#060814] text-slate-300 border-t border-slate-900/60 font-sans">
+    <>
+      {/* Features Bar — above footer on every page */}
+      <section className="container-page py-6">
+        <div className="rounded-3xl bg-[#faf8f5] p-6 md:p-8 border border-amber-100/30">
+          <div className="grid grid-cols-2 gap-6 md:grid-cols-4 md:gap-8">
+            <FeatureItem
+              icon={<Truck className="h-5 w-5 text-slate-800" />}
+              title="Fast delivery"
+              subtitle="Quick & reliable delivery"
+            />
+            <FeatureItem
+              icon={<ShieldCheck className="h-5 w-5 text-slate-800" />}
+              title="Secure payments"
+              subtitle="100% secure transactions"
+            />
+            <FeatureItem
+              icon={<Award className="h-5 w-5 text-slate-800" />}
+              title="Quality assured"
+              subtitle="Handpicked for you"
+            />
+            <FeatureItem
+              icon={<Heart className="h-5 w-5 text-slate-800" />}
+              title="Loved locally"
+              subtitle="Supporting local businesses"
+            />
+          </div>
+        </div>
+      </section>
+
+    <footer className="mt-0 bg-[#060814] text-slate-300 border-t border-slate-900/60 font-sans">
       {/* Top contact row */}
       <div className="container-page py-10">
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
@@ -49,7 +96,7 @@ export function Footer() {
             <h4 className="text-sm font-bold tracking-wider text-white uppercase font-display">Follow Us</h4>
             <div className="mt-2.5 flex items-center gap-4">
               <a
-                href="https://instagram.com"
+                href="https://www.instagram.com/aashansh/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-slate-400 hover:text-blue-400 transition-colors"
@@ -57,7 +104,7 @@ export function Footer() {
                 <Instagram className="h-5 w-5" />
               </a>
               <a
-                href="https://facebook.com"
+                href="https://www.facebook.com/Aashansh"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-slate-400 hover:text-blue-400 transition-colors"
@@ -65,7 +112,7 @@ export function Footer() {
                 <Facebook className="h-5 w-5" />
               </a>
               <a
-                href="https://linkedin.com"
+                href="https://www.linkedin.com/company/aashansh"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-slate-400 hover:text-blue-400 transition-colors"
@@ -85,9 +132,12 @@ export function Footer() {
           {/* About Column */}
           <div className="lg:col-span-6 space-y-4">
             <p className="text-sm leading-relaxed text-slate-400 max-w-xl">
-              Aashansh is a purpose-driven e-commerce platform connecting awesome
-              brands like you B2C and B2B customers to amplify business growth. Sell
-              with Aashansh and be a part of India's movement toward conscious,
+              Aashansh is a purpose-driven e-commerce platform
+              connecting you to authentic, handcrafted, and
+              everyday products made by aspiring brands. Every
+              purchase supports real people, real stories, and
+              stronger communities. Shop with Aashansh and be
+              a part of India's movement toward conscious,
               inclusive, and impactful consumption.
             </p>
           </div>
@@ -104,9 +154,9 @@ export function Footer() {
               </li>
               <li className="flex items-center gap-2">
                 <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
-                <Link to="/auth" className="hover:text-white transition-colors">
+                <a href="https://seller.aashansh.org/register" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
                   Sell with Aashansh
-                </Link>
+                </a>
               </li>
               <li className="flex items-center gap-2">
                 <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
@@ -122,7 +172,7 @@ export function Footer() {
               </li>
               <li className="flex items-center gap-2">
                 <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
-                <Link to="/support" className="hover:text-white transition-colors">
+                <Link to="/faqs" className="hover:text-white transition-colors">
                   FAQs
                 </Link>
               </li>
@@ -141,37 +191,37 @@ export function Footer() {
             <ul className="mt-4 space-y-2 text-sm text-slate-400">
               <li className="flex items-center gap-2">
                 <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
-                <Link to="/support" className="hover:text-white transition-colors">
+                <Link to="/policies/refund-policy" className="hover:text-white transition-colors">
                   Refund policy
                 </Link>
               </li>
               <li className="flex items-center gap-2">
                 <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
-                <Link to="/returns" className="hover:text-white transition-colors">
+                <Link to="/policies/return-policy" className="hover:text-white transition-colors">
                   Return Policy
                 </Link>
               </li>
               <li className="flex items-center gap-2">
                 <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
-                <Link to="/support" className="hover:text-white transition-colors">
+                <Link to="/policies/replacement-policy" className="hover:text-white transition-colors">
                   Replacement Policy
                 </Link>
               </li>
               <li className="flex items-center gap-2">
                 <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
-                <Link to="/support" className="hover:text-white transition-colors">
+                <Link to="/policies/terms-of-use" className="hover:text-white transition-colors">
                   Terms of Use
                 </Link>
               </li>
               <li className="flex items-center gap-2">
                 <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
-                <Link to="/support" className="hover:text-white transition-colors">
+                <Link to="/policies/shipping-policy" className="hover:text-white transition-colors">
                   Shipping Policy
                 </Link>
               </li>
               <li className="flex items-center gap-2">
                 <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
-                <Link to="/support" className="hover:text-white transition-colors">
+                <Link to="/policies/seller-agreement" className="hover:text-white transition-colors">
                   Seller Agreement
                 </Link>
               </li>
@@ -187,5 +237,6 @@ export function Footer() {
         © 2026 | Funds And Toil Private Limited (Aashansh) | All Right Reserved | Made with love in India
       </div>
     </footer>
+    </>
   );
 }

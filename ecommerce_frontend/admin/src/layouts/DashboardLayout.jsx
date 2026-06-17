@@ -29,6 +29,9 @@ import {
   Sliders,
   Database,
   User,
+  HelpCircle,
+  FileText,
+  Sparkles,
 } from 'lucide-react';
 
 const SELLER_NAV = [
@@ -417,6 +420,27 @@ const DashboardLayout = ({ variant }) => {
                   >
                     <Sliders size={20} className="text-primary" />
                     Homepage Management
+                  </Link>
+                  <Link
+                    to="/admin/faqs"
+                    className={adminNavLinkClass(location.pathname, location.hash, '/admin/faqs')}
+                  >
+                    <HelpCircle size={20} className="text-primary" />
+                    FAQs
+                  </Link>
+                  <Link
+                    to="/admin/policies"
+                    className={adminNavLinkClass(location.pathname, location.hash, '/admin/policies')}
+                  >
+                    <FileText size={20} className="text-primary" />
+                    Policies
+                  </Link>
+                  <Link
+                    to="/admin/featured-products"
+                    className={adminNavLinkClass(location.pathname, location.hash, '/admin/featured-products')}
+                  >
+                    <Sparkles size={20} className="text-primary" />
+                    Featured Products
                   </Link>
                 </>
               )}

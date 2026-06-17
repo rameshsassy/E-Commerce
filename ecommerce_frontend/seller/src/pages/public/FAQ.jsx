@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
-import { Search, ChevronDown, MessageCircle, HelpCircle, Package, CreditCard, RefreshCw, Truck, User } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, ChevronDown, MessageCircle, HelpCircle, Package, CreditCard, RefreshCw, Truck, User, Send, CheckCircle, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import api from '../../utils/api';
 
-const FAQS_DATA = [
+// Fallback local FAQs (shown if API returns empty)
+const LOCAL_FAQS_DATA = [
   {
     category: "Orders",
     icon: <Package size={24} className="text-primary" />,
@@ -52,9 +54,60 @@ const FAQ = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [openCategory, setOpenCategory] = useState("Orders");
   const [openItem, setOpenItem] = useState("How do I track my order?");
+  const [apiFaqs, setApiFaqs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [formSubmitted, setFormSubmitted] = useState(false);
+  const [formLoading, setFormLoading] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    userType: 'Seller',
+    subject: '',
+    question: '',
+  });
+
+  // Fetch FAQs from API
+  useEffect(() => {
+    const fetchFaqs = async () => {
+      try {
+        const res = await api.get('/faqs');
+        setApiFaqs(res.data || []);
+      } catch {
+        setApiFaqs([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFaqs();
+  }, []);
+
+  // Build combined FAQ data: API FAQs as "General" + local fallback categories
+  const combinedData = React.useMemo(() => {
+    const result = [];
+    if (apiFaqs.length > 0) {
+      result.push({
+        category: "General",
+        icon: <HelpCircle size={24} className="text-primary" />,
+        items: apiFaqs.map(f => ({ question: f.question, answer: f.answer })),
+      });
+    }
+    return [...result, ...LOCAL_FAQS_DATA];
+  }, [apiFaqs]);
+
+  // Set default open category once loaded
+  useEffect(() => {
+    if (!loading && combinedData.length > 0) {
+      const firstCat = combinedData[0].category;
+      setOpenCategory(firstCat);
+      if (combinedData[0].items.length > 0) {
+        setOpenItem(combinedData[0].items[0].question);
+      }
+    }
+  }, [loading, combinedData]);
 
   // Filter logic
-  const filteredData = FAQS_DATA.map(category => {
+  const filteredData = combinedData.map(category => {
     const filteredItems = category.items.filter(item => 
       item.question.toLowerCase().includes(searchQuery.toLowerCase()) || 
       item.answer.toLowerCase().includes(searchQuery.toLowerCase())
@@ -66,6 +119,33 @@ const FAQ = () => {
     setOpenCategory(categoryName);
     setOpenItem(openItem === question ? null : question);
   };
+
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    setFormError('');
+    if (!form.name || !form.email || !form.subject || !form.question) {
+      setFormError('Please fill in all fields.');
+      return;
+    }
+    setFormLoading(true);
+    try {
+      await api.post('/faqs/request', form);
+      setFormSubmitted(true);
+      setForm({ name: '', email: '', userType: 'Seller', subject: '', question: '' });
+    } catch (err) {
+      setFormError(err?.response?.data?.message || 'Failed to submit question. Please try again.');
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-6xl mx-auto w-full p-8 flex justify-center py-32">
+        <Loader2 size={32} className="animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto w-full p-4 md:p-8 animate-fade-in">
@@ -98,7 +178,7 @@ const FAQ = () => {
         {/* Sidebar Categories */}
         <div className="md:col-span-1 flex flex-col gap-2">
           <h3 className="font-bold text-sm uppercase tracking-wider text-text-muted mb-2 px-4">Categories</h3>
-          {FAQS_DATA.map((cat, idx) => (
+          {combinedData.map((cat, idx) => (
             <button
               key={idx}
               onClick={() => {
@@ -184,13 +264,110 @@ const FAQ = () => {
             </div>
           )}
 
-          {/* Still Need Help Section */}
-          <div className="mt-12 bg-surface p-8 rounded-3xl border border-glass-border flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+          {/* Still Have a Question? — Submission Form */}
+          <div className="mt-12 bg-surface p-8 rounded-3xl border border-glass-border relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl"></div>
+            
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-6">
+                <Send size={24} className="text-primary" />
+                <div>
+                  <h3 className="text-2xl font-bold">Still have a question?</h3>
+                  <p className="text-text-muted text-sm">Submit your question and our team will get back to you.</p>
+                </div>
+              </div>
+
+              {formSubmitted ? (
+                <div className="rounded-2xl bg-success/10 border border-success/30 p-8 text-center">
+                  <CheckCircle size={40} className="mx-auto mb-3 text-success" />
+                  <p className="font-bold text-lg mb-1">Question submitted successfully!</p>
+                  <p className="text-text-muted">Our team will review it and publish an answer soon.</p>
+                  <button onClick={() => setFormSubmitted(false)} className="btn btn-secondary mt-4">
+                    Ask another question
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleFormSubmit} className="space-y-4">
+                  {formError && (
+                    <div className="bg-error/10 border border-error/30 rounded-xl px-4 py-3 text-error text-sm font-medium">
+                      {formError}
+                    </div>
+                  )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-bold mb-1.5">Name *</label>
+                      <input
+                        type="text"
+                        placeholder="Your name"
+                        value={form.name}
+                        onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))}
+                        className="w-full bg-white/5 border-2 border-glass-border px-4 py-3 rounded-xl focus:border-primary transition-all outline-none font-medium"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold mb-1.5">Email *</label>
+                      <input
+                        type="email"
+                        placeholder="your@email.com"
+                        value={form.email}
+                        onChange={(e) => setForm(p => ({ ...p, email: e.target.value }))}
+                        className="w-full bg-white/5 border-2 border-glass-border px-4 py-3 rounded-xl focus:border-primary transition-all outline-none font-medium"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-bold mb-1.5">I am a *</label>
+                      <select
+                        value={form.userType}
+                        onChange={(e) => setForm(p => ({ ...p, userType: e.target.value }))}
+                        className="w-full bg-white/5 border-2 border-glass-border px-4 py-3 rounded-xl focus:border-primary transition-all outline-none font-medium"
+                      >
+                        <option value="Customer">Customer</option>
+                        <option value="Seller">Seller</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold mb-1.5">Subject *</label>
+                      <input
+                        type="text"
+                        placeholder="Brief subject"
+                        value={form.subject}
+                        onChange={(e) => setForm(p => ({ ...p, subject: e.target.value }))}
+                        className="w-full bg-white/5 border-2 border-glass-border px-4 py-3 rounded-xl focus:border-primary transition-all outline-none font-medium"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold mb-1.5">Your Question *</label>
+                    <textarea
+                      rows={4}
+                      placeholder="Describe your question in detail..."
+                      value={form.question}
+                      onChange={(e) => setForm(p => ({ ...p, question: e.target.value }))}
+                      className="w-full bg-white/5 border-2 border-glass-border px-4 py-3 rounded-xl focus:border-primary transition-all outline-none font-medium resize-none"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={formLoading}
+                    className="btn btn-primary flex items-center gap-2 px-8"
+                  >
+                    {formLoading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                    Submit Question
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+
+          {/* Contact Support */}
+          <div className="mt-8 bg-surface p-8 rounded-3xl border border-glass-border flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl"></div>
             
             <div className="z-10">
-              <h3 className="text-2xl font-bold mb-2">Still need help?</h3>
-              <p className="text-text-muted">If you couldn't find the answer to your question, our support team is ready to help.</p>
+              <h3 className="text-2xl font-bold mb-2">Need direct support?</h3>
+              <p className="text-text-muted">Our support team is ready to help with any issue.</p>
             </div>
             
             <div className="flex gap-4 z-10 shrink-0">

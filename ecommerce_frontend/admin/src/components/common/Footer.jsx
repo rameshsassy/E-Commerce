@@ -103,7 +103,7 @@ export default function Footer() {
           <h4 className="font-bold text-sm text-white uppercase tracking-wider mb-2">Follow Us</h4>
           <div className="flex items-center gap-4 mt-2">
             <a
-              href="https://instagram.com"
+              href="https://www.instagram.com/aashansh/"
               target="_blank"
               rel="noopener noreferrer"
               className="text-text-muted hover:text-white transition-colors"
@@ -112,7 +112,7 @@ export default function Footer() {
               <InstagramIcon size={22} />
             </a>
             <a
-              href="https://facebook.com"
+              href="https://www.facebook.com/Aashansh"
               target="_blank"
               rel="noopener noreferrer"
               className="text-text-muted hover:text-white transition-colors"
@@ -121,7 +121,7 @@ export default function Footer() {
               <FacebookIcon size={22} />
             </a>
             <a
-              href="https://linkedin.com"
+              href="https://www.linkedin.com/company/aashansh"
               target="_blank"
               rel="noopener noreferrer"
               className="text-text-muted hover:text-white transition-colors"
@@ -152,7 +152,7 @@ export default function Footer() {
               <a href={customerPortalOrigin} className="hover:text-white transition-colors">Home</a>
             </li>
             <li>
-              <a href={sellerRegisterUrl} className="hover:text-white transition-colors">Sell with Aashansh</a>
+              <a href="https://seller.aashansh.org/register" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Sell with Aashansh</a>
             </li>
             <li>
               <a href={`${customerPortalOrigin}/contact-info`} className="hover:text-white transition-colors">Contact information</a>
@@ -161,7 +161,7 @@ export default function Footer() {
               <a href={`${customerPortalOrigin}/profile`} className="hover:text-white transition-colors">Refer & Earn</a>
             </li>
             <li>
-              <a href={`${customerPortalOrigin}/faq`} className="hover:text-white transition-colors">FAQs</a>
+              <a href={`${customerPortalOrigin}/faqs`} className="hover:text-white transition-colors">FAQs</a>
             </li>
             <li>
               <a href={`${customerPortalOrigin}/profile`} className="hover:text-white transition-colors">Track orders</a>

@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '../../utils/api';
-import { Tag, Plus, Edit, Trash2, Save, X, Percent, Layout, FolderOpen, Eye, EyeOff, ChevronUp, ChevronDown } from 'lucide-react';
+import { Tag, Plus, Edit, Trash2, Save, X, Percent, Layout, FolderOpen, Eye, EyeOff, ChevronUp, ChevronDown, CheckCircle, Circle, Layers } from 'lucide-react';
 import ResponsiveTable from '../../components/common/ResponsiveTable';
 import useFormAutosave from '../../hooks/useFormAutosave';
 import FormAutosaveStatus from '../../components/common/FormAutosaveStatus';
-import { getSubcategoriesForMain, getTypesForMainSub } from '../../constants/sellerCategoryTaxonomy';
+import { getSubcategoriesForMain, getTypesForMainSub, SUBCATEGORIES_BY_MAIN } from '../../constants/sellerCategoryTaxonomy';
+import { SELLER_MAIN_CATEGORIES } from '../../constants/sellerMainCategories';
 
 // ─── Homepage Engine Mock Data ────────────────────────────────────────────────
 const SAMPLE_PRODUCTS = [
@@ -660,6 +661,7 @@ const AdminCategories = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [taxonomyExpanded, setTaxonomyExpanded] = useState({});
   
   // Form State
   const [showForm, setShowForm] = useState(false);
@@ -1067,6 +1069,114 @@ const AdminCategories = () => {
           <div className="px-6 py-2 text-[11px] text-[#6D7175] border-t border-[#E1E3E5] bg-white">
             Scroll for more option
           </div>
+        </div>
+      </div>
+
+      {/* ── All Available Categories (Taxonomy Reference) ── */}
+      <div className="bg-white rounded-2xl border border-[#E1E3E5] shadow-sm overflow-hidden text-black">
+        {/* Header */}
+        <div className="px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white">
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center shrink-0 text-indigo-500 border border-indigo-100">
+              <Layers size={20} />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[13px] text-[#6D7175] font-medium truncate">All Available Categories</div>
+              <div className="text-[28px] md:text-[32px] font-bold text-[#202223] leading-tight truncate">
+                {SELLER_MAIN_CATEGORIES.length}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="flex items-center gap-1.5 text-[12px] font-semibold text-green-600 bg-green-50 border border-green-100 px-3 py-1.5 rounded-full">
+              <CheckCircle size={13} /> {categories.filter(c => SELLER_MAIN_CATEGORIES.some(mc => mc.toLowerCase() === c.name.toLowerCase())).length} Added
+            </span>
+            <span className="flex items-center gap-1.5 text-[12px] font-semibold text-slate-500 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-full">
+              <Circle size={13} /> {SELLER_MAIN_CATEGORIES.length - categories.filter(c => SELLER_MAIN_CATEGORIES.some(mc => mc.toLowerCase() === c.name.toLowerCase())).length} Not Added
+            </span>
+          </div>
+        </div>
+
+        {/* Category Cards Grid */}
+        <div className="border-t border-[#E1E3E5] p-4 md:p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {SELLER_MAIN_CATEGORIES.map((mainCat, idx) => {
+              const dbMatch = categories.find(c => c.name.toLowerCase() === mainCat.toLowerCase());
+              const isAdded = !!dbMatch;
+              const subs = SUBCATEGORIES_BY_MAIN[mainCat] || [];
+              const isOpen = taxonomyExpanded[mainCat];
+
+              return (
+                <div key={mainCat} className={`rounded-xl border transition-all duration-200 ${isAdded ? 'border-green-200 bg-green-50/30' : 'border-[#E1E3E5] bg-white'} ${isOpen ? 'row-span-2' : ''}`}>
+                  {/* Main Category Row */}
+                  <div className="flex items-center gap-3 px-4 py-3.5">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[13px] font-bold shrink-0 ${isAdded ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
+                      {String(idx + 1).padStart(2, '0')}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-[14px] text-[#202223] truncate">{mainCat}</span>
+                        {isAdded && <CheckCircle size={14} className="text-green-500 shrink-0" />}
+                      </div>
+                      <span className="text-[11px] text-[#6D7175]">{subs.length} sub-categories</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {!isAdded && (
+                        <button
+                          onClick={() => {
+                            setFormData(prev => ({
+                              ...prev,
+                              name: mainCat,
+                              description: '',
+                              commissionRate: 5,
+                              isActive: true,
+                              isFeatured: false,
+                              parentCategory: '',
+                              subCategory: '',
+                              productType: '',
+                              customParentCategory: '',
+                              customSubCategory: '',
+                              customProductType: '',
+                            }));
+                            setEditingId(null);
+                            setShowForm(true);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                          className="px-2.5 py-1.5 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white text-[11px] font-bold transition-colors flex items-center gap-1"
+                        >
+                          <Plus size={12} /> Add
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setTaxonomyExpanded(prev => ({ ...prev, [mainCat]: !prev[mainCat] }))}
+                        className="w-7 h-7 rounded-lg border border-[#E1E3E5] bg-white hover:bg-slate-50 flex items-center justify-center text-slate-400 transition-colors"
+                      >
+                        {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Expanded Sub-categories */}
+                  {isOpen && subs.length > 0 && (
+                    <div className="border-t border-[#E1E3E5] px-4 py-3 bg-slate-50/50">
+                      <div className="text-[10px] uppercase font-bold text-[#6D7175] tracking-wider mb-2">Sub-categories</div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {subs.map(sub => (
+                          <span key={sub} className="inline-flex items-center px-2.5 py-1 rounded-md bg-white border border-[#E1E3E5] text-[11px] font-medium text-[#202223] shadow-sm">
+                            {sub}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="px-6 py-2 text-[11px] text-[#6D7175] border-t border-[#E1E3E5] bg-white">
+          These are all available marketplace categories from the taxonomy. Click "Add" to register a category in the database.
         </div>
       </div>
 

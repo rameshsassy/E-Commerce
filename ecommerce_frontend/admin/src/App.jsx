@@ -32,6 +32,9 @@ import HeaderManagement from './pages/admin/homepage-management/HeaderManagement
 import AdminDataMigration from './pages/admin/AdminDataMigration';
 import AdminRewards from './pages/admin/AdminRewards';
 import AdminProfile from './pages/admin/AdminProfile';
+import AdminFAQs from './pages/admin/AdminFAQs';
+import AdminPolicies from './pages/admin/AdminPolicies';
+import AdminFeaturedProducts from './pages/admin/AdminFeaturedProducts';
 
 import FloatingChat from './components/chat/FloatingChat';
 
@@ -69,6 +72,9 @@ function AppRoutes() {
           <Route path="/admin/data-migration" element={<AdminDataMigration />} />
           <Route path="/admin/rewards" element={<AdminRewards />} />
           <Route path="/admin/profile" element={<AdminProfile />} />
+          <Route path="/admin/faqs" element={<AdminFAQs />} />
+          <Route path="/admin/policies" element={<AdminPolicies />} />
+          <Route path="/admin/featured-products" element={<AdminFeaturedProducts />} />
         </Route>
 
         <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />

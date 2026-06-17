@@ -53,7 +53,7 @@ export function HeroBanner({ config }) {
           )}
         >
           {config.headlineEnabled && config.headline && (
-            <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight drop-shadow-md select-none text-white animate-fade-in font-display">
+            <h1 className="text-base sm:text-lg md:text-2xl lg:text-3xl font-extrabold tracking-tight leading-tight drop-shadow-md select-none text-white animate-fade-in font-display">
               {config.headline}
             </h1>
           )}

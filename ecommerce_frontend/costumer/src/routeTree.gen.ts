@@ -17,6 +17,7 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ProductsRouteImport } from './routes/products'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as FaqsRouteImport } from './routes/faqs'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as CartRouteImport } from './routes/cart'
@@ -28,6 +29,7 @@ import { Route as StoreHandleRouteImport } from './routes/store.$handle'
 import { Route as ResetPasswordTokenRouteImport } from './routes/reset-password.$token'
 import { Route as ProductsIdRouteImport } from './routes/products.$id'
 import { Route as ProductIdRouteImport } from './routes/product.$id'
+import { Route as PoliciesTypeRouteImport } from './routes/policies.$type'
 import { Route as OrdersIdRouteImport } from './routes/orders.$id'
 
 const WishlistRoute = WishlistRouteImport.update({
@@ -68,6 +70,11 @@ const OrdersRoute = OrdersRouteImport.update({
 const NotificationsRoute = NotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaqsRoute = FaqsRouteImport.update({
+  id: '/faqs',
+  path: '/faqs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CheckoutRoute = CheckoutRouteImport.update({
@@ -125,6 +132,11 @@ const ProductIdRoute = ProductIdRouteImport.update({
   path: '/product/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PoliciesTypeRoute = PoliciesTypeRouteImport.update({
+  id: '/policies/$type',
+  path: '/policies/$type',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OrdersIdRoute = OrdersIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -139,6 +151,7 @@ export interface FileRoutesByFullPath {
   '/cart': typeof CartRoute
   '/chat': typeof ChatRoute
   '/checkout': typeof CheckoutRoute
+  '/faqs': typeof FaqsRoute
   '/notifications': typeof NotificationsRoute
   '/orders': typeof OrdersRouteWithChildren
   '/products': typeof ProductsRouteWithChildren
@@ -148,6 +161,7 @@ export interface FileRoutesByFullPath {
   '/support': typeof SupportRoute
   '/wishlist': typeof WishlistRoute
   '/orders/$id': typeof OrdersIdRoute
+  '/policies/$type': typeof PoliciesTypeRoute
   '/product/$id': typeof ProductIdRoute
   '/products/$id': typeof ProductsIdRoute
   '/reset-password/$token': typeof ResetPasswordTokenRoute
@@ -161,6 +175,7 @@ export interface FileRoutesByTo {
   '/cart': typeof CartRoute
   '/chat': typeof ChatRoute
   '/checkout': typeof CheckoutRoute
+  '/faqs': typeof FaqsRoute
   '/notifications': typeof NotificationsRoute
   '/orders': typeof OrdersRouteWithChildren
   '/products': typeof ProductsRouteWithChildren
@@ -170,6 +185,7 @@ export interface FileRoutesByTo {
   '/support': typeof SupportRoute
   '/wishlist': typeof WishlistRoute
   '/orders/$id': typeof OrdersIdRoute
+  '/policies/$type': typeof PoliciesTypeRoute
   '/product/$id': typeof ProductIdRoute
   '/products/$id': typeof ProductsIdRoute
   '/reset-password/$token': typeof ResetPasswordTokenRoute
@@ -184,6 +200,7 @@ export interface FileRoutesById {
   '/cart': typeof CartRoute
   '/chat': typeof ChatRoute
   '/checkout': typeof CheckoutRoute
+  '/faqs': typeof FaqsRoute
   '/notifications': typeof NotificationsRoute
   '/orders': typeof OrdersRouteWithChildren
   '/products': typeof ProductsRouteWithChildren
@@ -193,6 +210,7 @@ export interface FileRoutesById {
   '/support': typeof SupportRoute
   '/wishlist': typeof WishlistRoute
   '/orders/$id': typeof OrdersIdRoute
+  '/policies/$type': typeof PoliciesTypeRoute
   '/product/$id': typeof ProductIdRoute
   '/products/$id': typeof ProductsIdRoute
   '/reset-password/$token': typeof ResetPasswordTokenRoute
@@ -208,6 +226,7 @@ export interface FileRouteTypes {
     | '/cart'
     | '/chat'
     | '/checkout'
+    | '/faqs'
     | '/notifications'
     | '/orders'
     | '/products'
@@ -217,6 +236,7 @@ export interface FileRouteTypes {
     | '/support'
     | '/wishlist'
     | '/orders/$id'
+    | '/policies/$type'
     | '/product/$id'
     | '/products/$id'
     | '/reset-password/$token'
@@ -230,6 +250,7 @@ export interface FileRouteTypes {
     | '/cart'
     | '/chat'
     | '/checkout'
+    | '/faqs'
     | '/notifications'
     | '/orders'
     | '/products'
@@ -239,6 +260,7 @@ export interface FileRouteTypes {
     | '/support'
     | '/wishlist'
     | '/orders/$id'
+    | '/policies/$type'
     | '/product/$id'
     | '/products/$id'
     | '/reset-password/$token'
@@ -252,6 +274,7 @@ export interface FileRouteTypes {
     | '/cart'
     | '/chat'
     | '/checkout'
+    | '/faqs'
     | '/notifications'
     | '/orders'
     | '/products'
@@ -261,6 +284,7 @@ export interface FileRouteTypes {
     | '/support'
     | '/wishlist'
     | '/orders/$id'
+    | '/policies/$type'
     | '/product/$id'
     | '/products/$id'
     | '/reset-password/$token'
@@ -275,6 +299,7 @@ export interface RootRouteChildren {
   CartRoute: typeof CartRoute
   ChatRoute: typeof ChatRoute
   CheckoutRoute: typeof CheckoutRoute
+  FaqsRoute: typeof FaqsRoute
   NotificationsRoute: typeof NotificationsRoute
   OrdersRoute: typeof OrdersRouteWithChildren
   ProductsRoute: typeof ProductsRouteWithChildren
@@ -283,6 +308,7 @@ export interface RootRouteChildren {
   RewardsRoute: typeof RewardsRoute
   SupportRoute: typeof SupportRoute
   WishlistRoute: typeof WishlistRoute
+  PoliciesTypeRoute: typeof PoliciesTypeRoute
   ProductIdRoute: typeof ProductIdRoute
   ResetPasswordTokenRoute: typeof ResetPasswordTokenRoute
   StoreHandleRoute: typeof StoreHandleRoute
@@ -344,6 +370,13 @@ declare module '@tanstack/react-router' {
       path: '/notifications'
       fullPath: '/notifications'
       preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/faqs': {
+      id: '/faqs'
+      path: '/faqs'
+      fullPath: '/faqs'
+      preLoaderRoute: typeof FaqsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/checkout': {
@@ -423,6 +456,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/policies/$type': {
+      id: '/policies/$type'
+      path: '/policies/$type'
+      fullPath: '/policies/$type'
+      preLoaderRoute: typeof PoliciesTypeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/orders/$id': {
       id: '/orders/$id'
       path: '/$id'
@@ -464,6 +504,7 @@ const rootRouteChildren: RootRouteChildren = {
   CartRoute: CartRoute,
   ChatRoute: ChatRoute,
   CheckoutRoute: CheckoutRoute,
+  FaqsRoute: FaqsRoute,
   NotificationsRoute: NotificationsRoute,
   OrdersRoute: OrdersRouteWithChildren,
   ProductsRoute: ProductsRouteWithChildren,
@@ -472,6 +513,7 @@ const rootRouteChildren: RootRouteChildren = {
   RewardsRoute: RewardsRoute,
   SupportRoute: SupportRoute,
   WishlistRoute: WishlistRoute,
+  PoliciesTypeRoute: PoliciesTypeRoute,
   ProductIdRoute: ProductIdRoute,
   ResetPasswordTokenRoute: ResetPasswordTokenRoute,
   StoreHandleRoute: StoreHandleRoute,

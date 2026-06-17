@@ -37,6 +37,7 @@ import ContactInformation from './pages/public/ContactInformation';
 import ReturnPolicy from './pages/public/ReturnPolicy';
 import ReplacementPolicy from './pages/public/ReplacementPolicy';
 import SellerAgreement from './pages/public/SellerAgreement';
+import SellerPolicyPage from './pages/public/SellerPolicyPage';
 
 import FloatingChat from './components/chat/FloatingChat';
 
@@ -75,6 +76,7 @@ function AppRoutes() {
         <Route path="/return-policy" element={<ReturnPolicy />} />
         <Route path="/replacement-policy" element={<ReplacementPolicy />} />
         <Route path="/seller-agreement" element={<SellerAgreement />} />
+        <Route path="/policies/:type" element={<SellerPolicyPage />} />
         <Route path="/contact-info" element={<ContactInformation />} />
       </Route>
 

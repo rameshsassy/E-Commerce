@@ -55,6 +55,15 @@ import {
   updateWebsiteRequestStatus,
   deleteWebsiteRequest,
 } from "../controllers/websiteRequest.controller.js";
+import {
+  searchProducts,
+  createLayout,
+  getAllLayouts,
+  getSingleLayout,
+  updateLayout,
+  deleteLayout,
+  changeStatus,
+} from "../controllers/featuredProductLayout.controller.js";
 
 const router = express.Router();
 
@@ -156,5 +165,16 @@ router.delete("/vouchers/:id", protect, authorizeAdminRole, requireAdminSection(
 router.get("/profile", protect, authorizeAdminRole, getAdminProfile);
 router.put("/profile", protect, authorizeAdminRole, updateAdminProfile);
 router.post("/profile/change-password", protect, authorizeAdminRole, changeAdminPassword);
+
+// ===============================
+// ✨ FEATURED PRODUCT LAYOUTS
+// ===============================
+router.get("/products/search", protect, authorizeAdminRole, searchProducts);
+router.post("/featured-products", protect, authorizeAdminRole, createLayout);
+router.get("/featured-products", protect, authorizeAdminRole, getAllLayouts);
+router.get("/featured-products/:id", protect, authorizeAdminRole, getSingleLayout);
+router.put("/featured-products/:id", protect, authorizeAdminRole, updateLayout);
+router.delete("/featured-products/:id", protect, authorizeAdminRole, deleteLayout);
+router.patch("/featured-products/:id/status", protect, authorizeAdminRole, changeStatus);
 
 export default router;
