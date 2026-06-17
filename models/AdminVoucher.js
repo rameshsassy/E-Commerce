@@ -4,7 +4,7 @@ const adminVoucherSchema = new mongoose.Schema(
   {
     voucherType: {
       type: String,
-      enum: ["seller_subscription", "customer_all", "customer_specific", "seller_products"],
+      enum: ["seller_subscription", "customer_all", "customer_specific", "seller_products", "customer_order", "seller_product"],
       required: true,
     },
     voucherCode: {

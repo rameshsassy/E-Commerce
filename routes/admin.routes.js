@@ -34,6 +34,9 @@ import {
   deleteAdminStaff,
   sendWeeklyRecapAction,
   signupAdmin,
+  getAdminProfile,
+  updateAdminProfile,
+  changeAdminPassword,
 } from "../controllers/admin.controller.js";
 import { adminSignupRateLimiter } from "../middleware/rateLimit.middleware.js";
 import {
@@ -146,5 +149,12 @@ router.get("/vouchers", protect, authorizeAdminRole, requireAdminSection("coupon
 router.get("/vouchers/search-data", protect, authorizeAdminRole, requireAdminSection("coupons"), getVoucherSearchData);
 router.post("/vouchers", protect, authorizeAdminRole, requireAdminSection("coupons"), createAdminVoucher);
 router.delete("/vouchers/:id", protect, authorizeAdminRole, requireAdminSection("coupons"), deleteAdminVoucher);
+
+// ===============================
+// 👤 ADMIN MY PROFILE
+// ===============================
+router.get("/profile", protect, authorizeAdminRole, getAdminProfile);
+router.put("/profile", protect, authorizeAdminRole, updateAdminProfile);
+router.post("/profile/change-password", protect, authorizeAdminRole, changeAdminPassword);
 
 export default router;

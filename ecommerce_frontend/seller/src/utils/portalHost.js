@@ -1,11 +1,11 @@
 /**
- * Customer portal: localhost:5174 (prod: aashansh.org later)
- * Seller portal: seller.localhost:5175 or /seller/* on localhost (prod: seller.aashansh.org later)
+ * Customer portal: localhost:5173 (prod: aashansh.org later)
+ * Seller portal:   localhost:5176 or seller.localhost (prod: seller.aashansh.org later)
  */
 
 const DEFAULT_SELLER_HOSTS = 'seller.localhost';
 const DEFAULT_CUSTOMER_ORIGIN = 'http://localhost:5173';
-const DEFAULT_SELLER_ORIGIN = 'http://seller.localhost:5174';
+const DEFAULT_SELLER_ORIGIN = 'http://localhost:5176';
 
 function isLocalHostname(hostname) {
   const h = String(hostname).toLowerCase();
@@ -59,7 +59,9 @@ export function resolveSellerPortalOrigin() {
       return window.location.origin;
     }
     if (isLocalHostname(h)) {
-      return 'http://localhost:5174';
+      // Always use the actual running origin so logout/redirect works
+      // regardless of which port Vite started on.
+      return window.location.origin;
     }
   }
 

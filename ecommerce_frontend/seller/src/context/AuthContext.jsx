@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../utils/api';
 import { AUTH_LOGIN } from '../utils/authEndpoints';
-import { getPortalLoginUrl, isSellerPortal } from '../utils/portalHost';
+import { isSellerPortal } from '../utils/portalHost';
 
 const AuthContext = createContext(null);
 
@@ -87,7 +87,9 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       setUser(null);
-      window.location.href = getPortalLoginUrl();
+      // Use relative path so we always stay on the same port (5176)
+      // regardless of any portal URL configuration.
+      window.location.replace('/login');
     }
   };
 

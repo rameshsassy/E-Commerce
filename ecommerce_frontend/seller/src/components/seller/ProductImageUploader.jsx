@@ -120,7 +120,7 @@ export default function ProductImageUploader({ images, onChange }) {
       return;
     }
     if (file.size > PRODUCT_IMAGE_MAX_BYTES) {
-      window.alert('Image must be 2 MB or smaller. It will be optimized to under 100 KB on upload.');
+      window.alert('Image size exceeded. Please upload an image of 2 MB or less.');
       return;
     }
     setPendingFile(file);

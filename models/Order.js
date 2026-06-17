@@ -110,6 +110,14 @@ const orderSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    voucherCode: {
+      type: String,
+      default: null,
+    },
+    voucherDiscountAmount: {
+      type: Number,
+      default: 0,
+    },
     // Reward integration
     rewardVoucherCode: {
       type: String,

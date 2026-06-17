@@ -1,7 +1,9 @@
 import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 import Product from "../models/Product.js";
 import Order from "../models/Order.js";
 import Shipment from "../models/Shipment.js";
+import Seller from "../models/Seller.js";
 import User from "../models/User.js";
 import EmailLog from "../models/EmailLog.js";
 import ReferralInvite from "../models/ReferralInvite.js";
@@ -55,6 +57,9 @@ import {
   logPremiumActivity,
 } from "../services/sellerActivity.service.js";
 import { validateSellerEntityType } from "../utils/kycEntityTypes.js";
+import { validateUpgradeVoucher } from "../utils/voucherHelper.js";
+import AdminVoucher from "../models/AdminVoucher.js";
+import VoucherUsage from "../models/VoucherUsage.js";
 
 // Small in-memory cache to reduce repeated heavy analytics recompute
 // (e.g., user toggling last7/last15/last30 quickly).
@@ -1157,6 +1162,42 @@ export const updateSellerProfile = async (req, res) => {
 };
 
 // ===============================
+// 🔑 CHANGE SELLER PASSWORD
+// ===============================
+export const changeSellerPassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "Current password and new password are required." });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "New password must be at least 6 characters." });
+    }
+
+    // Fetch seller with password field (req.user has -password selected)
+    const sellerDoc = await Seller.findById(req.user._id);
+
+    if (!sellerDoc) {
+      return res.status(404).json({ message: "Seller not found." });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, sellerDoc.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Current password is incorrect." });
+    }
+
+    sellerDoc.password = await bcrypt.hash(newPassword, 10);
+    await sellerDoc.save();
+
+    res.json({ message: "Password updated successfully." });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ===============================
 // 📋 INVENTORY FIELD OPTIONS (purchase type rules, store addresses)
 // ===============================
 export const getProductInventoryOptions = async (req, res) => {
@@ -1770,6 +1811,12 @@ export const createSubscriptionOrder = async (req, res) => {
       amount = 1076750; // ₹9,125 + 18% GST in paise = ₹10,767.50
     }
 
+    const voucherCode = req.body.voucherCode;
+    if (voucherCode) {
+      const result = await validateUpgradeVoucher(voucherCode, plan, user._id);
+      amount = Math.round(result.finalAmount * 100); // convert final amount (Rs) to paise
+    }
+
     const receipt = `sub_${user._id.toString().slice(-8)}_${Date.now()}`.slice(0, 40);
 
     const order = await rzp.orders.create({
@@ -1780,6 +1827,7 @@ export const createSubscriptionOrder = async (req, res) => {
         purpose: "premium_seller_subscription",
         sellerId: user._id.toString(),
         plan: plan,
+        voucherCode: voucherCode || "",
       },
     });
 
@@ -1854,11 +1902,20 @@ export const verifySubscriptionPayment = async (req, res) => {
     }
 
     const notePlan = order?.notes?.plan || "pro";
-    let expectedAmount;
-    if (notePlan === "premium") {
-      expectedAmount = 23364000;
-    } else {
-      expectedAmount = 1076750;
+    const voucherCode = order?.notes?.voucherCode;
+
+    let originalAmount = notePlan === "premium" ? 233640.00 : 10767.50;
+    let expectedAmount = notePlan === "premium" ? 23364000 : 1076750;
+    let discountAmount = 0;
+    let finalAmount = originalAmount;
+    let voucher = null;
+
+    if (voucherCode) {
+      const result = await validateUpgradeVoucher(voucherCode, notePlan, req.user._id);
+      discountAmount = result.discountAmount;
+      finalAmount = result.finalAmount;
+      expectedAmount = Math.round(result.finalAmount * 100);
+      voucher = await AdminVoucher.findOne({ voucherCode: result.voucherCode });
     }
 
     if (Number(order.amount) !== expectedAmount) {
@@ -1917,6 +1974,21 @@ export const verifySubscriptionPayment = async (req, res) => {
 
     await user.save();
 
+    if (voucher) {
+      voucher.usedCount = (voucher.usedCount || 0) + 1;
+      await voucher.save();
+
+      await VoucherUsage.create({
+        voucherId: voucher._id,
+        voucherCode: voucher.voucherCode,
+        voucherModel: "AdminVoucher",
+        userId: user._id,
+        discountAmount,
+        originalAmount,
+        finalAmount,
+      });
+    }
+
     sendPremiumUpgradeEmail(user).catch((e) =>
       console.error("Premium upgrade email failed:", e?.message || e)
     );
@@ -1949,6 +2021,19 @@ export const upgradeSellerToPremiumManual = async (req, res) => {
   try {
     const user = req.user;
     const plan = req.body.plan || "pro";
+    const voucherCode = req.body.voucherCode;
+
+    let originalAmount = plan === "premium" ? 233640.00 : 10767.50;
+    let discountAmount = 0;
+    let finalAmount = originalAmount;
+    let voucher = null;
+
+    if (voucherCode) {
+      const result = await validateUpgradeVoucher(voucherCode, plan, user._id);
+      discountAmount = result.discountAmount;
+      finalAmount = result.finalAmount;
+      voucher = await AdminVoucher.findOne({ voucherCode: result.voucherCode });
+    }
 
     const already =
       user.sellerType === "premium" &&
@@ -1970,13 +2055,30 @@ export const upgradeSellerToPremiumManual = async (req, res) => {
     user.pendingPremiumOrderId = null;
     user.pendingPremiumOrderAt = null;
     await user.save();
+
+    if (voucher) {
+      voucher.usedCount = (voucher.usedCount || 0) + 1;
+      await voucher.save();
+
+      await VoucherUsage.create({
+        voucherId: voucher._id,
+        voucherCode: voucher.voucherCode,
+        voucherModel: "AdminVoucher",
+        userId: user._id,
+        discountAmount,
+        originalAmount,
+        finalAmount,
+      });
+    }
     
     sendPremiumUpgradeEmail(user).catch((e) =>
       console.log("Premium upgrade email failed:", e.message)
     );
     logPremiumActivity(user._id);
     return res.json({
-      message: already
+      message: voucher
+        ? `Voucher Applied Successfully. No Payment Required.`
+        : already
         ? `Premium (${plan}) is already active on your account.`
         : `Premium (${plan}) Activated Successfully (no payment)`,
       sellerType: user.sellerType,

@@ -148,6 +148,10 @@ export default function ProductVariantsFields({ productData, setProductData }) {
       window.alert('Only JPG, PNG and WebP images are allowed.');
       return;
     }
+    if (file.size > 2 * 1024 * 1024) {
+      window.alert('Image size exceeded. Please upload an image of 2 MB or less.');
+      return;
+    }
     try {
       setCompressing(true);
       const compressed = await compressAndStandardizeImage(file);

@@ -85,22 +85,39 @@ function ImgUpload({ value, onUpload, aspect="1/1", hint="", disabled = false })
           <div style={{ fontSize:12, fontWeight:600, color:"#475569" }}>Click to upload</div>
           {hint && <div style={{ fontSize:11, color:"#94A3B8", marginTop:2 }}>{hint}</div>}
         </div>}
-    <input ref={ref} type="file" accept="image/*" style={{ display:"none" }} onChange={async (e) => {
+    <input ref={ref} type="file" accept="image/jpeg,image/png,image/jpg,image/webp" style={{ display:"none" }} onChange={async (e) => {
       const f = e.target.files?.[0];
-      if (f) {
-        // Upload image to backend
+      e.target.value = "";
+      if (!f) return;
+      // Client-side validation: format check
+      if (!["image/jpeg", "image/png", "image/jpg", "image/webp"].includes(f.type)) {
+        alert("Only JPG, PNG, or WebP images are allowed.");
+        return;
+      }
+      // Client-side validation: 2 MB size limit
+      if (f.size > 2 * 1024 * 1024) {
+        alert("Image size exceeded. Please upload an image of 2 MB or less.");
+        return;
+      }
+      try {
+        // Client-side compression to ≤100 KB before uploading
+        const { compressAndStandardizeImage } = await import("../../utils/imageCompression");
+        const compressed = await compressAndStandardizeImage(f);
+        // Upload compressed image to backend
         const fd = new FormData();
-        fd.append("file", f);
+        fd.append("file", compressed);
         try {
           const { data } = await api.post("/form-drafts/seller.store.create/upload-test-image-or-doc", fd);
           if (data?.fileUrl) {
             onUpload(data.fileUrl);
           } else {
-            onUpload(URL.createObjectURL(f));
+            onUpload(URL.createObjectURL(compressed));
           }
         } catch {
-          onUpload(URL.createObjectURL(f));
+          onUpload(URL.createObjectURL(compressed));
         }
+      } catch (err) {
+        alert(err.message || "Image could not be optimized. Please upload a different image.");
       }
     }} />
   </div>;

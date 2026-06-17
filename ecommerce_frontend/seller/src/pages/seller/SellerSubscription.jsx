@@ -10,6 +10,11 @@ const SellerSubscription = () => {
   const [banner, setBanner] = useState(null);
   const [bannerTone, setBannerTone] = useState('success');
 
+  const [proVoucher, setProVoucher] = useState("");
+  const [proVoucherInfo, setProVoucherInfo] = useState(null);
+  const [premiumVoucher, setPremiumVoucher] = useState("");
+  const [premiumVoucherInfo, setPremiumVoucherInfo] = useState(null);
+
   const activePlan = user?.subscriptionPlan || 'free';
   const isPremiumActive = user?.subscriptionActive && activePlan === 'premium';
   const isProActive = user?.subscriptionActive && activePlan === 'pro';
@@ -27,14 +32,47 @@ const SellerSubscription = () => {
     });
   };
 
+  const handleApplyVoucher = async (planCode) => {
+    const code = planCode === 'pro' ? proVoucher : premiumVoucher;
+    if (!code) return;
+    try {
+      const { data } = await api.post('/seller/vouchers/validate-upgrade', {
+        voucherCode: code,
+        plan: planCode,
+      });
+      if (planCode === 'pro') {
+        setProVoucherInfo(data);
+      } else {
+        setPremiumVoucherInfo(data);
+      }
+      setBannerTone('success');
+      setBanner(`Voucher applied successfully! Discount of ₹${data.discountAmount.toLocaleString('en-IN')} applied.`);
+    } catch (err) {
+      setBannerTone('error');
+      setBanner(err.response?.data?.message || 'Invalid voucher code');
+      if (planCode === 'pro') {
+        setProVoucherInfo(null);
+      } else {
+        setPremiumVoucherInfo(null);
+      }
+    }
+  };
+
   const handleUpgrade = async (planCode) => {
+    const voucherInfo = planCode === 'pro' ? proVoucherInfo : premiumVoucherInfo;
+    const voucherCode = voucherInfo?.voucherCode || null;
+
     setBanner(null);
     setProcessing(true);
     try {
-      const { data } = await api.post('/seller/upgrade', { plan: planCode });
+      const { data } = await api.post('/seller/upgrade', { plan: planCode, voucherCode });
       applyPremiumResponse(data);
       setBannerTone('success');
-      setBanner(data.message || `${planCode.toUpperCase()} Plan Activated Successfully`);
+      setBanner(
+        voucherCode && voucherInfo?.finalAmount === 0
+          ? 'Voucher Applied Successfully. No Payment Required. Plan upgraded.'
+          : data.message || `${planCode.toUpperCase()} Plan Activated Successfully`
+      );
     } catch (err) {
       console.error('Upgrade failed', err);
       setBannerTone('error');
@@ -192,6 +230,44 @@ const SellerSubscription = () => {
             </div>
           </div>
 
+          <div className="mb-4">
+            <label className="block text-xs font-semibold text-text-muted mb-1.5 text-left">Apply Upgrade Voucher</label>
+            {proVoucherInfo ? (
+              <div className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-3 py-2 text-xs">
+                <span className="text-emerald-400 font-medium">
+                  ✓ {proVoucherInfo.voucherCode} applied
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProVoucherInfo(null);
+                    setProVoucher("");
+                  }}
+                  className="text-text-muted hover:text-white text-[11px] font-bold"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="ENTER VOUCHER"
+                  value={proVoucher}
+                  onChange={(e) => setProVoucher(e.target.value.toUpperCase())}
+                  className="flex-1 bg-white/5 border border-glass-border rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 uppercase"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleApplyVoucher('pro')}
+                  className="px-3 py-1.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all"
+                >
+                  Apply
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="bg-surface/50 p-4 rounded-xl border border-indigo-500/20 mb-6 flex flex-col gap-2 text-xs">
             <div className="flex justify-between text-text-muted">
               <span>Base Price</span>
@@ -201,10 +277,27 @@ const SellerSubscription = () => {
               <span>GST (18%)</span>
               <span>₹1,642.50</span>
             </div>
-            <div className="flex justify-between font-bold text-sm pt-2 border-t border-indigo-500/20 mt-1">
-              <span>Total Payable</span>
-              <span className="text-indigo-400">₹10,767.50</span>
-            </div>
+            {proVoucherInfo ? (
+              <>
+                <div className="flex justify-between text-text-muted pt-2 border-t border-indigo-500/20">
+                  <span>Total Payable</span>
+                  <span>₹10,767.50</span>
+                </div>
+                <div className="flex justify-between text-emerald-400 font-semibold">
+                  <span>Voucher Discount ({proVoucherInfo.voucherCode})</span>
+                  <span>-₹{proVoucherInfo.discountAmount.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between font-bold text-sm pt-2 border-t border-indigo-500/20 mt-1">
+                  <span>Final Amount</span>
+                  <span className="text-indigo-400">₹{proVoucherInfo.finalAmount.toFixed(2)}</span>
+                </div>
+              </>
+            ) : (
+              <div className="flex justify-between font-bold text-sm pt-2 border-t border-indigo-500/20 mt-1">
+                <span>Total Payable</span>
+                <span className="text-indigo-400">₹10,767.50</span>
+              </div>
+            )}
           </div>
 
           <button
@@ -276,6 +369,44 @@ const SellerSubscription = () => {
             </div>
           </div>
 
+          <div className="mb-4">
+            <label className="block text-xs font-semibold text-text-muted mb-1.5 text-left">Apply Upgrade Voucher</label>
+            {premiumVoucherInfo ? (
+              <div className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-3 py-2 text-xs">
+                <span className="text-emerald-400 font-medium">
+                  ✓ {premiumVoucherInfo.voucherCode} applied
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPremiumVoucherInfo(null);
+                    setPremiumVoucher("");
+                  }}
+                  className="text-text-muted hover:text-white text-[11px] font-bold"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="ENTER VOUCHER"
+                  value={premiumVoucher}
+                  onChange={(e) => setPremiumVoucher(e.target.value.toUpperCase())}
+                  className="flex-1 bg-white/5 border border-glass-border rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500 uppercase"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleApplyVoucher('premium')}
+                  className="px-3 py-1.5 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-black rounded-xl transition-all"
+                >
+                  Apply
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="bg-surface/50 p-4 rounded-xl border border-amber-500/20 mb-6 flex flex-col gap-2 text-xs">
             <div className="flex justify-between text-text-muted">
               <span>Base Price</span>
@@ -285,10 +416,27 @@ const SellerSubscription = () => {
               <span>GST (18%)</span>
               <span>₹35,640.00</span>
             </div>
-            <div className="flex justify-between font-bold text-sm pt-2 border-t border-amber-500/20 mt-1">
-              <span>Total Payable</span>
-              <span className="text-amber-500">₹2,33,640.00</span>
-            </div>
+            {premiumVoucherInfo ? (
+              <>
+                <div className="flex justify-between text-text-muted pt-2 border-t border-amber-500/20">
+                  <span>Total Payable</span>
+                  <span>₹2,33,640.00</span>
+                </div>
+                <div className="flex justify-between text-emerald-400 font-semibold">
+                  <span>Voucher Discount ({premiumVoucherInfo.voucherCode})</span>
+                  <span>-₹{premiumVoucherInfo.discountAmount.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between font-bold text-sm pt-2 border-t border-amber-500/20 mt-1">
+                  <span>Final Amount</span>
+                  <span className="text-amber-500">₹{premiumVoucherInfo.finalAmount.toFixed(2)}</span>
+                </div>
+              </>
+            ) : (
+              <div className="flex justify-between font-bold text-sm pt-2 border-t border-amber-500/20 mt-1">
+                <span>Total Payable</span>
+                <span className="text-amber-500">₹2,33,640.00</span>
+              </div>
+            )}
           </div>
 
           <button

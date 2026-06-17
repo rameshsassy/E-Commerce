@@ -5,15 +5,16 @@ import { useWishlist } from "@/contexts/WishlistContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn, getImageUrl } from "@/lib/utils";
 
 export function ProductCard({ product }) {
   const { isAuthenticated } = useAuth();
   const { toggle, has } = useWishlist();
   const { add } = useCart();
   const wished = has(product._id);
-  const img =
-    product.images?.[0] || "https://placehold.co/600x600/png?text=Product";
+  // Resolve image to a fully qualified URL (handles relative paths & Google Drive URLs)
+  const FALLBACK_IMG = "https://placehold.co/600x600/f3f4f6/94a3b8?text=No+Image";
+  const img = getImageUrl(product.images?.[0]) || FALLBACK_IMG;
   const hasDiscount = product.mrp && product.mrp > product.price;
 
   const onWish = async (e) => {
@@ -46,9 +47,14 @@ export function ProductCard({ product }) {
       <div className="relative aspect-square overflow-hidden bg-muted">
         <img
           src={img}
-          alt={product.name}
+          alt={product.title || product.name}
           loading="lazy"
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          onError={(e) => {
+            if (e.currentTarget.src !== FALLBACK_IMG) {
+              e.currentTarget.src = FALLBACK_IMG;
+            }
+          }}
         />
         <button
           type="button"
@@ -72,7 +78,7 @@ export function ProductCard({ product }) {
       </div>
       <div className="p-4">
         <h3 className="line-clamp-2 min-h-[2.5rem] text-sm font-medium">
-          {product.name}
+          {product.title || product.name}
         </h3>
         <div className="mt-2 flex items-center gap-2">
           <span className="text-base font-bold">

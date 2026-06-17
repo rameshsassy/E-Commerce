@@ -7,14 +7,13 @@ import {
   Lock,
   Eye,
   EyeOff,
-  BadgeCheck,
   ShieldCheck,
   Pencil,
   X,
   CheckCircle2,
   AlertCircle,
   Loader2,
-  Hash,
+  BadgeCheck,
 } from 'lucide-react';
 
 // ─── Toast ───────────────────────────────────────────────────────────────────
@@ -54,60 +53,19 @@ const Avatar = ({ firstName, lastName }) => {
   );
 };
 
-// ─── Plan badge ──────────────────────────────────────────────────────────────
-const PlanBadge = ({ plan }) => {
+// ─── Role badge ──────────────────────────────────────────────────────────────
+const RoleBadge = ({ role }) => {
   const map = {
-    premium: { label: '⭐ Premium', cls: 'bg-yellow-500/15 text-yellow-300 border-yellow-500/30' },
-    pro:     { label: '🚀 Pro',     cls: 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30' },
-    free:    { label: '🌱 Free',    cls: 'bg-slate-500/15 text-slate-300 border-slate-500/30' },
+    admin:       { label: '👑 Superadmin', cls: 'bg-yellow-500/15 text-yellow-300 border-yellow-500/30' },
+    admin_staff: { label: '🛡️ Admin Staff', cls: 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30' },
   };
-  const { label, cls } = map[plan] || map.free;
+  const { label, cls } = map[role] || { label: role, cls: 'bg-slate-500/15 text-slate-300 border-slate-500/30' };
   return (
     <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${cls}`}>{label}</span>
   );
 };
 
-// ─── Read-only field ─────────────────────────────────────────────────────────
-const ReadOnlyField = ({ label, value, icon: Icon, mono }) => (
-  <div>
-    <p className="text-xs text-text-muted font-medium uppercase tracking-wider mb-1">{label}</p>
-    <div className="flex items-center gap-2 bg-white/5 border border-glass-border rounded-xl px-4 py-3">
-      {Icon && <Icon size={15} className="text-text-muted flex-shrink-0" />}
-      <span className={`text-sm ${mono ? 'font-mono tracking-wide' : ''}`}>{value || '—'}</span>
-      <Lock size={12} className="ml-auto text-text-muted opacity-50" />
-    </div>
-  </div>
-);
-
-// ─── Input field ─────────────────────────────────────────────────────────────
-const Field = ({ label, id, type = 'text', value, onChange, placeholder, required, icon: Icon, rightEl }) => (
-  <div>
-    <label htmlFor={id} className="block text-sm font-medium mb-1.5">
-      {label} {required && <span className="text-red-400">*</span>}
-    </label>
-    <div className="relative">
-      {Icon && (
-        <Icon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
-      )}
-      <input
-        id={id}
-        type={type}
-        className="input-field"
-        style={{ paddingLeft: Icon ? '2.25rem' : undefined, paddingRight: rightEl ? '2.5rem' : undefined }}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        required={required}
-        autoComplete="off"
-      />
-      {rightEl && (
-        <div className="absolute right-3 top-1/2 -translate-y-1/2">{rightEl}</div>
-      )}
-    </div>
-  </div>
-);
-
-// ─── Section heading ──────────────────────────────────────────────────────────
+// ─── Section heading ─────────────────────────────────────────────────────────
 const SectionTitle = ({ icon: Icon, children }) => (
   <div className="flex items-center gap-2 mb-5">
     <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-indigo-500/15 flex-shrink-0">
@@ -118,13 +76,13 @@ const SectionTitle = ({ icon: Icon, children }) => (
 );
 
 // ─── Main component ──────────────────────────────────────────────────────────
-const SellerProfile = () => {
+const AdminProfile = () => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Edit profile state
   const [editing, setEditing] = useState(false);
-  const [form, setForm]       = useState({ firstName: '', lastName: '', mobile: '' });
+  const [form, setForm]       = useState({ firstName: '', lastName: '', email: '', mobile: '' });
   const [saving, setSaving]   = useState(false);
   const [profileToast, setProfileToast] = useState({ msg: '', type: '' });
 
@@ -137,11 +95,12 @@ const SellerProfile = () => {
 
   const fetchProfile = useCallback(async () => {
     try {
-      const { data } = await api.get('/seller/profile');
+      const { data } = await api.get('/admin/profile');
       setProfile(data);
       setForm({
         firstName: data.firstName || '',
         lastName:  data.lastName  || '',
+        email:     data.email     || '',
         mobile:    data.mobile    || '',
       });
     } catch (err) {
@@ -159,6 +118,9 @@ const SellerProfile = () => {
     setTimeout(() => setter({ msg: '', type: '' }), ms);
   };
 
+  // ── Validate email ──
+  const validateEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+
   // ── Handle profile save ──
   const handleProfileSave = async (e) => {
     e.preventDefault();
@@ -166,15 +128,21 @@ const SellerProfile = () => {
       toast(setProfileToast, 'First name is required.', 'error');
       return;
     }
+    if (form.email && !validateEmail(form.email.trim())) {
+      toast(setProfileToast, 'Please enter a valid email address.', 'error');
+      return;
+    }
     setSaving(true);
     try {
-      await api.put('/seller/profile', {
+      const { data } = await api.put('/admin/profile', {
         firstName: form.firstName.trim(),
         lastName:  form.lastName.trim(),
+        email:     form.email.trim(),
         mobile:    form.mobile.trim(),
       });
-      await fetchProfile();
+      setProfile(data.user || { ...profile, ...form });
       setEditing(false);
+      await fetchProfile();
       toast(setProfileToast, 'Profile updated successfully!', 'success');
     } catch (err) {
       toast(setProfileToast, err?.response?.data?.message || 'Failed to update profile.', 'error');
@@ -196,7 +164,7 @@ const SellerProfile = () => {
     }
     setPwSaving(true);
     try {
-      await api.post('/seller/profile/change-password', pwForm);
+      await api.post('/admin/profile/change-password', pwForm);
       setPwForm({ currentPassword: '', newPassword: '' });
       toast(setPwToast, 'Password updated successfully!', 'success');
     } catch (err) {
@@ -216,12 +184,15 @@ const SellerProfile = () => {
     );
   }
 
-  const displayName = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || 'Seller';
+  const displayName = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || 'Admin';
 
   return (
-    <div className="animate-fade-in seller-page">
+    <div className="animate-fade-in" style={{ maxWidth: '80rem', margin: '0 auto' }}>
       {/* ─── Page header ─── */}
-      <div className="seller-page-title flex items-center gap-3">
+      <div
+        className="flex items-center gap-3 font-bold mb-6"
+        style={{ fontSize: 'clamp(1.35rem, 4vw, 1.875rem)' }}
+      >
         <User size={28} className="text-indigo-400" />
         My Profile
       </div>
@@ -229,54 +200,50 @@ const SellerProfile = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* ══════════════════════════════════════════
-            LEFT COLUMN — Identity card
+            LEFT — Identity card
         ══════════════════════════════════════════ */}
         <div className="lg:col-span-1 flex flex-col gap-6">
 
           {/* Profile card */}
-          <div className="glass-panel seller-panel flex flex-col gap-5">
+          <div className="glass-panel p-6 rounded-2xl flex flex-col gap-5">
             <div className="flex items-start gap-4">
               <Avatar firstName={profile?.firstName} lastName={profile?.lastName} />
               <div className="min-w-0 flex-1">
                 <h3 className="font-bold text-lg truncate">{displayName}</h3>
                 <p className="text-sm text-text-muted truncate">{profile?.email}</p>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  <PlanBadge plan={profile?.subscriptionPlan || 'free'} />
-                  <span className="text-xs font-semibold px-3 py-1 rounded-full border bg-indigo-500/15 text-indigo-300 border-indigo-500/30 capitalize">
-                    {profile?.status || 'pending'}
-                  </span>
+                  <RoleBadge role={profile?.role} />
                 </div>
               </div>
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-glass-border">
-              <div className="bg-white/4 rounded-xl p-3 border border-glass-border">
-                <p className="text-[10px] text-text-muted uppercase tracking-wider">KYC Status</p>
-                <p className="text-sm font-bold mt-0.5 capitalize">{profile?.kycStatus?.replace('_', ' ') || 'Not submitted'}</p>
+            {/* Quick details */}
+            <div className="grid grid-cols-1 gap-3 pt-2 border-t border-glass-border">
+              <div className="bg-white/4 rounded-xl p-3 border border-glass-border flex items-center gap-3">
+                <Mail size={14} className="text-text-muted flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[10px] text-text-muted uppercase tracking-wider">Email</p>
+                  <p className="text-sm font-medium truncate">{profile?.email || '—'}</p>
+                </div>
               </div>
-              <div className="bg-white/4 rounded-xl p-3 border border-glass-border">
-                <p className="text-[10px] text-text-muted uppercase tracking-wider">Plan</p>
-                <p className="text-sm font-bold mt-0.5 capitalize">{profile?.plan || 'Free'}</p>
+              <div className="bg-white/4 rounded-xl p-3 border border-glass-border flex items-center gap-3">
+                <Phone size={14} className="text-text-muted flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[10px] text-text-muted uppercase tracking-wider">Mobile</p>
+                  <p className="text-sm font-medium truncate">{profile?.mobile || '—'}</p>
+                </div>
               </div>
             </div>
-          </div>
-
-          {/* Read-only identity info */}
-          <div className="glass-panel seller-panel flex flex-col gap-4">
-            <SectionTitle icon={BadgeCheck}>Identity Details</SectionTitle>
-            <ReadOnlyField label="Seller ID" value={profile?.sellerId} icon={Hash} mono />
-            <ReadOnlyField label="Email" value={profile?.email} icon={Mail} />
           </div>
         </div>
 
         {/* ══════════════════════════════════════════
-            RIGHT COLUMN — Edit profile + Change password
+            RIGHT — Edit profile + Change password
         ══════════════════════════════════════════ */}
         <div className="lg:col-span-2 flex flex-col gap-6">
 
           {/* ── Edit Profile ── */}
-          <div className="glass-panel seller-panel">
+          <div className="glass-panel p-6 rounded-2xl">
             <div className="flex items-center justify-between mb-5">
               <SectionTitle icon={Pencil}>Edit Profile</SectionTitle>
               {!editing && (
@@ -284,6 +251,7 @@ const SellerProfile = () => {
                   type="button"
                   onClick={() => setEditing(true)}
                   className="btn btn-secondary text-sm py-2 px-4 flex items-center gap-2"
+                  style={{ marginTop: '-1rem' }}
                 >
                   <Pencil size={14} /> Edit
                 </button>
@@ -299,30 +267,74 @@ const SellerProfile = () => {
             {editing ? (
               <form onSubmit={handleProfileSave} className="flex flex-col gap-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Field
-                    label="First Name" id="firstName" icon={User}
-                    value={form.firstName}
-                    onChange={e => setForm({ ...form, firstName: e.target.value })}
-                    placeholder="First name" required
-                  />
-                  <Field
-                    label="Last Name" id="lastName" icon={User}
-                    value={form.lastName}
-                    onChange={e => setForm({ ...form, lastName: e.target.value })}
-                    placeholder="Last name"
-                  />
+                  {/* First Name */}
+                  <div>
+                    <label htmlFor="adm-firstName" className="block text-sm font-medium mb-1.5">
+                      First Name <span className="text-red-400">*</span>
+                    </label>
+                    <div className="relative">
+                      <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+                      <input
+                        id="adm-firstName"
+                        className="input-field"
+                        style={{ paddingLeft: '2.25rem' }}
+                        value={form.firstName}
+                        onChange={e => setForm({ ...form, firstName: e.target.value })}
+                        placeholder="First name"
+                        required
+                      />
+                    </div>
+                  </div>
+                  {/* Last Name */}
+                  <div>
+                    <label htmlFor="adm-lastName" className="block text-sm font-medium mb-1.5">Last Name</label>
+                    <div className="relative">
+                      <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+                      <input
+                        id="adm-lastName"
+                        className="input-field"
+                        style={{ paddingLeft: '2.25rem' }}
+                        value={form.lastName}
+                        onChange={e => setForm({ ...form, lastName: e.target.value })}
+                        placeholder="Last name"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <Field
-                  label="Mobile Number" id="mobile" icon={Phone}
-                  value={form.mobile}
-                  onChange={e => setForm({ ...form, mobile: e.target.value })}
-                  placeholder="e.g. 9876543210"
-                />
-                {/* Non-editable fields shown as disabled */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <ReadOnlyField label="Seller ID"    value={profile?.sellerId} icon={Hash} mono />
-                  <ReadOnlyField label="Email Address" value={profile?.email}    icon={Mail} />
+                {/* Email */}
+                <div>
+                  <label htmlFor="adm-email" className="block text-sm font-medium mb-1.5">
+                    Email Address <span className="text-red-400">*</span>
+                  </label>
+                  <div className="relative">
+                    <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+                    <input
+                      id="adm-email"
+                      type="email"
+                      className="input-field"
+                      style={{ paddingLeft: '2.25rem' }}
+                      value={form.email}
+                      onChange={e => setForm({ ...form, email: e.target.value })}
+                      placeholder="admin@example.com"
+                    />
+                  </div>
                 </div>
+                {/* Mobile */}
+                <div>
+                  <label htmlFor="adm-mobile" className="block text-sm font-medium mb-1.5">Mobile Number</label>
+                  <div className="relative">
+                    <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+                    <input
+                      id="adm-mobile"
+                      className="input-field"
+                      style={{ paddingLeft: '2.25rem' }}
+                      value={form.mobile}
+                      onChange={e => setForm({ ...form, mobile: e.target.value })}
+                      placeholder="e.g. 9876543210"
+                    />
+                  </div>
+                </div>
+
                 <div className="flex gap-3 pt-2">
                   <button
                     type="submit"
@@ -336,7 +348,12 @@ const SellerProfile = () => {
                     type="button"
                     onClick={() => {
                       setEditing(false);
-                      setForm({ firstName: profile?.firstName || '', lastName: profile?.lastName || '', mobile: profile?.mobile || '' });
+                      setForm({
+                        firstName: profile?.firstName || '',
+                        lastName:  profile?.lastName  || '',
+                        email:     profile?.email     || '',
+                        mobile:    profile?.mobile    || '',
+                      });
                     }}
                     className="btn btn-secondary px-6"
                   >
@@ -347,28 +364,25 @@ const SellerProfile = () => {
             ) : (
               /* View mode */
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs text-text-muted uppercase tracking-wider mb-1">First Name</p>
-                  <p className="text-sm font-medium bg-white/4 border border-glass-border rounded-xl px-4 py-3">{profile?.firstName || '—'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-text-muted uppercase tracking-wider mb-1">Last Name</p>
-                  <p className="text-sm font-medium bg-white/4 border border-glass-border rounded-xl px-4 py-3">{profile?.lastName || '—'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-text-muted uppercase tracking-wider mb-1">Mobile Number</p>
-                  <p className="text-sm font-medium bg-white/4 border border-glass-border rounded-xl px-4 py-3">{profile?.mobile || '—'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-text-muted uppercase tracking-wider mb-1">Email Address</p>
-                  <p className="text-sm font-medium bg-white/4 border border-glass-border rounded-xl px-4 py-3 truncate">{profile?.email || '—'}</p>
-                </div>
+                {[
+                  { label: 'First Name',    value: profile?.firstName },
+                  { label: 'Last Name',     value: profile?.lastName  },
+                  { label: 'Email Address', value: profile?.email     },
+                  { label: 'Mobile Number', value: profile?.mobile    },
+                ].map(({ label, value }) => (
+                  <div key={label}>
+                    <p className="text-xs text-text-muted uppercase tracking-wider mb-1">{label}</p>
+                    <p className="text-sm font-medium bg-white/4 border border-glass-border rounded-xl px-4 py-3 truncate">
+                      {value || '—'}
+                    </p>
+                  </div>
+                ))}
               </div>
             )}
           </div>
 
           {/* ── Change Password ── */}
-          <div className="glass-panel seller-panel">
+          <div className="glass-panel p-6 rounded-2xl">
             <SectionTitle icon={Lock}>Change Password</SectionTitle>
 
             {pwToast.msg && (
@@ -378,14 +392,15 @@ const SellerProfile = () => {
             )}
 
             <form onSubmit={handlePasswordChange} className="flex flex-col gap-4">
+              {/* Current password */}
               <div>
-                <label htmlFor="currentPassword" className="block text-sm font-medium mb-1.5">
+                <label htmlFor="adm-currentPassword" className="block text-sm font-medium mb-1.5">
                   Current Password <span className="text-red-400">*</span>
                 </label>
                 <div className="relative">
                   <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
                   <input
-                    id="currentPassword"
+                    id="adm-currentPassword"
                     type={showCurrent ? 'text' : 'password'}
                     className="input-field"
                     style={{ paddingLeft: '2.25rem', paddingRight: '2.5rem' }}
@@ -404,14 +419,15 @@ const SellerProfile = () => {
                 </div>
               </div>
 
+              {/* New password */}
               <div>
-                <label htmlFor="newPassword" className="block text-sm font-medium mb-1.5">
+                <label htmlFor="adm-newPassword" className="block text-sm font-medium mb-1.5">
                   New Password <span className="text-red-400">*</span>
                 </label>
                 <div className="relative">
                   <ShieldCheck size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
                   <input
-                    id="newPassword"
+                    id="adm-newPassword"
                     type={showNew ? 'text' : 'password'}
                     className="input-field"
                     style={{ paddingLeft: '2.25rem', paddingRight: '2.5rem' }}
@@ -445,9 +461,10 @@ const SellerProfile = () => {
             </form>
           </div>
         </div>
+
       </div>
     </div>
   );
 };
 
-export default SellerProfile;
+export default AdminProfile;

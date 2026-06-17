@@ -463,9 +463,11 @@ export const getSearchSuggestions = async (req, res) => {
 // ===============================
 export const getAllProducts = async (req, res) => {
   try {
+    // Accept both 'keyword' (legacy) and 'search' (customer frontend) as search param
+    const searchTerm = req.query.keyword || req.query.search || "";
+
     const {
-      keyword,
-      category,
+      category: categoryParam,
       main,
       sub,
       type,
@@ -477,11 +479,20 @@ export const getAllProducts = async (req, res) => {
       limit: limitQuery,
     } = req.query;
 
+    // If category looks like a MongoDB ObjectId, resolve it to its name string
+    // (Customer frontend sends the ObjectId from categoryApi.list())
+    let resolvedCategoryName = categoryParam;
+    const isMongoId = categoryParam && /^[a-f\d]{24}$/i.test(String(categoryParam));
+    if (isMongoId) {
+      const foundCat = await Category.findById(categoryParam).select("name").lean();
+      resolvedCategoryName = foundCat ? foundCat.name : categoryParam;
+    }
+
     const resolvedCategory = resolveCategoryParams({
       main,
       sub,
       type,
-      category,
+      category: resolvedCategoryName,
     });
 
     let query = {
@@ -495,11 +506,11 @@ export const getAllProducts = async (req, res) => {
       query.bulkPurchaseEnabled = true;
     }
 
-    if (keyword) {
+    if (searchTerm) {
       query.$or = [
-        { title: { $regex: keyword, $options: "i" } },
-        { description: { $regex: keyword, $options: "i" } },
-        { keywords: { $regex: keyword, $options: "i" } },
+        { title: { $regex: searchTerm, $options: "i" } },
+        { description: { $regex: searchTerm, $options: "i" } },
+        { keywords: { $regex: searchTerm, $options: "i" } },
       ];
     }
 
@@ -507,7 +518,7 @@ export const getAllProducts = async (req, res) => {
       main: resolvedCategory.main,
       sub: resolvedCategory.sub,
       type: resolvedCategory.type,
-      legacyCategory: category,
+      legacyCategory: resolvedCategoryName,
     });
     if (categoryFilter && Object.keys(categoryFilter).length > 0) {
       Object.assign(query, categoryFilter);
@@ -531,10 +542,12 @@ export const getAllProducts = async (req, res) => {
       { defaults: { mobile: 12, tablet: 16, desktop: 20 } }
     );
 
+    // Normalize sort values — support both legacy (price-low) and customer (price_asc) formats
     let sortObj = { createdAt: -1 };
-    if (sort === "price-low") sortObj = { price: 1 };
-    if (sort === "price-high") sortObj = { price: -1 };
-    if (sort === "newest") sortObj = { createdAt: -1 };
+    if (sort === "price-low" || sort === "price_asc") sortObj = { price: 1 };
+    else if (sort === "price-high" || sort === "price_desc") sortObj = { price: -1 };
+    else if (sort === "newest") sortObj = { createdAt: -1 };
+    else if (sort === "rating") sortObj = { averageRating: -1, createdAt: -1 };
 
     const products = await Product.find(query)
       .populate({

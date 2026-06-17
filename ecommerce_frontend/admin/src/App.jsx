@@ -31,6 +31,7 @@ import AdminMenu from './pages/admin/AdminMenu';
 import HeaderManagement from './pages/admin/homepage-management/HeaderManagement';
 import AdminDataMigration from './pages/admin/AdminDataMigration';
 import AdminRewards from './pages/admin/AdminRewards';
+import AdminProfile from './pages/admin/AdminProfile';
 
 import FloatingChat from './components/chat/FloatingChat';
 
@@ -67,6 +68,7 @@ function AppRoutes() {
           <Route path="/admin/website-requests" element={<AdminWebsiteRequests />} />
           <Route path="/admin/data-migration" element={<AdminDataMigration />} />
           <Route path="/admin/rewards" element={<AdminRewards />} />
+          <Route path="/admin/profile" element={<AdminProfile />} />
         </Route>
 
         <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />

@@ -29,9 +29,11 @@ import {
   Plus,
   MapPin,
   Upload,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn, getImageUrl } from "@/lib/utils";
 
 export const Route = createFileRoute("/products/$id")({
   component: ProductDetail,
@@ -65,6 +67,7 @@ function ProductDetail() {
   const [pinBusy, setPinBusy] = useState(false);
 
   const p = product.data;
+  const FALLBACK_IMG = "https://placehold.co/800x800/f3f4f6/94a3b8?text=No+Image";
   const reviews = Array.isArray(reviewsQ.data)
     ? reviewsQ.data
     : reviewsQ.data?.reviews || [];
@@ -120,32 +123,90 @@ function ProductDetail() {
     }
   };
 
+  const images = Array.isArray(p.images) && p.images.length > 0 ? p.images : [];
+  const totalImages = images.length;
+  const hasPrev = imgIdx > 0;
+  const hasNext = imgIdx < totalImages - 1;
+
   return (
     <div className="container-page py-8">
       <div className="grid gap-8 md:grid-cols-2">
         <div>
-          <div className="aspect-square overflow-hidden rounded-2xl border bg-muted">
+          {/* ── Main image with arrow navigation ── */}
+          <div className="relative aspect-square overflow-hidden rounded-2xl border bg-muted group">
             <img
-              src={p.images?.[imgIdx] || "https://placehold.co/800x800/png"}
-              alt={p.name}
-              className="h-full w-full object-cover"
+              src={getImageUrl(images[imgIdx]) || FALLBACK_IMG}
+              alt={p.title || p.name}
+              className="h-full w-full object-cover transition-opacity duration-200"
+              onError={(e) => {
+                if (e.currentTarget.src !== FALLBACK_IMG) {
+                  e.currentTarget.src = FALLBACK_IMG;
+                }
+              }}
             />
+
+            {/* Image counter badge: 1/5 */}
+            {totalImages > 1 && (
+              <span className="absolute bottom-3 right-3 rounded-full bg-black/60 px-2.5 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
+                {imgIdx + 1}/{totalImages}
+              </span>
+            )}
+
+            {/* Left arrow */}
+            {totalImages > 1 && (
+              <button
+                aria-label="Previous image"
+                onClick={() => setImgIdx((i) => Math.max(0, i - 1))}
+                disabled={!hasPrev}
+                className={cn(
+                  "absolute left-2 top-1/2 -translate-y-1/2 grid h-9 w-9 place-items-center rounded-full bg-background/90 shadow-md backdrop-blur transition hover:scale-110",
+                  !hasPrev ? "opacity-0 pointer-events-none" : "opacity-0 group-hover:opacity-100",
+                )}
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+            )}
+
+            {/* Right arrow */}
+            {totalImages > 1 && (
+              <button
+                aria-label="Next image"
+                onClick={() => setImgIdx((i) => Math.min(totalImages - 1, i + 1))}
+                disabled={!hasNext}
+                className={cn(
+                  "absolute right-2 top-1/2 -translate-y-1/2 grid h-9 w-9 place-items-center rounded-full bg-background/90 shadow-md backdrop-blur transition hover:scale-110",
+                  !hasNext ? "opacity-0 pointer-events-none" : "opacity-0 group-hover:opacity-100",
+                )}
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            )}
           </div>
-          {(p.images?.length || 0) > 1 && (
-            <div className="mt-3 flex gap-2 overflow-x-auto">
-              {p.images.map((src, i) => (
+
+          {/* ── Thumbnail strip ── */}
+          {totalImages > 1 && (
+            <div className="mt-3 flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+              {images.map((src, i) => (
                 <button
                   key={i}
+                  aria-label={`View image ${i + 1}`}
                   onClick={() => setImgIdx(i)}
                   className={cn(
-                    "h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2",
-                    i === imgIdx ? "border-primary" : "border-transparent",
+                    "h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 transition-all duration-150",
+                    i === imgIdx
+                      ? "border-primary ring-2 ring-primary/30"
+                      : "border-transparent opacity-70 hover:opacity-100 hover:border-muted-foreground/50",
                   )}
                 >
                   <img
-                    src={src}
-                    alt=""
+                    src={getImageUrl(src) || FALLBACK_IMG}
+                    alt={`Product image ${i + 1}`}
                     className="h-full w-full object-cover"
+                    onError={(e) => {
+                      if (e.currentTarget.src !== FALLBACK_IMG) {
+                        e.currentTarget.src = FALLBACK_IMG;
+                      }
+                    }}
                   />
                 </button>
               ))}
@@ -159,7 +220,7 @@ function ProductDetail() {
               {catName}
             </Badge>
           )}
-          <h1 className="text-3xl font-bold tracking-tight">{p.name}</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{p.title || p.name}</h1>
           {sellerName && (
             <div className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
               <Store className="h-3 w-3" /> Sold by{" "}

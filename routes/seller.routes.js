@@ -8,6 +8,7 @@ import {
   getAnalytics,
   getSellerProfile,
   updateSellerProfile,
+  changeSellerPassword,
   getSellerProducts,
   getProductInventoryOptions,
   getProductDraft,
@@ -83,6 +84,7 @@ router.patch("/bulk-inquiries/:id", protect, authorizeRoles("seller"), updateBul
 router.get("/profile", protect, authorizeRoles("seller"), getSellerProfile);
 router.put("/profile", protect, authorizeRoles("seller"), updateSellerProfile);
 router.patch("/profile", protect, authorizeRoles("seller"), updateSellerProfile);
+router.post("/profile/change-password", protect, authorizeRoles("seller"), changeSellerPassword);
 
 const storeAssetsUpload = upload.fields([
   { name: "logo", maxCount: 1 },
@@ -151,6 +153,8 @@ router.patch(
 );
 
 // 💎 Subscription Flow
+import { validateSellerUpgradeVoucher } from "../controllers/voucherUsage.controller.js";
+router.post("/vouchers/validate-upgrade", protect, authorizeRoles("seller"), validateSellerUpgradeVoucher);
 router.post("/subscription/razorpay", protect, authorizeRoles("seller"), createSubscriptionOrder);
 router.post("/subscription/razorpay/verify", protect, authorizeRoles("seller"), verifySubscriptionPayment);
 router.post("/upgrade", protect, authorizeRoles("seller"), upgradeSellerToPremiumManual);

@@ -26,10 +26,12 @@ import {
   X,
   MessageSquare,
   Globe,
+  User,
 } from 'lucide-react';
 
 const SELLER_NAV = [
   { to: '/seller/dashboard', label: 'Home', icon: Home },
+  { to: '/seller/profile', label: 'My Profile', icon: User },
   { to: '/seller/orders-enquiries', label: 'Orders & Enquiries', icon: ClipboardList, iconAccent: true },
   { to: '/seller/analytics', label: 'Analytics', icon: 'chart' },
   { to: '/seller/products', label: 'My products', icon: Package },

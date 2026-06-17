@@ -31,11 +31,18 @@ import {
   createRazorpayOrder,
   verifyRazorpayPayment,
 } from "../controllers/order.controller.js";
+import { validateCustomerVoucher } from "../controllers/voucherUsage.controller.js";
 
 import { protect } from "../middleware/auth.middleware.js";
 import { authorizeRoles } from "../middleware/role.middleware.js";
 
 const router = express.Router();
+
+// ===============================
+// ✅ VOUCHERS
+// ===============================
+router.post("/vouchers/validate", protect, authorizeRoles("customer"), validateCustomerVoucher);
+
 
 // ===============================
 // ✅ CUSTOMER PROFILE

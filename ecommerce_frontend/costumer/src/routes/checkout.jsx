@@ -35,6 +35,8 @@ function CheckoutPage() {
   const [payment, setPayment] = useState("razorpay");
   const [coupon, setCoupon] = useState("");
   const [couponInfo, setCouponInfo] = useState(null);
+  const [voucher, setVoucher] = useState("");
+  const [voucherInfo, setVoucherInfo] = useState(null);
   const [rewardVoucher, setRewardVoucher] = useState(null); // selected wallet voucher
   const [rewardDiscount, setRewardDiscount] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -68,8 +70,9 @@ function CheckoutPage() {
     addressList[0]?._id;
   const activeAddr = addressList.find((a) => a._id === activeAddrId);
 
-  const discount = couponInfo?.discount || 0;
-  const total = couponInfo?.finalAmount ?? Math.max(0, subtotal - discount - rewardDiscount);
+  const couponDiscount = couponInfo?.discount || 0;
+  const voucherDiscount = voucherInfo?.discountAmount || 0;
+  const total = Math.max(0, subtotal - couponDiscount - voucherDiscount - rewardDiscount);
 
   const applyCoupon = async () => {
     if (!coupon) return;
@@ -84,6 +87,18 @@ function CheckoutPage() {
     } catch (e) {
       toast.error(e.message || "Invalid coupon");
       setCouponInfo(null);
+    }
+  };
+
+  const applyVoucher = async () => {
+    if (!voucher) return;
+    try {
+      const r = await customerApi.applyVoucher(voucher);
+      setVoucherInfo(r);
+      toast.success(`Voucher applied — saves ₹${r.discountAmount}`);
+    } catch (e) {
+      toast.error(e.response?.data?.message || e.message || "Invalid voucher");
+      setVoucherInfo(null);
     }
   };
 
@@ -116,6 +131,7 @@ function CheckoutPage() {
       const payload = {
         addressId: activeAddr._id,
         couponCode: couponInfo?.code,
+        voucherCode: voucherInfo?.voucherCode || null,
         rewardVoucherCode: rewardVoucher?.voucherCode || null,
         rewardDiscountAmount: rewardDiscount || 0,
       };
@@ -129,6 +145,12 @@ function CheckoutPage() {
       }
 
       const rzp = await customerApi.createRazorpayOrder(payload);
+      if (rzp.isFree) {
+        await refreshCart();
+        toast.success("Order placed successfully. No Payment Required.");
+        navigate({ to: "/orders/$id", params: { id: rzp.order._id } });
+        return;
+      }
       const keyId =
         import.meta.env.VITE_RAZORPAY_KEY || rzp.keyId || rzp.key_id;
       if (!keyId) {
@@ -249,10 +271,16 @@ function CheckoutPage() {
               <span>Subtotal ({items.length})</span>
               <span>₹{subtotal.toLocaleString("en-IN")}</span>
             </div>
-            {discount > 0 && (
+            {couponDiscount > 0 && (
               <div className="flex justify-between text-success">
                 <span>Coupon ({couponInfo.code})</span>
-                <span>−₹{discount.toLocaleString("en-IN")}</span>
+                <span>−₹{couponDiscount.toLocaleString("en-IN")}</span>
+              </div>
+            )}
+            {voucherDiscount > 0 && (
+              <div className="flex justify-between text-emerald-600 font-medium">
+                <span>Voucher ({voucherInfo.voucherCode})</span>
+                <span>−₹{voucherDiscount.toLocaleString("en-IN")}</span>
               </div>
             )}
             {rewardDiscount > 0 && (
@@ -267,6 +295,34 @@ function CheckoutPage() {
               <span>₹{total.toLocaleString("en-IN")}</span>
             </div>
           </div>
+
+          {/* Detailed Voucher Applied Info Block */}
+          {voucherInfo && (
+            <div className="bg-emerald-500/10 border border-emerald-500/30 p-3 rounded-xl space-y-1.5 text-xs text-emerald-300">
+              <div className="font-bold text-sm mb-1 text-emerald-400">Voucher Details</div>
+              <div className="flex justify-between">
+                <span>Cart Total:</span>
+                <span className="font-medium">₹{voucherInfo.originalAmount.toLocaleString("en-IN")}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Voucher:</span>
+                <span className="font-mono font-bold text-emerald-400">{voucherInfo.voucherCode}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Eligible Amount:</span>
+                <span className="font-medium">₹{voucherInfo.eligibleAmount.toLocaleString("en-IN")}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Discount Amount:</span>
+                <span className="font-bold text-emerald-400">−₹{voucherInfo.discountAmount.toLocaleString("en-IN")}</span>
+              </div>
+              <div className="my-1 border-t border-emerald-500/20" />
+              <div className="flex justify-between font-bold text-sm">
+                <span>Final Amount To Pay:</span>
+                <span>₹{voucherInfo.finalAmount.toLocaleString("en-IN")}</span>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label className="flex items-center gap-1 text-xs">
@@ -297,6 +353,41 @@ function CheckoutPage() {
                   onChange={(e) => setCoupon(e.target.value.toUpperCase())}
                 />
                 <Button variant="outline" onClick={applyCoupon}>
+                  Apply
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1 text-xs">
+              <Tag className="h-3 w-3" /> Voucher code
+            </Label>
+            {voucherInfo ? (
+              <div className="flex items-center justify-between rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-2">
+                <span className="text-sm font-medium text-emerald-600">
+                  <Check className="mr-1 inline h-3 w-3 text-emerald-600" />
+                  {voucherInfo.voucherCode} applied
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setVoucherInfo(null);
+                    setVoucher("");
+                  }}
+                >
+                  Remove
+                </Button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <Input
+                  placeholder="ENTER VOUCHER"
+                  value={voucher}
+                  onChange={(e) => setVoucher(e.target.value.toUpperCase())}
+                />
+                <Button variant="outline" onClick={applyVoucher}>
                   Apply
                 </Button>
               </div>

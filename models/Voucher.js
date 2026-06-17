@@ -16,6 +16,10 @@ const voucherSchema = new mongoose.Schema({
     ref: 'Product',
     default: null
   },
+  category: {
+    type: String,
+    default: null
+  },
   voucherCode: {
     type: String,
     required: true,

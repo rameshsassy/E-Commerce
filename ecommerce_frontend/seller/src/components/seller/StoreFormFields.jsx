@@ -95,8 +95,8 @@ export default function StoreFormFields({
       alert(`${label} must be JPG, PNG, or WebP.`);
       return false;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      alert(`${label} is too large. Please use an image under 10MB.`);
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Image size exceeded. Please upload an image of 2 MB or less.');
       return false;
     }
     return true;

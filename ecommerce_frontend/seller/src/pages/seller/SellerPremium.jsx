@@ -23,6 +23,8 @@ const SellerPremium = () => {
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [showLearnMore, setShowLearnMore] = useState(null);
   const [toast, setToast] = useState(null);
+  const [voucherCode, setVoucherCode] = useState("");
+  const [voucherInfo, setVoucherInfo] = useState(null);
 
   // Fetch stats and subscription details from backend
   const fetchDetails = async () => {
@@ -139,13 +141,33 @@ Unlock your seller superpowers and grow your B2B business.
     }
 
     setSelectedPlan(planCode);
+    setVoucherCode("");
+    setVoucherInfo(null);
     setShowModal(true);
+  };
+
+  const handleApplyVoucher = async () => {
+    if (!voucherCode) return;
+    try {
+      const { data } = await api.post('/seller/vouchers/validate-upgrade', {
+        voucherCode: voucherCode.trim().toUpperCase(),
+        plan: selectedPlan,
+      });
+      setVoucherInfo(data);
+      triggerToast('Voucher applied successfully!');
+    } catch (err) {
+      triggerToast(err.response?.data?.message || 'Invalid voucher code', 'error');
+      setVoucherInfo(null);
+    }
   };
 
   const confirmSubscription = async () => {
     setPaymentProcessing(true);
     try {
-      const verifyRes = await api.post('/seller/upgrade', { plan: selectedPlan });
+      const verifyRes = await api.post('/seller/upgrade', {
+        plan: selectedPlan,
+        voucherCode: voucherInfo?.voucherCode || null,
+      });
       mergeUser({
         sellerType: verifyRes.data.sellerType,
         subscriptionActive: verifyRes.data.subscriptionActive,
@@ -153,8 +175,14 @@ Unlock your seller superpowers and grow your B2B business.
         subscriptionValidUntil: verifyRes.data.subscriptionValidUntil,
       });
 
-      triggerToast(`Successfully subscribed to ${selectedPlan.toUpperCase()} Plan!`);
+      triggerToast(
+        voucherInfo?.finalAmount === 0
+          ? 'Voucher Applied Successfully. No Payment Required. Plan upgraded.'
+          : `Successfully subscribed to ${selectedPlan.toUpperCase()} Plan!`
+      );
       setShowModal(false);
+      setVoucherCode("");
+      setVoucherInfo(null);
       fetchDetails();
     } catch (err) {
       console.error(err);
@@ -688,11 +716,15 @@ Unlock your seller superpowers and grow your B2B business.
       {/* 5. Pricing Details Confirmation Modal */}
       {showModal && selectedPlan && createPortal(
         <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 relative shadow-2xl animate-scale-up border border-slate-100 overflow-hidden">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 relative shadow-2xl animate-scale-up border border-slate-100 overflow-hidden text-slate-800">
             
             {/* Modal Close */}
             <button
-              onClick={() => setShowModal(false)}
+              onClick={() => {
+                setShowModal(false);
+                setVoucherCode("");
+                setVoucherInfo(null);
+              }}
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors p-1"
             >
               <X size={20} />
@@ -718,14 +750,70 @@ Unlock your seller superpowers and grow your B2B business.
                   <span>Plan Name</span>
                   <span className="text-[#f07c22] font-black">{getPlanDetails(selectedPlan).name}</span>
                 </div>
-                <div className="flex justify-between text-xs sm:text-sm font-bold text-slate-800">
-                  <span>Amount</span>
-                  <span>{getPlanDetails(selectedPlan).priceLabel}</span>
-                </div>
+                {voucherInfo ? (
+                  <div className="space-y-1 text-xs text-left">
+                    <div className="flex justify-between text-slate-500">
+                      <span>Original Price:</span>
+                      <span className="font-semibold">₹ {voucherInfo.originalAmount.toLocaleString('en-IN')}/-</span>
+                    </div>
+                    <div className="flex justify-between text-emerald-600 font-bold">
+                      <span>Discount ({voucherInfo.voucherCode}):</span>
+                      <span>-₹ {voucherInfo.discountAmount.toLocaleString('en-IN')}/-</span>
+                    </div>
+                    <div className="flex justify-between text-slate-800 font-extrabold text-sm pt-1 border-t border-slate-100">
+                      <span>Final Amount:</span>
+                      <span>₹ {voucherInfo.finalAmount.toLocaleString('en-IN')}/-</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex justify-between text-xs sm:text-sm font-bold text-slate-800">
+                    <span>Amount</span>
+                    <span>{getPlanDetails(selectedPlan).priceLabel}</span>
+                  </div>
+                )}
               </div>
               <div className="col-span-12 sm:col-span-3 text-center text-[10px] text-orange-100 italic leading-tight">
                 * Amount is non-refundable
               </div>
+            </div>
+
+            {/* Voucher Code field */}
+            <div className="mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 text-left">Apply Voucher Code</label>
+              {voucherInfo ? (
+                <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5 text-sm">
+                  <span className="text-emerald-700 font-bold">
+                    ✓ {voucherInfo.voucherCode} applied successfully
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setVoucherInfo(null);
+                      setVoucherCode("");
+                    }}
+                    className="text-slate-400 hover:text-slate-600 font-bold text-xs"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="ENTER UPGRADE VOUCHER"
+                    value={voucherCode}
+                    onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                    className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:border-slate-400 uppercase tracking-wide text-slate-800"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleApplyVoucher}
+                    className="bg-slate-800 hover:bg-slate-900 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-all"
+                  >
+                    Apply
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Features list */}
@@ -779,7 +867,7 @@ Unlock your seller superpowers and grow your B2B business.
               {paymentProcessing ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Initiating Payment...</span>
+                  <span>Initiating Upgrade...</span>
                 </>
               ) : (
                 'Confirm and Subscribe Now'

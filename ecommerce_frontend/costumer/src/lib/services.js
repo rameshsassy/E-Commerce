@@ -32,6 +32,7 @@ export const customerApi = {
   createCodOrder: (data) => api.post("/customer/order", data),
   createRazorpayOrder: (data) => api.post("/customer/order/razorpay", data),
   verifyRazorpay: (data) => api.post("/customer/order/razorpay/verify", data),
+  applyVoucher: (voucherCode) => api.post("/customer/vouchers/validate", { voucherCode }),
   listOrders: () => api.get("/customer/orders"),
   getOrder: (id) => api.get(`/customer/orders/${id}`),
 };

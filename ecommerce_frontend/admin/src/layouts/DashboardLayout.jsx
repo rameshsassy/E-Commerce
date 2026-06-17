@@ -28,6 +28,7 @@ import {
   Globe,
   Sliders,
   Database,
+  User,
 } from 'lucide-react';
 
 const SELLER_NAV = [
@@ -427,6 +428,16 @@ const DashboardLayout = ({ variant }) => {
                 >
                   <MessageSquare size={20} className="text-primary" />
                   Chats
+                </Link>
+              )}
+
+              {(user.role === 'admin' || user.role === 'admin_staff') && (
+                <Link
+                  to="/admin/profile"
+                  className={adminNavLinkClass(location.pathname, location.hash, '/admin/profile')}
+                >
+                  <User size={20} className="text-text-muted" />
+                  My Profile
                 </Link>
               )}
 

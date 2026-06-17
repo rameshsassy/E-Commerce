@@ -629,3 +629,112 @@ export const signupAdmin = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// ===============================
+// 👤 GET ADMIN PROFILE
+// ===============================
+export const getAdminProfile = async (req, res) => {
+  try {
+    const user = req.user;
+    res.json({
+      _id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      mobile: user.mobile || user.phone || "",
+      role: user.role,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ===============================
+// ✏️ UPDATE ADMIN PROFILE
+// ===============================
+export const updateAdminProfile = async (req, res) => {
+  try {
+    const { firstName, lastName, email, mobile } = req.body;
+
+    if (!firstName || !firstName.trim()) {
+      return res.status(400).json({ message: "First name is required." });
+    }
+
+    if (email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        return res.status(400).json({ message: "Invalid email format." });
+      }
+      // Check email uniqueness if changed
+      if (email.trim().toLowerCase() !== req.user.email) {
+        const existing = await User.findOne({
+          email: email.trim().toLowerCase(),
+          _id: { $ne: req.user._id },
+        });
+        if (existing) {
+          return res.status(400).json({ message: "This email is already in use." });
+        }
+      }
+    }
+
+    const adminDoc = await User.findById(req.user._id);
+    if (!adminDoc) return res.status(404).json({ message: "Admin not found." });
+
+    adminDoc.firstName = firstName.trim();
+    adminDoc.lastName = (lastName || "").trim();
+    if (email) adminDoc.email = email.trim().toLowerCase();
+    if (mobile !== undefined) {
+      adminDoc.mobile = mobile;
+      adminDoc.phone = mobile;
+    }
+
+    await adminDoc.save();
+
+    res.json({
+      message: "Profile updated successfully.",
+      user: {
+        _id: adminDoc._id,
+        firstName: adminDoc.firstName,
+        lastName: adminDoc.lastName,
+        email: adminDoc.email,
+        mobile: adminDoc.mobile || adminDoc.phone || "",
+        role: adminDoc.role,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ===============================
+// 🔑 CHANGE ADMIN PASSWORD
+// ===============================
+export const changeAdminPassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "Current password and new password are required." });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "New password must be at least 6 characters." });
+    }
+
+    // Fetch admin with password field
+    const adminDoc = await User.findById(req.user._id);
+    if (!adminDoc) return res.status(404).json({ message: "Admin not found." });
+
+    const isMatch = await bcrypt.compare(currentPassword, adminDoc.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Current password is incorrect." });
+    }
+
+    adminDoc.password = await bcrypt.hash(newPassword, 10);
+    await adminDoc.save();
+
+    res.json({ message: "Password updated successfully." });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
