@@ -32,7 +32,7 @@ export const customerApi = {
   createCodOrder: (data) => api.post("/customer/order", data),
   createRazorpayOrder: (data) => api.post("/customer/order/razorpay", data),
   verifyRazorpay: (data) => api.post("/customer/order/razorpay/verify", data),
-  applyVoucher: (voucherCode) => api.post("/customer/vouchers/validate", { voucherCode }),
+  applyVoucher: (voucherCode, extra = {}) => api.post("/customer/vouchers/validate", { voucherCode, ...extra }),
   listOrders: () => api.get("/customer/orders"),
   getOrder: (id) => api.get(`/customer/orders/${id}`),
 };
@@ -58,6 +58,10 @@ export const reviewApi = {
     api.postForm(`/products/${productId}/reviews`, form),
   toggleHelpful: (productId, reviewId) =>
     api.post(`/products/${productId}/reviews/${reviewId}/helpful`),
+  checkEligibility: (productId) =>
+    api.get(`/reviews/eligibility/${productId}`),
+  submit: (data) =>
+    api.post("/reviews", data),
 };
 
 // ---------- Wishlist ----------
@@ -70,10 +74,29 @@ export const wishlistApi = {
 // ---------- Cart ----------
 export const cartApi = {
   get: () => api.get("/cart"),
-  add: (productId, quantity) => api.post("/cart", { productId, quantity }),
+  add: (productId, quantity, selectedColor = "", selectedSize = "", purchaseType = "one_time") =>
+    api.post("/cart/add", { productId, quantity, selectedColor, selectedSize, purchaseType }),
   update: (itemId, quantity) => api.put(`/cart/${itemId}`, { quantity }),
   remove: (itemId) => api.del(`/cart/${itemId}`),
   clear: () => api.del("/cart"),
+};
+
+// ---------- Delivery Checker ----------
+export const deliveryApi = {
+  check: (productId, pincode) =>
+    api.get("/delivery/check", { productId, pincode }),
+};
+
+// ---------- Bulk Purchase Request ----------
+export const bulkPurchaseApi = {
+  request: (data) =>
+    api.post("/bulk-purchase/request", data),
+};
+
+// ---------- Checkout / Buy Now ----------
+export const checkoutApi = {
+  verifyBuyNow: (data) =>
+    api.post("/checkout/buy-now", data),
 };
 
 // ---------- Coupons ----------

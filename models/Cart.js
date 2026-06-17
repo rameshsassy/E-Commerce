@@ -21,6 +21,19 @@ const cartSchema = new mongoose.Schema(
           min: 1,
           default: 1,
         },
+        selectedColor: {
+          type: String,
+          default: "",
+        },
+        selectedSize: {
+          type: String,
+          default: "",
+        },
+        purchaseType: {
+          type: String,
+          enum: ["one_time", "subscription", "custom_order"],
+          default: "one_time",
+        },
       },
     ],
   },

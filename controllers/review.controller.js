@@ -116,3 +116,98 @@ export const markReviewHelpful = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const checkReviewEligibility = async (req, res) => {
+  try {
+    const { productId } = req.params;
+
+    // Check if user already reviewed
+    const alreadyReviewed = await Review.findOne({
+      user: req.user._id,
+      product: productId,
+    });
+
+    if (alreadyReviewed) {
+      return res.json({ eligible: false, message: "You have already reviewed this product." });
+    }
+
+    // Check purchase history
+    // Order status is Delivered or Completed
+    const orders = await Order.find({
+      user: req.user._id,
+      "items.product": productId,
+      orderStatus: { $in: ["Delivered", "Completed"] }
+    });
+
+    if (orders.length === 0) {
+      return res.json({ eligible: false, message: "Only customers who purchased this product can write a review." });
+    }
+
+    return res.json({ eligible: true, message: "You are eligible to review this product.", orderId: orders[0]._id });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const submitReview = async (req, res) => {
+  try {
+    const { productId, orderId, rating, title, comment } = req.body;
+
+    if (!productId || !rating || !comment) {
+      return res.status(400).json({ message: "Product ID, rating, and comment are required." });
+    }
+
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found." });
+    }
+
+    // Check duplicate review
+    const duplicate = await Review.findOne({
+      user: req.user._id,
+      product: productId,
+    });
+    if (duplicate) {
+      return res.status(400).json({ message: "Duplicate review. You have already reviewed this product." });
+    }
+
+    // Validate purchase history
+    const orderQuery = {
+      user: req.user._id,
+      "items.product": productId,
+      orderStatus: { $in: ["Delivered", "Completed"] }
+    };
+    if (orderId) {
+      orderQuery._id = orderId;
+    }
+    const order = await Order.findOne(orderQuery);
+    if (!order) {
+      return res.status(403).json({ message: "You can only review products after they have been delivered to you." });
+    }
+
+    const review = new Review({
+      user: req.user._id,
+      product: productId,
+      orderId: order._id,
+      rating: Number(rating),
+      title: title || "",
+      comment,
+      isVerifiedPurchase: true,
+    });
+
+    await review.save();
+
+    // Recalculate product rating summary
+    const reviews = await Review.find({ product: productId });
+    const totalReviews = reviews.length;
+    const averageRating = reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews;
+
+    product.totalReviews = totalReviews;
+    product.averageRating = averageRating;
+    await product.save();
+
+    res.status(201).json({ message: "Review submitted successfully", review });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

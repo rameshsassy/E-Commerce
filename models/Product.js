@@ -292,6 +292,14 @@ const productSchema = new mongoose.Schema(
       default: "pending",
       index: true,
     },
+    averageRating: {
+      type: Number,
+      default: 0,
+    },
+    totalReviews: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,

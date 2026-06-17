@@ -28,6 +28,10 @@ import { wishlistRouter, cartRouter } from "./routes/customerFrontend.routes.js"
 import importRoutes from "./routes/import.routes.js";
 import rewardRoutes from "./routes/rewards.routes.js";
 import adminRewardRoutes from "./routes/adminRewards.routes.js";
+import reviewRoutes from "./routes/review.routes.js";
+import checkoutRoutes from "./routes/checkout.routes.js";
+import bulkPurchaseRoutes from "./routes/bulkPurchase.routes.js";
+import deliveryRoutes from "./routes/delivery.routes.js";
 
 import { errorHandler } from "./middleware/error.middleware.js";
 import { clientDeviceMiddleware } from "./middleware/clientDevice.middleware.js";
@@ -237,6 +241,10 @@ app.use("/api/cart", cartRouter);         // ✅ Customer frontend alias
 app.use("/api/superadmin/import", importRoutes); // ✅ Data Migration (Super Admin only)
 app.use("/api/rewards", rewardRoutes);            // ✅ Customer Rewards
 app.use("/api/admin/rewards", adminRewardRoutes);  // ✅ Admin Rewards Management
+app.use("/api/reviews", reviewRoutes);
+app.use("/api/checkout", checkoutRoutes);
+app.use("/api/bulk-purchase", bulkPurchaseRoutes);
+app.use("/api/delivery", deliveryRoutes);
 
 // ===============================
 // 🏠 ROOT ROUTE

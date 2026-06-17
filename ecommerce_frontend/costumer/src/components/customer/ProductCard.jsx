@@ -40,7 +40,7 @@ export function ProductCard({ product }) {
 
   return (
     <Link
-      to="/products/$id"
+      to="/product/$id"
       params={{ id: product._id }}
       className="group block overflow-hidden rounded-2xl border bg-card shadow-card transition-all hover:-translate-y-0.5 hover:shadow-elegant"
     >

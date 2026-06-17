@@ -15,6 +15,13 @@ import { MapPin, CreditCard, ShoppingBag, Tag, Check, Gift } from "lucide-react"
 import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/checkout")({
+  validateSearch: (search) => ({
+    productId: search.productId || undefined,
+    quantity: search.quantity ? Number(search.quantity) : undefined,
+    color: search.color || undefined,
+    size: search.size || undefined,
+    purchaseType: search.purchaseType || undefined,
+  }),
   head: () => ({ meta: [{ title: "Checkout — Aashansh" }] }),
   component: () => (
     <ProtectedRoute>
@@ -24,8 +31,16 @@ export const Route = createFileRoute("/checkout")({
 });
 
 function CheckoutPage() {
-  const { items, subtotal, refresh: refreshCart } = useCart();
+  const { productId, quantity, color, size, purchaseType } = Route.useSearch();
+  const cartContext = useCart();
   const navigate = useNavigate();
+
+  const buyNowProductQuery = useQuery({
+    queryKey: ["product-buynow", productId],
+    queryFn: () => productApi.get(productId),
+    enabled: !!productId,
+  });
+
   const addresses = useQuery({
     queryKey: ["addresses"],
     queryFn: () => customerApi.listAddresses(),
@@ -46,6 +61,34 @@ function CheckoutPage() {
     queryFn: () => rewardsApi.getWallet(),
   });
   const activeVouchers = (walletQ.data?.wallet || []).filter(w => w.status === "active" && new Date(w.expiryDate) > new Date());
+
+  if (productId && buyNowProductQuery.isLoading) {
+    return (
+      <div className="container-page py-16 text-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  const items = productId
+    ? buyNowProductQuery.data
+      ? [{
+          _id: "buynow-item",
+          product: buyNowProductQuery.data,
+          quantity: quantity || 1,
+          selectedColor: color || "",
+          selectedSize: size || "",
+          purchaseType: purchaseType || "one_time",
+          price: buyNowProductQuery.data.price,
+        }]
+      : []
+    : cartContext.items;
+
+  const subtotal = productId
+    ? buyNowProductQuery.data
+      ? buyNowProductQuery.data.price * (quantity || 1)
+      : 0
+    : cartContext.subtotal;
 
   if (items.length === 0) {
     return (
@@ -93,7 +136,8 @@ function CheckoutPage() {
   const applyVoucher = async () => {
     if (!voucher) return;
     try {
-      const r = await customerApi.applyVoucher(voucher);
+      const extra = productId ? { productId, quantity, selectedColor: color, selectedSize: size, purchaseType } : {};
+      const r = await customerApi.applyVoucher(voucher, extra);
       setVoucherInfo(r);
       toast.success(`Voucher applied — saves ₹${r.discountAmount}`);
     } catch (e) {
@@ -134,6 +178,14 @@ function CheckoutPage() {
         voucherCode: voucherInfo?.voucherCode || null,
         rewardVoucherCode: rewardVoucher?.voucherCode || null,
         rewardDiscountAmount: rewardDiscount || 0,
+        paymentMethod: payment === "cod" ? "COD" : "Razorpay",
+        ...(productId ? {
+          productId,
+          quantity: quantity || 1,
+          selectedColor: color || "",
+          selectedSize: size || "",
+          purchaseType: purchaseType || "one_time"
+        } : {})
       };
 
       if (payment === "cod") {

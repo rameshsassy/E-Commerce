@@ -39,6 +39,7 @@ const cartRouter = express.Router();
 
 cartRouter.get("/", protect, authorizeRoles("customer"), getCart);
 cartRouter.post("/", protect, authorizeRoles("customer"), addToCart);
+cartRouter.post("/add", protect, authorizeRoles("customer"), addToCart);
 cartRouter.put("/:productId", protect, authorizeRoles("customer"), updateCartItem);
 cartRouter.delete("/:productId", protect, authorizeRoles("customer"), removeFromCart);
 cartRouter.delete("/", protect, authorizeRoles("customer"), clearCart);

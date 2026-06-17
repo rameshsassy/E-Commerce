@@ -1145,8 +1145,17 @@ export const getProductById = async (req, res) => {
     } catch (e) {
       // ignore
     }
+    const productObj = product.toObject();
+    const plan = product.sellerId?.subscriptionPlan || "free";
+    productObj.sellerPlan = plan;
+    productObj.permissions = {
+      allowOneTimePurchase: true,
+      allowSubscriptionPurchase: (plan === "pro" || plan === "premium") && product.purchaseType === "subscription",
+      allowCustomPurchase: plan === "premium" && product.purchaseType === "custom_order",
+      allowBulkPurchase: plan !== "free" && product.bulkPurchaseEnabled
+    };
 
-    res.json(product);
+    res.json(productObj);
   } catch (error) {
     const status = error.statusCode || 500;
     res.status(status).json({ message: error.message });

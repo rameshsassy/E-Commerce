@@ -1,4 +1,5 @@
 import Cart from "../models/Cart.js";
+import Product from "../models/Product.js";
 import { validateAndCalculateCartVoucher, validateUpgradeVoucher } from "../utils/voucherHelper.js";
 
 /**
@@ -7,21 +8,37 @@ import { validateAndCalculateCartVoucher, validateUpgradeVoucher } from "../util
  */
 export const validateCustomerVoucher = async (req, res) => {
   try {
-    const { voucherCode } = req.body;
+    const { voucherCode, productId, quantity, selectedColor, selectedSize, purchaseType } = req.body;
     if (!voucherCode) {
       return res.status(400).json({ message: "Voucher code is required" });
     }
 
-    const cart = await Cart.findOne({ user: req.user._id }).populate({
-      path: "items.product",
-      populate: { path: "sellerId" }
-    });
+    let items = [];
+    if (productId) {
+      const product = await Product.findById(productId).populate("sellerId");
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+      items = [{
+        product,
+        quantity: Number(quantity) || 1,
+        selectedColor: selectedColor || "",
+        selectedSize: selectedSize || "",
+        purchaseType: purchaseType || "one_time"
+      }];
+    } else {
+      const cart = await Cart.findOne({ user: req.user._id }).populate({
+        path: "items.product",
+        populate: { path: "sellerId" }
+      });
 
-    if (!cart || cart.items.length === 0) {
-      return res.status(400).json({ message: "Cart is empty" });
+      if (!cart || cart.items.length === 0) {
+        return res.status(400).json({ message: "Cart is empty" });
+      }
+      items = cart.items;
     }
 
-    const result = await validateAndCalculateCartVoucher(voucherCode, cart.items, req.user._id);
+    const result = await validateAndCalculateCartVoucher(voucherCode, items, req.user._id);
 
     return res.status(200).json({
       success: true,

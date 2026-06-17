@@ -49,8 +49,8 @@ export function CartProvider({ children }) {
     refresh();
   }, [refresh]);
 
-  const add = async (productId, quantity = 1) => {
-    await cartApi.add(productId, quantity);
+  const add = async (productId, quantity = 1, selectedColor = "", selectedSize = "", purchaseType = "one_time") => {
+    await cartApi.add(productId, quantity, selectedColor, selectedSize, purchaseType);
     await refresh();
   };
   const update = async (itemId, quantity) => {

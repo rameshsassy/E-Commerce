@@ -31,14 +31,56 @@ class Razorpay {
 }
 
 // Helper to recalculate cart, validate serviceability, and calculate discounts
-const recalculateAndValidateOrder = async (user, addressId, couponCode, voucherCode, rewardVoucherCode, rewardDiscountAmount, shippingAddressObj) => {
-  const cart = await Cart.findOne({ user: user._id }).populate({
-    path: "items.product",
-    populate: { path: "sellerId" }
-  });
+const recalculateAndValidateOrder = async (user, addressId, couponCode, voucherCode, rewardVoucherCode, rewardDiscountAmount, shippingAddressObj, buyNowInfo = null) => {
+  let cartItems = [];
+  let cart = null;
 
-  if (!cart || cart.items.length === 0) {
-    throw new Error("Cart is empty");
+  if (buyNowInfo && buyNowInfo.productId) {
+    const product = await Product.findById(buyNowInfo.productId).populate("sellerId");
+    if (!product) {
+      throw new Error("Product not found");
+    }
+    const qty = Number(buyNowInfo.quantity) || 1;
+    if (product.stock < qty) {
+      throw new Error(`Only ${product.stock} units available in stock.`);
+    }
+
+    const plan = product.sellerId?.subscriptionPlan || "free";
+    let normPurchaseType = "one_time";
+    if (buyNowInfo.purchaseType === "subscription") normPurchaseType = "subscription";
+    if (buyNowInfo.purchaseType === "custom" || buyNowInfo.purchaseType === "custom_order") normPurchaseType = "custom_order";
+
+    // Validate purchase type against seller plan
+    if (plan === "free" && normPurchaseType !== "one_time") {
+      throw new Error("Subscription and custom purchase types are not allowed for free plan sellers.");
+    }
+    if (plan === "pro" && normPurchaseType === "custom_order") {
+      throw new Error("Custom order purchase type is not allowed for Pro plan sellers.");
+    }
+
+    if (normPurchaseType === "subscription" || normPurchaseType === "custom_order") {
+      if (product.purchaseType !== normPurchaseType) {
+        throw new Error(`Purchase type ${normPurchaseType} is not enabled for this product.`);
+      }
+    }
+
+    cartItems = [{
+      product,
+      quantity: qty,
+      selectedColor: buyNowInfo.selectedColor || "",
+      selectedSize: buyNowInfo.selectedSize || "",
+      purchaseType: normPurchaseType
+    }];
+  } else {
+    cart = await Cart.findOne({ user: user._id }).populate({
+      path: "items.product",
+      populate: { path: "sellerId" }
+    });
+
+    if (!cart || cart.items.length === 0) {
+      throw new Error("Cart is empty");
+    }
+    cartItems = cart.items;
   }
 
   let addr = null;
@@ -61,7 +103,7 @@ const recalculateAndValidateOrder = async (user, addressId, couponCode, voucherC
   }
 
   // Check pincode serviceability
-  for (const item of cart.items) {
+  for (const item of cartItems) {
     const seller = item.product.sellerId;
     if (seller && seller.isHyperlocal) {
       const isDeliverable = seller.deliverablePincodes.includes(destinationPincode);
@@ -71,7 +113,7 @@ const recalculateAndValidateOrder = async (user, addressId, couponCode, voucherC
     }
   }
 
-  const subtotal = cart.items.reduce((total, item) => total + (item.product.price * item.quantity), 0);
+  const subtotal = cartItems.reduce((total, item) => total + (item.product.price * item.quantity), 0);
 
   // Apply Coupon
   let couponDiscount = 0;
@@ -93,7 +135,7 @@ const recalculateAndValidateOrder = async (user, addressId, couponCode, voucherC
   let voucherDiscount = 0;
   let voucherDetails = null;
   if (voucherCode) {
-    voucherDetails = await validateAndCalculateCartVoucher(voucherCode, cart.items, user._id);
+    voucherDetails = await validateAndCalculateCartVoucher(voucherCode, cartItems, user._id);
     voucherDiscount = voucherDetails.discountAmount;
   }
 
@@ -116,6 +158,7 @@ const recalculateAndValidateOrder = async (user, addressId, couponCode, voucherC
 
   return {
     cart,
+    cartItems,
     shippingAddress,
     itemsPrice: subtotal,
     couponDiscount,
@@ -139,6 +182,11 @@ export const createOrder = async (req, res) => {
       rewardVoucherCode,
       rewardDiscountAmount,
       paymentMethod,
+      productId,
+      quantity,
+      selectedColor,
+      selectedSize,
+      purchaseType,
     } = req.body;
 
     const validationResult = await recalculateAndValidateOrder(
@@ -148,11 +196,13 @@ export const createOrder = async (req, res) => {
       voucherCode,
       rewardVoucherCode,
       rewardDiscountAmount,
-      shippingAddressObj
+      shippingAddressObj,
+      productId ? { productId, quantity, selectedColor, selectedSize, purchaseType } : null
     );
 
     const {
       cart,
+      cartItems,
       shippingAddress,
       itemsPrice,
       couponDiscount,
@@ -162,7 +212,7 @@ export const createOrder = async (req, res) => {
       voucherDetails,
     } = validationResult;
 
-    const orderItems = cart.items.map(item => ({
+    const orderItems = cartItems.map(item => ({
       product: item.product._id,
       seller: item.product.sellerId._id,
       title: item.product.title,
@@ -187,6 +237,7 @@ export const createOrder = async (req, res) => {
       rewardVoucherCode: rewardVoucherCode || null,
       rewardDiscountAmount: rewardDiscount,
       totalAmount,
+      isBuyNow: !!productId,
     });
 
     const createdOrder = await order.save();
@@ -266,9 +317,11 @@ export const createOrder = async (req, res) => {
       }).catch(console.error);
     }
 
-    // Clear cart
-    cart.items = [];
-    await cart.save();
+    // Clear cart only if this order was placed via the cart
+    if (!productId && cart) {
+      cart.items = [];
+      await cart.save();
+    }
 
     res.status(201).json(createdOrder);
   } catch (error) {
@@ -327,6 +380,11 @@ export const createRazorpayOrder = async (req, res) => {
       voucherCode,
       rewardVoucherCode,
       rewardDiscountAmount,
+      productId,
+      quantity,
+      selectedColor,
+      selectedSize,
+      purchaseType,
     } = req.body;
 
     const validationResult = await recalculateAndValidateOrder(
@@ -336,11 +394,13 @@ export const createRazorpayOrder = async (req, res) => {
       voucherCode,
       rewardVoucherCode,
       rewardDiscountAmount,
-      shippingAddressObj
+      shippingAddressObj,
+      productId ? { productId, quantity, selectedColor, selectedSize, purchaseType } : null
     );
 
     const {
       cart,
+      cartItems,
       shippingAddress,
       itemsPrice,
       couponDiscount,
@@ -350,7 +410,7 @@ export const createRazorpayOrder = async (req, res) => {
       voucherDetails,
     } = validationResult;
 
-    const orderItems = cart.items.map(item => ({
+    const orderItems = cartItems.map(item => ({
       product: item.product._id,
       seller: item.product.sellerId._id,
       title: item.product.title,
@@ -376,6 +436,7 @@ export const createRazorpayOrder = async (req, res) => {
       rewardVoucherCode: rewardVoucherCode || null,
       rewardDiscountAmount: rewardDiscount,
       totalAmount,
+      isBuyNow: !!productId,
     });
 
     const createdOrder = await order.save();
@@ -462,9 +523,11 @@ export const createRazorpayOrder = async (req, res) => {
         }).catch(console.error);
       }
 
-      // Clear cart
-      cart.items = [];
-      await cart.save();
+      // Clear cart only if this order was placed via the cart
+      if (!productId && cart) {
+        cart.items = [];
+        await cart.save();
+      }
 
       return res.status(200).json({
         isFree: true,
@@ -651,11 +714,13 @@ export const verifyRazorpayPayment = async (req, res) => {
           console.error("Failed to send order emails or notification", emailErr);
         }
 
-        // Clear cart
-        const cart = await Cart.findOne({ user: order.user });
-        if (cart) {
-          cart.items = [];
-          await cart.save();
+        // Clear cart only if order was not a direct Buy Now purchase
+        if (!order.isBuyNow) {
+          const cart = await Cart.findOne({ user: order.user });
+          if (cart) {
+            cart.items = [];
+            await cart.save();
+          }
         }
 
         return res.json({ message: "Payment verified successfully", order });
@@ -665,6 +730,53 @@ export const verifyRazorpayPayment = async (req, res) => {
     } else {
       return res.status(400).json({ message: "Invalid signature sent!" });
     }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const verifyBuyNow = async (req, res) => {
+  try {
+    const { productId, quantity, selectedColor, selectedSize, purchaseType } = req.body;
+    if (!productId) {
+      return res.status(400).json({ message: "productId is required" });
+    }
+    const product = await Product.findById(productId).populate("sellerId");
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+    const qty = Number(quantity) || 1;
+    if (product.stock < qty) {
+      return res.status(400).json({ message: `Only ${product.stock} units available in stock.` });
+    }
+    
+    // Normalise purchase type
+    let normPurType = "one_time";
+    if (purchaseType === "subscription") normPurType = "subscription";
+    if (purchaseType === "custom" || purchaseType === "custom_order") normPurType = "custom_order";
+
+    const plan = product.sellerId?.subscriptionPlan || "free";
+    if (plan === "free" && normPurType !== "one_time") {
+      return res.status(400).json({ message: "Subscription/custom purchase is not allowed for free plan sellers." });
+    }
+    if (plan === "pro" && normPurType === "custom_order") {
+      return res.status(400).json({ message: "Custom Made purchase is not allowed for Pro plan sellers." });
+    }
+    if (normPurType === "subscription" || normPurType === "custom_order") {
+      if (product.purchaseType !== normPurType) {
+        return res.status(400).json({ message: `Purchase type ${normPurType} is not enabled for this product.` });
+      }
+    }
+    
+    res.json({
+      success: true,
+      message: "Buy now request verified",
+      productId,
+      quantity: qty,
+      selectedColor,
+      selectedSize,
+      purchaseType: normPurType
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
