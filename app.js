@@ -208,7 +208,7 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true, service: "aashansh-api", message: "Server is healthy" });
 });
 
-app.get('/api/test', (_req, res) => res.send("This is test endpoint"))
+app.get('/api/test', (_req, res) => res.send("This is hjklkjtest endpoint"))
 
 app.use("/api/auth", authRoutes);
 app.use("/api/seller", sellerRoutes);
