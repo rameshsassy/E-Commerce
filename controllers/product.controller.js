@@ -1,6 +1,13 @@
 import Product from "../models/Product.js";
 import Category from "../models/Category.js";
 import Seller from "../models/Seller.js";
+import Cart from "../models/Cart.js";
+import Wishlist from "../models/Wishlist.js";
+import FeaturedProductLayout from "../models/FeaturedProductLayout.js";
+import Review from "../models/Review.js";
+import AdminVoucher from "../models/AdminVoucher.js";
+import RewardCampaign from "../models/RewardCampaign.js";
+import BulkPurchaseRequest from "../models/BulkPurchaseRequest.js";
 import fs from "fs";
 import path from "path";
 import csv from "csv-parser";
@@ -1250,6 +1257,35 @@ export const deleteProduct = async (req, res) => {
 
     const title = product.title;
     const productId = product._id;
+
+    // Cascade delete/clean up references to this product across the entire website
+    await Cart.updateMany(
+      { "items.product": productId },
+      { $pull: { items: { product: productId } } }
+    );
+    await Wishlist.updateMany(
+      { products: productId },
+      { $pull: { products: productId } }
+    );
+    await FeaturedProductLayout.updateMany(
+      { "selectedProducts.productId": productId },
+      { $pull: { selectedProducts: { productId: productId } } }
+    );
+    await Review.deleteMany({ product: productId });
+    await AdminVoucher.updateMany(
+      { selectedProducts: productId },
+      { $pull: { selectedProducts: productId } }
+    );
+    await RewardCampaign.updateMany(
+      { "productEligibility.productIds": productId },
+      { $pull: { "productEligibility.productIds": productId } }
+    );
+    await RewardCampaign.updateMany(
+      { "exclusionRules.productIds": productId },
+      { $pull: { "exclusionRules.productIds": productId } }
+    );
+    await BulkPurchaseRequest.deleteMany({ product: productId });
+
     await product.deleteOne();
     logProductDeleted(req.user._id, title, productId);
     res.json({ message: "Product deleted successfully" });

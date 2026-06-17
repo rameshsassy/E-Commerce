@@ -642,10 +642,6 @@ const SellerProducts = () => {
   };
 
   const handleDeleteProduct = async (product) => {
-    if (isProductLocked(product)) {
-      alert(getProductLockMessage(product.title));
-      return;
-    }
     if (!window.confirm('Are you sure you want to delete this product?')) return;
     try {
       await api.delete(`/products/${product._id}`);
