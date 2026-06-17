@@ -20,17 +20,12 @@ services:
       dockerfile: Dockerfile
     container_name: aashansh_backend
     restart: always
-    # Enable hot reloading in container dev using nodemon
     command: npx nodemon server.js
     ports:
       - "5000:5000"
     volumes:
-      - .:/app
-      - /app/node_modules
       - uploads_data:/app/uploads
     environment:
-      # Use local mongo service container on the docker network.
-      # Comment out MONGO_URI line below to fall back to the Atlas connection string in your .env file.
       - MONGO_URI=mongodb://mongo:27017/aashansh
       - PORT=5000
     env_file:
@@ -49,9 +44,6 @@ services:
     restart: always
     ports:
       - "5173:5173"
-    volumes:
-      - ./ecommerce_frontend/costumer:/app
-      - /app/node_modules
     environment:
       - VITE_API_PROXY_URL=http://backend:5000
     depends_on:
@@ -68,9 +60,6 @@ services:
     restart: always
     ports:
       - "5174:5174"
-    volumes:
-      - ./ecommerce_frontend/seller:/app
-      - /app/node_modules
     environment:
       - VITE_API_PROXY_URL=http://backend:5000
     depends_on:
@@ -87,9 +76,6 @@ services:
     restart: always
     ports:
       - "5175:5175"
-    volumes:
-      - ./ecommerce_frontend/admin:/app
-      - /app/node_modules
     environment:
       - VITE_API_PROXY_URL=http://backend:5000
     depends_on:
