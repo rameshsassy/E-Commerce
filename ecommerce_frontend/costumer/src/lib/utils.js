@@ -1,5 +1,6 @@
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { API_BASE_URL } from "./api";
 
 export function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -28,18 +29,10 @@ export function getImageUrl(imagePath) {
     return clean;
   }
 
-  // Derive backend API base URL from the env var.
-  let apiBase = "http://localhost:5000/api";
-  try {
-    apiBase = import.meta.env.VITE_API_BASE_URL || apiBase;
-  } catch {
-    // SSR fallback — import.meta not available in all environments
-  }
-
   // Normalise path separators (Windows backslash → forward slash) and strip leading slashes
   const normalised = clean.replace(/\\/g, "/").replace(/^\/+/, "");
 
-  const base = apiBase.replace(/\/$/, "");
+  const base = API_BASE_URL.replace(/\/$/, "");
 
   if (normalised.startsWith("uploads/")) {
     return `${base}/${normalised}`;

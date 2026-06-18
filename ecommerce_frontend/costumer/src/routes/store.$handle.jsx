@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { storeApi, customerApi } from "@/lib/services";
+import { API_BASE_URL } from "@/lib/api";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -12,8 +13,7 @@ export function getImageUrl(path) {
   if (cleanPath.startsWith("http://") || cleanPath.startsWith("https://")) {
     return cleanPath;
   }
-  const serverBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
-  const base = serverBase.replace(/\/$/, "");
+  const base = API_BASE_URL.replace(/\/$/, "");
   const normalised = cleanPath.replace(/\\/g, "/").replace(/^\/+/, "");
   if (normalised.startsWith("uploads/")) {
     return `${base}/${normalised}`;
