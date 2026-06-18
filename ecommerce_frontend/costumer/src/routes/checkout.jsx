@@ -32,7 +32,7 @@ export const Route = createFileRoute("/checkout")({
 
 function CheckoutPage() {
   const { productId, quantity, color, size, purchaseType } = Route.useSearch();
-  const cartContext = useCart();
+  const { items: cartItems, subtotal: cartSubtotal, refresh: refreshCart } = useCart();
   const navigate = useNavigate();
 
   const buyNowProductQuery = useQuery({
@@ -47,14 +47,12 @@ function CheckoutPage() {
   });
 
   const [selectedAddr, setSelectedAddr] = useState(null);
-  const [payment, setPayment] = useState("razorpay");
-  const [coupon, setCoupon] = useState("");
-  const [couponInfo, setCouponInfo] = useState(null);
   const [voucher, setVoucher] = useState("");
   const [voucherInfo, setVoucherInfo] = useState(null);
   const [rewardVoucher, setRewardVoucher] = useState(null); // selected wallet voucher
   const [rewardDiscount, setRewardDiscount] = useState(0);
   const [busy, setBusy] = useState(false);
+  const payment = "razorpay";
 
   const walletQ = useQuery({
     queryKey: ["rewards-wallet-checkout"],
@@ -82,13 +80,13 @@ function CheckoutPage() {
           price: buyNowProductQuery.data.price,
         }]
       : []
-    : cartContext.items;
+    : cartItems;
 
   const subtotal = productId
     ? buyNowProductQuery.data
       ? buyNowProductQuery.data.price * (quantity || 1)
       : 0
-    : cartContext.subtotal;
+    : cartSubtotal;
 
   if (items.length === 0) {
     return (
@@ -113,25 +111,8 @@ function CheckoutPage() {
     addressList[0]?._id;
   const activeAddr = addressList.find((a) => a._id === activeAddrId);
 
-  const couponDiscount = couponInfo?.discount || 0;
   const voucherDiscount = voucherInfo?.discountAmount || 0;
-  const total = Math.max(0, subtotal - couponDiscount - voucherDiscount - rewardDiscount);
-
-  const applyCoupon = async () => {
-    if (!coupon) return;
-    try {
-      const r = await couponApi.apply(coupon, subtotal);
-      setCouponInfo({
-        discount: r.discount,
-        finalAmount: r.finalAmount,
-        code: coupon,
-      });
-      toast.success(`Coupon applied — you save ₹${r.discount}`);
-    } catch (e) {
-      toast.error(e.message || "Invalid coupon");
-      setCouponInfo(null);
-    }
-  };
+  const total = Math.max(0, subtotal - voucherDiscount - rewardDiscount);
 
   const applyVoucher = async () => {
     if (!voucher) return;
@@ -174,11 +155,11 @@ function CheckoutPage() {
       }
       const payload = {
         addressId: activeAddr._id,
-        couponCode: couponInfo?.code,
+        couponCode: null,
         voucherCode: voucherInfo?.voucherCode || null,
         rewardVoucherCode: rewardVoucher?.voucherCode || null,
         rewardDiscountAmount: rewardDiscount || 0,
-        paymentMethod: payment === "cod" ? "COD" : "Razorpay",
+        paymentMethod: "Razorpay",
         ...(productId ? {
           productId,
           quantity: quantity || 1,
@@ -187,14 +168,6 @@ function CheckoutPage() {
           purchaseType: purchaseType || "one_time"
         } : {})
       };
-
-      if (payment === "cod") {
-        const order = await customerApi.createCodOrder(payload);
-        await refreshCart();
-        toast.success("Order placed");
-        navigate({ to: "/orders/$id", params: { id: order._id } });
-        return;
-      }
 
       const rzp = await customerApi.createRazorpayOrder(payload);
       if (rzp.isFree) {
@@ -285,34 +258,17 @@ function CheckoutPage() {
             <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold">
               <CreditCard className="h-4 w-4" /> Payment method
             </h2>
-            <RadioGroup
-              value={payment}
-              onValueChange={(v) => setPayment(v)}
-              className="grid gap-3 sm:grid-cols-2"
-            >
-              <label
-                className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 ${payment === "razorpay" ? "border-primary bg-primary/5" : ""}`}
-              >
-                <RadioGroupItem value="razorpay" className="mt-1" />
-                <div>
-                  <div className="font-medium">Online (Razorpay)</div>
-                  <p className="text-xs text-muted-foreground">
-                    UPI, cards, netbanking, wallets
-                  </p>
-                </div>
-              </label>
-              <label
-                className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 ${payment === "cod" ? "border-primary bg-primary/5" : ""}`}
-              >
-                <RadioGroupItem value="cod" className="mt-1" />
-                <div>
-                  <div className="font-medium">Cash on Delivery</div>
-                  <p className="text-xs text-muted-foreground">
-                    Pay when you receive
-                  </p>
-                </div>
-              </label>
-            </RadioGroup>
+            <div className="rounded-xl border p-4 border-primary bg-primary/5 flex items-start gap-3">
+              <RadioGroup value="razorpay" className="pointer-events-none">
+                <RadioGroupItem value="razorpay" checked className="mt-1" />
+              </RadioGroup>
+              <div>
+                <div className="font-medium">Online (Razorpay)</div>
+                <p className="text-xs text-muted-foreground">
+                  UPI, cards, netbanking, wallets
+                </p>
+              </div>
+            </div>
           </section>
         </div>
 
@@ -323,12 +279,7 @@ function CheckoutPage() {
               <span>Subtotal ({items.length})</span>
               <span>₹{subtotal.toLocaleString("en-IN")}</span>
             </div>
-            {couponDiscount > 0 && (
-              <div className="flex justify-between text-success">
-                <span>Coupon ({couponInfo.code})</span>
-                <span>−₹{couponDiscount.toLocaleString("en-IN")}</span>
-              </div>
-            )}
+
             {voucherDiscount > 0 && (
               <div className="flex justify-between text-emerald-600 font-medium">
                 <span>Voucher ({voucherInfo.voucherCode})</span>
@@ -376,40 +327,7 @@ function CheckoutPage() {
             </div>
           )}
 
-          <div className="space-y-2">
-            <Label className="flex items-center gap-1 text-xs">
-              <Tag className="h-3 w-3" /> Coupon code
-            </Label>
-            {couponInfo ? (
-              <div className="flex items-center justify-between rounded-lg border border-success/30 bg-success/5 p-2">
-                <span className="text-sm font-medium text-success">
-                  <Check className="mr-1 inline h-3 w-3" />
-                  {couponInfo.code} applied
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setCouponInfo(null);
-                    setCoupon("");
-                  }}
-                >
-                  Remove
-                </Button>
-              </div>
-            ) : (
-              <div className="flex gap-2">
-                <Input
-                  placeholder="ENTER CODE"
-                  value={coupon}
-                  onChange={(e) => setCoupon(e.target.value.toUpperCase())}
-                />
-                <Button variant="outline" onClick={applyCoupon}>
-                  Apply
-                </Button>
-              </div>
-            )}
-          </div>
+
 
           <div className="space-y-2">
             <Label className="flex items-center gap-1 text-xs">
