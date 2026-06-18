@@ -27,7 +27,12 @@ export function getImageUrl(path) {
   if (cleanPath.startsWith('http://') || cleanPath.startsWith('https://')) {
     return cleanPath;
   }
-  return `${BASE_URL}/${cleanPath.replace(/\\/g, '/')}`;
+  const apiBase = resolveApiUrl();
+  const normalised = cleanPath.replace(/\\/g, '/').replace(/^\/+/, '');
+  if (normalised.startsWith('uploads/')) {
+    return `${apiBase}/${normalised}`;
+  }
+  return `${apiBase}/uploads/${normalised}`;
 }
 
 /** Custom headers that need CORS allow-list on cross-origin APIs (e.g. Render). */

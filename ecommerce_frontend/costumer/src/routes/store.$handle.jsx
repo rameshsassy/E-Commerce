@@ -12,9 +12,13 @@ export function getImageUrl(path) {
   if (cleanPath.startsWith("http://") || cleanPath.startsWith("https://")) {
     return cleanPath;
   }
-  const serverBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
-  const baseUrl = serverBase.replace(/\/api$/, "");
-  return `${baseUrl}/${cleanPath.replace(/\\/g, "/")}`;
+  const serverBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+  const base = serverBase.replace(/\/$/, "");
+  const normalised = cleanPath.replace(/\\/g, "/").replace(/^\/+/, "");
+  if (normalised.startsWith("uploads/")) {
+    return `${base}/${normalised}`;
+  }
+  return `${base}/uploads/${normalised}`;
 }
 
 export const Route = createFileRoute("/store/$handle")({

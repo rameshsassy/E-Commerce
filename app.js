@@ -1,6 +1,8 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import fs from "fs";
+import path from "path";
 // import helmet from "helmet";
 // import rateLimit from "express-rate-limit";
 // import xss from "xss-clean";
@@ -219,6 +221,28 @@ app.get("/api/health", (_req, res) => {
 });
 
 app.get('/api/test', (_req, res) => res.send("This is hjklkjtest endpoint"))
+
+app.get("/api/uploads/*", (req, res) => {
+  let relativePath = req.params[0];
+  if (!relativePath) {
+    return res.status(400).json({ message: "File path is required" });
+  }
+
+  // If path starts with "uploads/", strip it to align with the actual folder hierarchy inside getUploadsRoot()
+  if (relativePath.startsWith("uploads/")) {
+    relativePath = relativePath.substring("uploads/".length);
+  }
+
+  // Prevent directory traversal attacks
+  const safePath = path.normalize(relativePath).replace(/^(\.\.(\/|\\|$))+/, "");
+  const absolutePath = path.join(getUploadsRoot(), safePath);
+
+  if (fs.existsSync(absolutePath)) {
+    return res.sendFile(absolutePath);
+  } else {
+    return res.status(404).json({ message: "File not found" });
+  }
+});
 
 app.use("/api/auth", authRoutes);
 app.use("/api/seller", sellerRoutes);

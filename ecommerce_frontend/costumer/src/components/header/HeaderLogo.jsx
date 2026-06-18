@@ -1,11 +1,7 @@
 import { Link } from "@tanstack/react-router";
+import { getImageUrl } from "@/lib/utils";
 
 export function HeaderLogo({ logo }) {
-  const getImageUrl = (src) => {
-    if (!src) return "";
-    if (src.startsWith("http://") || src.startsWith("https://")) return src;
-    return src.startsWith("/") ? src : `/${src}`;
-  };
 
   const showLogoImage = logo?.enabled && logo?.url;
 

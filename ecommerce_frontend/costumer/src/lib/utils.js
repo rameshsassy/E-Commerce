@@ -28,19 +28,22 @@ export function getImageUrl(imagePath) {
     return clean;
   }
 
-  // Derive backend root from the API base URL env var (strip the "/api" suffix).
-  // import.meta.env is always defined in Vite-based builds; safe to access directly.
+  // Derive backend API base URL from the env var.
   let apiBase = "http://localhost:5000/api";
   try {
     apiBase = import.meta.env.VITE_API_BASE_URL || apiBase;
   } catch {
     // SSR fallback — import.meta not available in all environments
   }
-  const backendRoot = apiBase.replace(/\/api\/?$/, "");
 
   // Normalise path separators (Windows backslash → forward slash) and strip leading slashes
   const normalised = clean.replace(/\\/g, "/").replace(/^\/+/, "");
 
-  return `${backendRoot}/${normalised}`;
+  const base = apiBase.replace(/\/$/, "");
+
+  if (normalised.startsWith("uploads/")) {
+    return `${base}/${normalised}`;
+  }
+  return `${base}/uploads/${normalised}`;
 }
 

@@ -1,16 +1,10 @@
 import React from 'react';
 import { Link } from '@tanstack/react-router';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { cn, getImageUrl } from '@/lib/utils';
 
 export function HeroBanner({ config }) {
   if (!config || !config.enabled) return null;
-
-  const getImageUrl = (src) => {
-    if (!src) return '';
-    if (src.startsWith('http://') || src.startsWith('https://')) return src;
-    return src.startsWith('/') ? src : `/${src}`;
-  };
 
   const hasImage = !!config.image;
   const imageSrc = getImageUrl(config.image);
