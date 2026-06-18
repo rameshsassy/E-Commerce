@@ -87,6 +87,9 @@ export default function SellerReferAndEarn() {
   }, []);
 
   const handleUpgradePlan = (plan) => {
+    alert("Pro and Premium versions are coming soon.");
+    return;
+
     setSelectedUpgradePlan(plan);
     setShowUpgradeModal(true);
   };

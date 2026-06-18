@@ -130,6 +130,9 @@ Unlock your seller superpowers and grow your B2B business.
       return;
     }
 
+    alert("Pro and Premium versions are coming soon.");
+    return;
+
     const currentPlan = statsData?.subscriptionPlan || 'free';
     if (currentPlan === 'premium' && planCode === 'pro') {
       triggerToast('You are already on the Premium plan. You cannot downgrade to Pro.', 'error');

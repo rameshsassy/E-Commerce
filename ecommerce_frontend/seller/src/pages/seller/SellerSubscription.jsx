@@ -59,6 +59,9 @@ const SellerSubscription = () => {
   };
 
   const handleUpgrade = async (planCode) => {
+    alert("Pro and Premium versions are coming soon.");
+    return;
+
     const voucherInfo = planCode === 'pro' ? proVoucherInfo : premiumVoucherInfo;
     const voucherCode = voucherInfo?.voucherCode || null;
 
