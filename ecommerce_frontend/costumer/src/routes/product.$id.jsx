@@ -302,7 +302,10 @@ function ProductDetailRoute() {
   const hasDiscount = p.compareAtPrice && p.compareAtPrice > p.price;
   const sellerName = typeof p.sellerId === "object" ? p.sellerId.businessName || p.sellerId.firstName : "";
   const catName = p.category || "";
-  const outOfStock = p.stock <= 0 && !p.continueSellingWhenOutOfStock;
+  const outOfStock = p.inventoryTracked !== false && p.stock <= 0 && !p.continueSellingWhenOutOfStock;
+  const maxLimit = (p.inventoryTracked === false || p.continueSellingWhenOutOfStock)
+    ? (p.maxOrderQuantity || 99)
+    : Math.min(p.stock || 99, p.maxOrderQuantity || 99);
 
   // Build variants
   const colorVariants = p.variants?.filter((v) => v.type === "color") || [];
@@ -564,8 +567,8 @@ function ProductDetailRoute() {
                 </button>
                 <div className="w-11 text-center font-bold text-slate-800 text-sm">{qty}</div>
                 <button
-                  onClick={() => setQty((q) => Math.min(p.stock || 99, q + 1))}
-                  disabled={outOfStock || qty >= (p.stock || 99)}
+                  onClick={() => setQty((q) => Math.min(maxLimit, q + 1))}
+                  disabled={outOfStock || qty >= maxLimit}
                   className="w-10 h-11 border-none bg-slate-50 flex items-center justify-center font-bold text-slate-600 cursor-pointer disabled:opacity-50"
                 >
                   +

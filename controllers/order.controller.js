@@ -41,8 +41,10 @@ const recalculateAndValidateOrder = async (user, addressId, couponCode, voucherC
       throw new Error("Product not found");
     }
     const qty = Number(buyNowInfo.quantity) || 1;
-    if (product.stock < qty) {
-      throw new Error(`Only ${product.stock} units available in stock.`);
+    if (product.inventoryTracked !== false && !product.continueSellingWhenOutOfStock) {
+      if (product.stock < qty) {
+        throw new Error(`Only ${product.stock} units available in stock.`);
+      }
     }
 
     const plan = product.sellerId?.subscriptionPlan || "free";
@@ -268,9 +270,22 @@ export const createOrder = async (req, res) => {
     // Inventory Management: Reduce stock & Group items by seller for Shipments
     const sellerItemsMap = {};
     for (const item of createdOrder.items) {
-      await Product.findByIdAndUpdate(item.product, {
-        $inc: { stock: -item.quantity }
-      });
+      const cartItem = cartItems.find(ci => ci.product && ci.product._id.toString() === item.product.toString());
+      const productObj = cartItem?.product;
+      if (productObj && productObj.inventoryTracked !== false) {
+        const decrementQty = productObj.continueSellingWhenOutOfStock
+          ? Math.min(productObj.stock, item.quantity)
+          : item.quantity;
+        if (decrementQty > 0) {
+          await Product.findByIdAndUpdate(item.product, {
+            $inc: { stock: -decrementQty }
+          });
+        }
+      } else if (!productObj) {
+        await Product.findByIdAndUpdate(item.product, {
+          $inc: { stock: -item.quantity }
+        });
+      }
       
       const sellerId = item.seller.toString();
       if (!sellerItemsMap[sellerId]) {
@@ -475,9 +490,22 @@ export const createRazorpayOrder = async (req, res) => {
       // Perform shipments & stock reductions
       const sellerItemsMap = {};
       for (const item of createdOrder.items) {
-        await Product.findByIdAndUpdate(item.product, {
-          $inc: { stock: -item.quantity }
-        });
+        const cartItem = cartItems.find(ci => ci.product && ci.product._id.toString() === item.product.toString());
+        const productObj = cartItem?.product;
+        if (productObj && productObj.inventoryTracked !== false) {
+          const decrementQty = productObj.continueSellingWhenOutOfStock
+            ? Math.min(productObj.stock, item.quantity)
+            : item.quantity;
+          if (decrementQty > 0) {
+            await Product.findByIdAndUpdate(item.product, {
+              $inc: { stock: -decrementQty }
+            });
+          }
+        } else if (!productObj) {
+          await Product.findByIdAndUpdate(item.product, {
+            $inc: { stock: -item.quantity }
+          });
+        }
         
         const sellerId = item.seller.toString();
         if (!sellerItemsMap[sellerId]) {
@@ -643,10 +671,21 @@ export const verifyRazorpayPayment = async (req, res) => {
         const sellerItemsMap = {};
         
         for (const item of order.items) {
-          // Atomic stock reduction
-          await Product.findByIdAndUpdate(item.product, {
-            $inc: { stock: -item.quantity }
-          });
+          const productObj = await Product.findById(item.product);
+          if (productObj && productObj.inventoryTracked !== false) {
+            const decrementQty = productObj.continueSellingWhenOutOfStock
+              ? Math.min(productObj.stock, item.quantity)
+              : item.quantity;
+            if (decrementQty > 0) {
+              await Product.findByIdAndUpdate(item.product, {
+                $inc: { stock: -decrementQty }
+              });
+            }
+          } else if (!productObj) {
+            await Product.findByIdAndUpdate(item.product, {
+              $inc: { stock: -item.quantity }
+            });
+          }
           
           const sellerId = item.seller.toString();
           if (!sellerItemsMap[sellerId]) {
@@ -746,8 +785,10 @@ export const verifyBuyNow = async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
     const qty = Number(quantity) || 1;
-    if (product.stock < qty) {
-      return res.status(400).json({ message: `Only ${product.stock} units available in stock.` });
+    if (product.inventoryTracked !== false && !product.continueSellingWhenOutOfStock) {
+      if (product.stock < qty) {
+        return res.status(400).json({ message: `Only ${product.stock} units available in stock.` });
+      }
     }
     
     // Normalise purchase type

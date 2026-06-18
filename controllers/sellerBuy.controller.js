@@ -81,11 +81,13 @@ export const placeSellerOrder = async (req, res) => {
     }
 
     // 2. Validate inventory
-    if (product.stock < quantity) {
-      return res.status(400).json({
-        success: false,
-        message: `Insufficient stock. Only ${product.stock} units available.`
-      });
+    if (product.inventoryTracked !== false && !product.continueSellingWhenOutOfStock) {
+      if (product.stock < quantity) {
+        return res.status(400).json({
+          success: false,
+          message: `Insufficient stock. Only ${product.stock} units available.`
+        });
+      }
     }
 
     // 3. Enforce purchase rules
@@ -156,8 +158,15 @@ export const placeSellerOrder = async (req, res) => {
     const savedOrder = await order.save();
 
     // 5. Update Stock
-    product.stock -= quantity;
-    await product.save();
+    if (product.inventoryTracked !== false) {
+      const decrementQty = product.continueSellingWhenOutOfStock
+        ? Math.min(product.stock, quantity)
+        : quantity;
+      if (decrementQty > 0) {
+        product.stock -= decrementQty;
+        await product.save();
+      }
+    }
 
     // 6. Create Shipment
     const placedAt = savedOrder.createdAt || new Date();

@@ -37,10 +37,12 @@ export const addToCart = async (req, res) => {
     const reqQuantity = quantity || 1;
     
     // Check product stock
-    if (product.stock < reqQuantity) {
-      return res.status(400).json({
-        message: `Only ${product.stock} units available in stock.`,
-      });
+    if (product.inventoryTracked !== false && !product.continueSellingWhenOutOfStock) {
+      if (product.stock < reqQuantity) {
+        return res.status(400).json({
+          message: `Only ${product.stock} units available in stock.`,
+        });
+      }
     }
 
     const seller = product.sellerId;
