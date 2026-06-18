@@ -101,10 +101,16 @@ export function parseLocations(locations, stockFallback) {
   if (parsedLocations.length > 0) {
     parsedLocations = parsedLocations
       .filter((loc) => loc.address && loc.address.trim() !== "")
-      .map((loc) => ({
-        address: loc.address,
-        stock: Number(loc.stock) || 0,
-      }));
+      .map((loc) => {
+        let locStock = Number(loc.stock) || 0;
+        if (parsedLocations.length === 1 && stockFallback !== undefined && stockFallback !== null) {
+          locStock = Number(stockFallback);
+        }
+        return {
+          address: loc.address,
+          stock: locStock,
+        };
+      });
     const totalStock = parsedLocations.reduce((sum, loc) => sum + loc.stock, 0);
     return { locations: parsedLocations, stock: totalStock };
   }

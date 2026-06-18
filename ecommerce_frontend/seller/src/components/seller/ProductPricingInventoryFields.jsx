@@ -401,6 +401,29 @@ export default function ProductPricingInventoryFields({
             value={productData.sku}
             onChange={(e) => setProductData({ ...productData, sku: e.target.value })}
           />
+
+          <label className="block text-[16px] font-semibold text-[#202223] mb-2 mt-4">
+            Stock Quantity
+          </label>
+          <input
+            type="number"
+            min="0"
+            className="w-full border border-[#8C9196] rounded-md px-3 py-2 text-[14px] text-[#202223] outline-none focus:ring-2 focus:ring-[#005bd3] focus:border-[#005bd3]"
+            placeholder="e.g. 100"
+            value={productData.stock}
+            onChange={(e) => {
+              const val = Number(e.target.value) || 0;
+              const locs = productData.locations && productData.locations.length > 0
+                ? productData.locations.map((loc, idx) => idx === 0 ? { ...loc, stock: val } : loc)
+                : [{ address: 'Main Shop Location', stock: val }];
+              setProductData({
+                ...productData,
+                stock: val,
+                locations: locs
+              });
+            }}
+          />
+
           <div className="flex items-center gap-2 mt-3">
             <input
               type="checkbox"

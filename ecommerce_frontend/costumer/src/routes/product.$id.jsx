@@ -302,7 +302,7 @@ function ProductDetailRoute() {
   const hasDiscount = p.compareAtPrice && p.compareAtPrice > p.price;
   const sellerName = typeof p.sellerId === "object" ? p.sellerId.businessName || p.sellerId.firstName : "";
   const catName = p.category || "";
-  const outOfStock = p.stock <= 0;
+  const outOfStock = p.stock <= 0 && !p.continueSellingWhenOutOfStock;
 
   // Build variants
   const colorVariants = p.variants?.filter((v) => v.type === "color") || [];
@@ -463,7 +463,7 @@ function ProductDetailRoute() {
             </div>
 
             {/* SKU urgency */}
-            {!outOfStock && p.stock < 10 && (
+            {!outOfStock && p.stock > 0 && p.stock < 10 && (
               <div className="inline-flex items-center gap-1.5 bg-orange-50 border border-orange-200 rounded-lg px-3 py-1.5 text-xs font-bold text-orange-700 mb-5">
                 🔥 Hurry! Only {p.stock} left in stock
               </div>
