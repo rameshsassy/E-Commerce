@@ -22,6 +22,21 @@ const labelStyle = {
 const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i;
 const GST_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i;
 
+const DEFAULT_ENTITY_TYPES = [
+  { code: 'private_limited', label: 'Private Limited' },
+  { code: 'public_limited', label: 'Public Limited' },
+  { code: 'sole_proprietor', label: 'Sole Proprietor' },
+  { code: 'partnership_firm', label: 'Partnership Firm' },
+  { code: 'llp', label: 'LLP (Limited Liability Partnership)' },
+  { code: 'opc', label: 'OPC (One Person Company)' },
+  { code: 'self_help_group', label: 'Self Help Group' },
+  { code: 'section_8', label: 'Section 8' },
+  { code: 'society', label: 'Society' },
+  { code: 'trust', label: 'Trust' },
+  { code: 'individual', label: 'Individual' },
+  { code: 'others', label: 'Others (Please mention)', requiresOtherText: true },
+];
+
 const SellerKYC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -29,7 +44,7 @@ const SellerKYC = () => {
   const [submitted, setSubmitted] = useState(false);
   const [compressing, setCompressing] = useState(false);
 
-  const [entityTypes, setEntityTypes] = useState([]);
+  const [entityTypes, setEntityTypes] = useState(DEFAULT_ENTITY_TYPES);
   const [entityTypesLoading, setEntityTypesLoading] = useState(true);
   const [existingLogoPath, setExistingLogoPath] = useState('');
 
@@ -79,21 +94,24 @@ const SellerKYC = () => {
     const load = async () => {
       try {
         const [typesRes, profileRes] = await Promise.all([
-          api.get('/seller/kyc/entity-types'),
+          api.get('/seller/kyc/entity-types').catch(() => null),
           api.get('/seller/profile').catch(() => null),
         ]);
-        const types = typesRes.data.entityTypes || [];
-        setEntityTypes(types);
-        const validCodes = new Set(types.map((t) => t.code));
+        const types = typesRes?.data?.entityTypes || [];
+        if (types.length > 0) {
+          setEntityTypes(types);
+        }
+        const currentTypes = types.length > 0 ? types : DEFAULT_ENTITY_TYPES;
+        const validCodes = new Set(currentTypes.map((t) => t.code));
 
         const profile = profileRes?.data;
         if (profile) {
           let entityType = profile.entityType || '';
           if (entityType && !validCodes.has(entityType)) {
-            entityType = types[0]?.code ?? '';
+            entityType = currentTypes[0]?.code ?? '';
           }
           if (!entityType) {
-            entityType = types[0]?.code ?? '';
+            entityType = currentTypes[0]?.code ?? '';
           }
 
           const dateStr = profile.dateOfRegistration
@@ -136,10 +154,10 @@ const SellerKYC = () => {
           if (profile.kycStatus === 'pending' || profile.status === 'kyc_submitted') {
             setSubmitted(true);
           }
-        } else if (types.length) {
+        } else if (currentTypes.length) {
           setForm((prev) => ({
             ...prev,
-            entityType: types[0].code,
+            entityType: currentTypes[0].code,
           }));
         }
       } catch {
