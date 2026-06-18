@@ -331,7 +331,7 @@ function CheckoutPage() {
 
           <div className="space-y-2">
             <Label className="flex items-center gap-1 text-xs">
-              <Tag className="h-3 w-3" /> Voucher code
+              <Tag className="h-3 w-3" /> Voucher code (optional)
             </Label>
             {voucherInfo ? (
               <div className="flex items-center justify-between rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-2">
@@ -353,7 +353,7 @@ function CheckoutPage() {
             ) : (
               <div className="flex gap-2">
                 <Input
-                  placeholder="ENTER VOUCHER"
+                  placeholder="ENTER VOUCHER (OPTIONAL)"
                   value={voucher}
                   onChange={(e) => setVoucher(e.target.value.toUpperCase())}
                 />

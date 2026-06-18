@@ -136,7 +136,7 @@ const recalculateAndValidateOrder = async (user, addressId, couponCode, voucherC
   // Apply Voucher
   let voucherDiscount = 0;
   let voucherDetails = null;
-  if (voucherCode) {
+  if (voucherCode && typeof voucherCode === "string" && voucherCode.trim() !== "" && voucherCode !== "null" && voucherCode !== "undefined") {
     voucherDetails = await validateAndCalculateCartVoucher(voucherCode, cartItems, user._id);
     voucherDiscount = voucherDetails.discountAmount;
   }
@@ -144,8 +144,8 @@ const recalculateAndValidateOrder = async (user, addressId, couponCode, voucherC
   const shippingAddress = {
     fullName: addr.fullName,
     phone: addr.phone,
-    addressLine1: addr.addressLine1 ?? addr.addressLine,
-    addressLine2: addr.addressLine2,
+    addressLine1: addr.addressLine1 ?? addr.line1 ?? addr.addressLine,
+    addressLine2: addr.addressLine2 ?? addr.line2,
     city: addr.city,
     state: addr.state,
     pinCode: destinationPincode,

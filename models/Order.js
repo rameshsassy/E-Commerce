@@ -139,6 +139,30 @@ const orderSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+orderSchema.set("toJSON", {
+  virtuals: true,
+  transform: (doc, ret) => {
+    if (ret.shippingAddress) {
+      ret.shippingAddress.line1 = ret.shippingAddress.addressLine1;
+      ret.shippingAddress.line2 = ret.shippingAddress.addressLine2;
+      ret.shippingAddress.pincode = ret.shippingAddress.pinCode;
+    }
+    return ret;
+  }
+});
+
+orderSchema.set("toObject", {
+  virtuals: true,
+  transform: (doc, ret) => {
+    if (ret.shippingAddress) {
+      ret.shippingAddress.line1 = ret.shippingAddress.addressLine1;
+      ret.shippingAddress.line2 = ret.shippingAddress.addressLine2;
+      ret.shippingAddress.pincode = ret.shippingAddress.pinCode;
+    }
+    return ret;
+  }
+});
+
 orderSchema.index({ "items.seller": 1, paymentStatus: 1, createdAt: -1 });
 orderSchema.index({ paymentStatus: 1, createdAt: -1 });
 

@@ -5,7 +5,7 @@ import Address from "../models/Address.js";
 // @access  Private
 export const addAddress = async (req, res) => {
   try {
-    const { fullName, phone, addressLine1, addressLine2, city, state, pinCode, landmark, isDefault } = req.body;
+    const { fullName, phone, addressLine1, line1, addressLine2, line2, city, state, pinCode, pincode, landmark, isDefault } = req.body;
 
     if (isDefault) {
       await Address.updateMany({ user: req.user._id }, { isDefault: false });
@@ -15,11 +15,11 @@ export const addAddress = async (req, res) => {
       user: req.user._id,
       fullName,
       phone,
-      addressLine1,
-      addressLine2,
+      addressLine1: addressLine1 || line1,
+      addressLine2: addressLine2 || line2,
       city,
       state,
-      pinCode,
+      pinCode: pinCode || pincode,
       landmark,
       isDefault
     });
@@ -48,7 +48,7 @@ export const getAddresses = async (req, res) => {
 // @access  Private
 export const updateAddress = async (req, res) => {
   try {
-    const { fullName, phone, addressLine1, addressLine2, city, state, pinCode, landmark, isDefault } = req.body;
+    const { fullName, phone, addressLine1, line1, addressLine2, line2, city, state, pinCode, pincode, landmark, isDefault } = req.body;
 
     const address = await Address.findById(req.params.id);
 
@@ -63,11 +63,11 @@ export const updateAddress = async (req, res) => {
 
       address.fullName = fullName || address.fullName;
       address.phone = phone || address.phone;
-      address.addressLine1 = addressLine1 || address.addressLine1;
-      address.addressLine2 = addressLine2 || address.addressLine2;
+      address.addressLine1 = addressLine1 || line1 || address.addressLine1;
+      address.addressLine2 = addressLine2 || line2 || address.addressLine2;
       address.city = city || address.city;
       address.state = state || address.state;
-      address.pinCode = pinCode || address.pinCode;
+      address.pinCode = pinCode || pincode || address.pinCode;
       address.landmark = landmark || address.landmark;
       address.isDefault = isDefault !== undefined ? isDefault : address.isDefault;
 

@@ -45,4 +45,24 @@ const addressSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+addressSchema.set("toJSON", {
+  virtuals: true,
+  transform: (doc, ret) => {
+    ret.line1 = ret.addressLine1;
+    ret.line2 = ret.addressLine2;
+    ret.pincode = ret.pinCode;
+    return ret;
+  }
+});
+
+addressSchema.set("toObject", {
+  virtuals: true,
+  transform: (doc, ret) => {
+    ret.line1 = ret.addressLine1;
+    ret.line2 = ret.addressLine2;
+    ret.pincode = ret.pinCode;
+    return ret;
+  }
+});
+
 export default mongoose.model("Address", addressSchema);
