@@ -27,12 +27,17 @@ export function getImageUrl(path) {
   if (cleanPath.startsWith('http://') || cleanPath.startsWith('https://')) {
     return cleanPath;
   }
-  const apiBase = resolveApiUrl();
   const normalised = cleanPath.replace(/\\/g, '/').replace(/^\/+/, '');
-  if (normalised.startsWith('uploads/')) {
-    return `${apiBase}/${normalised}`;
+  const uploadPrefixes = ['uploads/', 'products/', 'kyc/', 'stores/', 'homepage/', 'support/'];
+  const isUpload = uploadPrefixes.some((prefix) => normalised.startsWith(prefix));
+
+  if (isUpload) {
+    const apiBase = resolveApiUrl();
+    const cleanNormalised = normalised.startsWith('uploads/') ? normalised : `uploads/${normalised}`;
+    return `${apiBase}/${cleanNormalised}`;
   }
-  return `${apiBase}/uploads/${normalised}`;
+
+  return cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
 }
 
 /** Custom headers that need CORS allow-list on cross-origin APIs (e.g. Render). */

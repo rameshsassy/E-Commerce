@@ -13,12 +13,17 @@ export function getImageUrl(path) {
   if (cleanPath.startsWith("http://") || cleanPath.startsWith("https://")) {
     return cleanPath;
   }
-  const base = API_BASE_URL.replace(/\/$/, "");
   const normalised = cleanPath.replace(/\\/g, "/").replace(/^\/+/, "");
-  if (normalised.startsWith("uploads/")) {
-    return `${base}/${normalised}`;
+  const uploadPrefixes = ["uploads/", "products/", "kyc/", "stores/", "homepage/", "support/"];
+  const isUpload = uploadPrefixes.some((prefix) => normalised.startsWith(prefix));
+
+  if (isUpload) {
+    const base = API_BASE_URL.replace(/\/$/, "");
+    const cleanNormalised = normalised.startsWith("uploads/") ? normalised : `uploads/${normalised}`;
+    return `${base}/${cleanNormalised}`;
   }
-  return `${base}/uploads/${normalised}`;
+
+  return cleanPath.startsWith("/") ? cleanPath : `/${cleanPath}`;
 }
 
 export const Route = createFileRoute("/store/$handle")({

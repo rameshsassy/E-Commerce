@@ -32,11 +32,16 @@ export function getImageUrl(imagePath) {
   // Normalise path separators (Windows backslash → forward slash) and strip leading slashes
   const normalised = clean.replace(/\\/g, "/").replace(/^\/+/, "");
 
-  const base = API_BASE_URL.replace(/\/$/, "");
+  const uploadPrefixes = ["uploads/", "products/", "kyc/", "stores/", "homepage/", "support/"];
+  const isUpload = uploadPrefixes.some((prefix) => normalised.startsWith(prefix));
 
-  if (normalised.startsWith("uploads/")) {
-    return `${base}/${normalised}`;
+  if (isUpload) {
+    const base = API_BASE_URL.replace(/\/$/, "");
+    const cleanNormalised = normalised.startsWith("uploads/") ? normalised : `uploads/${normalised}`;
+    return `${base}/${cleanNormalised}`;
   }
-  return `${base}/uploads/${normalised}`;
+
+  // Fallback to local static asset
+  return clean.startsWith("/") ? clean : `/${clean}`;
 }
 

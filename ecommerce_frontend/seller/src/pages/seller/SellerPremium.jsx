@@ -241,6 +241,7 @@ Unlock your seller superpowers and grow your B2B business.
 
   const activePlanName = statsData?.subscriptionPlan || 'free';
   const isCurrentlyPremium = statsData?.sellerType === 'premium' && statsData?.subscriptionActive;
+  const currentPlan = isCurrentlyPremium ? activePlanName : 'free';
   const daysLeft = statsData?.subscriptionValidUntil ? calculateDaysLeft(statsData.subscriptionValidUntil) : 0;
   const showExpiryWarning = isCurrentlyPremium && daysLeft > 0 && daysLeft <= 30;
 
@@ -497,9 +498,16 @@ Unlock your seller superpowers and grow your B2B business.
                 </div>
                 <button
                   onClick={() => handleSubscribeClick('pro')}
-                  className="mt-3 bg-white text-[#f07c22] font-black text-xs px-4 py-1.5 rounded-full hover:bg-orange-50 active:scale-95 transition-all shadow-sm"
+                  disabled={currentPlan === 'pro' || currentPlan === 'premium'}
+                  className={`mt-3 font-black text-xs px-4 py-1.5 rounded-full transition-all shadow-sm ${
+                    currentPlan === 'pro'
+                      ? 'bg-orange-100 text-orange-400 cursor-not-allowed shadow-inner'
+                      : currentPlan === 'premium'
+                      ? 'bg-orange-100/50 text-orange-300 cursor-not-allowed'
+                      : 'bg-white text-[#f07c22] hover:bg-orange-50 active:scale-95'
+                  }`}
                 >
-                  Upgrade
+                  {currentPlan === 'pro' ? 'Current' : 'Upgrade'}
                 </button>
               </div>
 
@@ -512,9 +520,14 @@ Unlock your seller superpowers and grow your B2B business.
                 </div>
                 <button
                   onClick={() => handleSubscribeClick('premium')}
-                  className="mt-3 bg-white text-[#f07c22] font-black text-xs px-4 py-1.5 rounded-full hover:bg-orange-50 active:scale-95 transition-all shadow-sm"
+                  disabled={currentPlan === 'premium'}
+                  className={`mt-3 font-black text-xs px-4 py-1.5 rounded-full transition-all shadow-sm ${
+                    currentPlan === 'premium'
+                      ? 'bg-orange-100 text-orange-400 cursor-not-allowed shadow-inner'
+                      : 'bg-white text-[#f07c22] hover:bg-orange-50 active:scale-95'
+                  }`}
                 >
-                  Upgrade
+                  {currentPlan === 'premium' ? 'Current' : 'Upgrade'}
                 </button>
               </div>
 
@@ -669,9 +682,13 @@ Unlock your seller superpowers and grow your B2B business.
                 <button
                   type="button"
                   disabled
-                  className="w-full bg-slate-200 text-slate-500 font-extrabold py-3 px-2 sm:px-4 rounded-xl text-xs sm:text-sm border border-slate-300 cursor-not-allowed uppercase"
+                  className={`w-full font-extrabold py-3 px-2 sm:px-4 rounded-xl text-xs sm:text-sm uppercase transition-all ${
+                    currentPlan === 'free'
+                      ? 'bg-white text-slate-500 border border-slate-300 cursor-not-allowed shadow-sm'
+                      : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                  }`}
                 >
-                  {activePlanName === 'free' ? 'Current Plan' : 'Free Plan'}
+                  {currentPlan === 'free' ? 'Current Plan' : 'Free Plan'}
                 </button>
               </div>
 
@@ -679,16 +696,16 @@ Unlock your seller superpowers and grow your B2B business.
               <div>
                 <button
                   onClick={() => handleSubscribeClick('pro')}
-                  disabled={activePlanName === 'premium'}
-                  className={`w-full font-extrabold py-3 px-2 sm:px-4 rounded-xl text-xs sm:text-sm uppercase shadow-sm transition-all active:scale-95 ${
-                    activePlanName === 'pro' && isCurrentlyPremium
-                      ? 'bg-orange-50 border border-orange-200 text-[#f07c22]'
-                      : activePlanName === 'premium'
+                  disabled={currentPlan === 'pro' || currentPlan === 'premium'}
+                  className={`w-full font-extrabold py-3 px-2 sm:px-4 rounded-xl text-xs sm:text-sm uppercase shadow-sm transition-all ${
+                    currentPlan === 'pro'
+                      ? 'bg-white text-slate-500 border border-slate-300 cursor-default'
+                      : currentPlan === 'premium'
                       ? 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'
-                      : 'bg-[#f07c22] text-white hover:bg-[#d86815] border border-[#f07c22]'
+                      : 'bg-[#f07c22] text-white hover:bg-[#d86815] border border-[#f07c22] active:scale-95'
                   }`}
                 >
-                  {activePlanName === 'pro' && isCurrentlyPremium ? 'Active Plan' : 'Subscribe Now'}
+                  {currentPlan === 'pro' ? 'Current Plan' : 'Subscribe Now'}
                 </button>
               </div>
 
@@ -696,13 +713,14 @@ Unlock your seller superpowers and grow your B2B business.
               <div>
                 <button
                   onClick={() => handleSubscribeClick('premium')}
-                  className={`w-full font-extrabold py-3 px-2 sm:px-4 rounded-xl text-xs sm:text-sm uppercase shadow-sm transition-all active:scale-95 ${
-                    activePlanName === 'premium' && isCurrentlyPremium
-                      ? 'bg-orange-50 border border-orange-200 text-[#f07c22]'
-                      : 'bg-[#f07c22] text-white hover:bg-[#d86815] border border-[#f07c22]'
+                  disabled={currentPlan === 'premium'}
+                  className={`w-full font-extrabold py-3 px-2 sm:px-4 rounded-xl text-xs sm:text-sm uppercase shadow-sm transition-all ${
+                    currentPlan === 'premium'
+                      ? 'bg-white text-slate-500 border border-slate-300 cursor-default'
+                      : 'bg-[#f07c22] text-white hover:bg-[#d86815] border border-[#f07c22] active:scale-95'
                   }`}
                 >
-                  {activePlanName === 'premium' && isCurrentlyPremium ? 'Active Plan' : 'Subscribe Now'}
+                  {currentPlan === 'premium' ? 'Current Plan' : 'Subscribe Now'}
                 </button>
               </div>
 
