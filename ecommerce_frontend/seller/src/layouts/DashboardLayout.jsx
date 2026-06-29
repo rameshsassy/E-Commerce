@@ -105,6 +105,41 @@ const DashboardLayout = ({ variant }) => {
   const isSeller = variant === 'seller';
   const isAdmin = variant === 'admin';
 
+  const adminToken = localStorage.getItem('adminToken');
+
+  const handleReturnToAdmin = () => {
+    const token = localStorage.getItem('adminToken');
+    localStorage.removeItem('token');
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('user');
+
+    const getAdminPortalUrl = () => {
+      const envUrl = import.meta.env.VITE_ADMIN_PORTAL_URL;
+      if (envUrl) return envUrl.replace(/\/$/, '');
+
+      const hostname = window.location.hostname;
+      const protocol = window.location.protocol;
+      
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return `${protocol}//${hostname}:5175`;
+      }
+      
+      if (hostname.includes('aashansh.org')) {
+        return `${protocol}//superadmin.aashansh.org`;
+      }
+      
+      if (hostname.endsWith('.vercel.app')) {
+        const newHost = hostname.replace('-seller', '-admin').replace('-customer', '-admin');
+        return `${protocol}//${newHost}`;
+      }
+
+      return `${protocol}//${hostname}:${window.location.port}`;
+    };
+
+    const adminPortalUrl = getAdminPortalUrl();
+    window.location.href = `${adminPortalUrl}/login?token=${token}`;
+  };
+
   if (!user) {
     return <Navigate to="/login" replace />;
   }
@@ -154,7 +189,26 @@ const DashboardLayout = ({ variant }) => {
   const panelTitle = isAdmin ? 'Admin Panel' : 'Seller Hub';
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row" style={{ backgroundColor: 'var(--color-bg)' }}>
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--color-bg)' }}>
+      {isSeller && adminToken && (
+        <div className="bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 py-3 px-6 flex flex-wrap items-center justify-between gap-3 text-sm font-semibold shadow-lg z-[9999] relative border-b border-amber-400">
+          <div className="flex items-center gap-3">
+            <span className="bg-slate-950 text-amber-400 px-2.5 py-1 rounded-md text-xs uppercase font-extrabold tracking-wider shadow-inner">
+              Impersonating
+            </span>
+            <span className="text-slate-950">
+              You are managing <strong>{user.businessName || `${user.firstName} ${user.lastName}`}</strong> (Seller ID: <span className="font-mono font-bold">{user.sellerId}</span>) as Super Admin.
+            </span>
+          </div>
+          <button
+            onClick={handleReturnToAdmin}
+            className="bg-slate-950 text-white hover:bg-slate-900 px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 transform hover:scale-[1.02] active:scale-95 shadow-md cursor-pointer flex items-center gap-1.5"
+          >
+            Return to Super Admin
+          </button>
+        </div>
+      )}
+      <div className="flex-1 flex flex-col lg:flex-row min-h-0">
       <header className="lg:hidden sticky top-0 z-30 glass-panel mx-2 mt-2 mb-0 px-4 py-3 flex items-center justify-between gap-3 safe-area-top">
         <button
           type="button"
@@ -444,6 +498,7 @@ const DashboardLayout = ({ variant }) => {
         </div>
         {isSeller && <Footer />}
       </main>
+      </div>
     </div>
   );
 };

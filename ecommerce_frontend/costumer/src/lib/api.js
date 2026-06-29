@@ -68,12 +68,14 @@ function buildUrl(path, params) {
 
 export async function apiFetch(path, opts = {}) {
   const { json, params, isForm, headers, ...rest } = opts;
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
   const init = {
     credentials: "include",
     ...rest,
     headers: {
       ...(json && !isForm ? { "Content-Type": "application/json" } : {}),
       Accept: "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(headers || {}),
     },
     body: isForm ? json : json !== undefined ? JSON.stringify(json) : rest.body,

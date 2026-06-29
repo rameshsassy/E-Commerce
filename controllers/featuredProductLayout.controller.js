@@ -6,6 +6,7 @@ import Product from "../models/Product.js";
 /** GET /api/featured-products — Fetch active layouts for Customer Panel */
 export const getPublicFeaturedProducts = async (req, res) => {
   try {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     const layouts = await FeaturedProductLayout.find({ status: "active" })
       .sort({ displayOrder: 1, createdAt: -1 })
       .populate({

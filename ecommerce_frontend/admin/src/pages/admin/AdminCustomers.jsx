@@ -1,12 +1,53 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../utils/api';
-import { Search } from 'lucide-react';
+import { Search, Eye } from 'lucide-react';
 import ResponsiveTable from '../../components/common/ResponsiveTable';
 
 const AdminCustomers = () => {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+
+  const handleImpersonateCustomer = async (id, name) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to view and manage the dashboard for customer ${name || 'this customer'}?`
+    );
+    if (!confirmed) return;
+    try {
+      const { data } = await api.post(`/admin/customers/${id}/impersonate`);
+      const customerToken = data.token;
+      const adminToken = localStorage.getItem('token');
+
+      // Determine the customer portal URL
+      const getCustomerPortalUrl = () => {
+        const envUrl = import.meta.env.VITE_CUSTOMER_PORTAL_URL;
+        if (envUrl) return envUrl.replace(/\/$/, '');
+
+        const hostname = window.location.hostname;
+        const protocol = window.location.protocol;
+        
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+          return `${protocol}//${hostname}:5173`;
+        }
+        
+        if (hostname.includes('aashansh.org')) {
+          return `${protocol}//aashansh.org`;
+        }
+        
+        if (hostname.endsWith('.vercel.app')) {
+          const newHost = hostname.replace('-admin', '-customer').replace('-seller', '-customer');
+          return `${protocol}//${newHost}`;
+        }
+
+        return window.location.origin;
+      };
+
+      const customerPortalUrl = getCustomerPortalUrl();
+      window.location.href = `${customerPortalUrl}/auth?token=${customerToken}&adminToken=${adminToken}`;
+    } catch (err) {
+      alert(err.response?.data?.message || 'Impersonation failed');
+    }
+  };
 
   const fetchCustomers = async () => {
     try {
@@ -54,13 +95,14 @@ const AdminCustomers = () => {
                 <th className="p-4 font-medium">Name</th>
                 <th className="p-4 font-medium">Email</th>
                 <th className="p-4 font-medium">Status</th>
+                <th className="p-4 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan="4" className="p-8 text-center text-text-muted">Loading customers...</td></tr>
+                <tr><td colSpan="5" className="p-8 text-center text-text-muted">Loading customers...</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan="4" className="p-8 text-center text-text-muted">No customers found.</td></tr>
+                <tr><td colSpan="5" className="p-8 text-center text-text-muted">No customers found.</td></tr>
               ) : (
                 filtered.map(customer => (
                   <tr key={customer._id} className="border-b border-glass-border hover:bg-surface/30 transition-colors">
@@ -73,6 +115,11 @@ const AdminCustomers = () => {
                       ) : (
                         <span className="badge badge-warning capitalize">{customer.status}</span>
                       )}
+                    </td>
+                    <td className="p-4 flex justify-end gap-2">
+                      <button onClick={() => handleImpersonateCustomer(customer._id, customer.firstName)} className="btn bg-amber-500/20 text-amber-500 hover:bg-amber-500 hover:text-white p-2 rounded-md" title="Manage Customer Dashboard">
+                        <Eye size={18} />
+                      </button>
                     </td>
                   </tr>
                 ))

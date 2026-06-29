@@ -10,7 +10,7 @@ import { useEffect } from "react";
 import { Toaster } from "sonner";
 
 import appCss from "../styles.css?url";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { WishlistProvider } from "@/contexts/WishlistContext";
 import { Header } from "@/components/header/Header";
@@ -129,14 +129,75 @@ const defaultAnnouncementConfig = {
 };
 
 function RootLayout() {
-  const { data: settings } = useQuery({
+  const { user } = useAuth();
+  const adminToken = typeof window !== "undefined" ? localStorage.getItem("adminToken") : null;
+
+  const { data: settings, isLoading, isFetching } = useQuery({
     queryKey: ["homepageSettings"],
     queryFn: () => publicApi.getHomepageSettings(),
+    staleTime: 0,
+    gcTime: 0,
   });
+
+  const handleReturnToAdmin = () => {
+    if (typeof window !== "undefined") {
+      const adminToken = localStorage.getItem("adminToken");
+      localStorage.removeItem("token");
+      localStorage.removeItem("adminToken");
+
+      const getAdminPortalUrl = () => {
+        const envUrl = import.meta.env.VITE_ADMIN_PORTAL_URL;
+        if (envUrl) return envUrl.replace(/\/$/, "");
+
+        const hostname = window.location.hostname;
+        const protocol = window.location.protocol;
+        
+        if (hostname === "localhost" || hostname === "127.0.0.1") {
+          return `${protocol}//${hostname}:5175`;
+        }
+        
+        if (hostname.includes("aashansh.org")) {
+          return `${protocol}//superadmin.aashansh.org`;
+        }
+        
+        if (hostname.endsWith(".vercel.app")) {
+          const newHost = hostname.replace("-customer", "-admin").replace("-seller", "-admin");
+          return `${protocol}//${newHost}`;
+        }
+
+        return `${protocol}//${hostname}:${window.location.port}`;
+      };
+
+      const adminPortalUrl = getAdminPortalUrl();
+      window.location.href = `${adminPortalUrl}/login?token=${adminToken}`;
+    }
+  };
 
   return (
     <div className="flex min-h-screen flex-col">
-      <AnnouncementBar config={settings?.announcementBar || defaultAnnouncementConfig} />
+      {adminToken && user && (
+        <div className="bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 py-3 px-6 flex flex-wrap items-center justify-between gap-3 text-sm font-semibold shadow-lg z-[9999] relative border-b border-amber-400">
+          <div className="flex items-center gap-3">
+            <span className="bg-slate-950 text-amber-400 px-2.5 py-1 rounded-md text-xs uppercase font-extrabold tracking-wider shadow-inner">
+              Impersonating
+            </span>
+            <span className="text-slate-950">
+              You are managing <strong>{user.firstName} {user.lastName}</strong> (Customer ID: <span className="font-mono font-bold">{user.customerId}</span>) as Super Admin.
+            </span>
+          </div>
+          <button
+            onClick={handleReturnToAdmin}
+            className="bg-slate-950 text-white hover:bg-slate-900 px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 transform hover:scale-[1.02] active:scale-95 shadow-md cursor-pointer flex items-center gap-1.5"
+          >
+            Return to Super Admin
+          </button>
+        </div>
+      )}
+      {isLoading || isFetching ? (
+        <div className="h-9 w-full bg-muted animate-pulse" />
+      ) : (
+        <AnnouncementBar config={settings?.announcementBar || defaultAnnouncementConfig} />
+      )}
       <Header />
       <main className="flex-1">
         <Outlet />

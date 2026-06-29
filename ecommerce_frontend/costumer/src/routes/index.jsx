@@ -46,10 +46,14 @@ function Home() {
   const products = useQuery({
     queryKey: ["products", "featured"],
     queryFn: () => productApi.list({ limit: 8 }),
+    staleTime: 0,
+    gcTime: 0,
   });
   const settings = useQuery({
     queryKey: ["homepageSettings"],
     queryFn: () => publicApi.getHomepageSettings(),
+    staleTime: 0,
+    gcTime: 0,
   });
 
   const productList = Array.isArray(products.data)
@@ -62,7 +66,11 @@ function Home() {
   return (
     <>
       {/* Hero section loads instantly using settings configuration or fallback */}
-      <HeroBanner config={displayHeroConfig} />
+      {settings.isLoading || settings.isFetching ? (
+        <div className="relative w-full aspect-[2/1] sm:aspect-[3/1] lg:aspect-[4/1] bg-muted animate-pulse rounded-2xl md:rounded-[2rem] max-w-7xl mx-auto my-6" />
+      ) : (
+        <HeroBanner config={displayHeroConfig} />
+      )}
 
       {/* Featured Products */}
       <section className="container-page py-10">
@@ -74,7 +82,7 @@ function Home() {
             </Link>
           </Button>
         </div>
-        {products.isLoading ? (
+        {products.isLoading || products.isFetching ? (
           <SkeletonGrid />
         ) : (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
@@ -83,7 +91,7 @@ function Home() {
             ))}
           </div>
         )}
-        {!products.isLoading && productList.length === 0 && (
+        {!products.isLoading && !products.isFetching && productList.length === 0 && (
           <div className="rounded-2xl border border-dashed p-12 text-center text-sm text-muted-foreground">
             No products available yet. Check your backend at{" "}
             <code>

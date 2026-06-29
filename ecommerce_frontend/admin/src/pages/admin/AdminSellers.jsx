@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../utils/api';
-import { Check, X, Search, Mail } from 'lucide-react';
+import { Check, X, Search, Mail, Eye } from 'lucide-react';
 import ResponsiveTable from '../../components/common/ResponsiveTable';
 
 const AdminSellers = () => {
@@ -47,6 +47,47 @@ const AdminSellers = () => {
       alert(data.message || 'Weekly recap sent successfully');
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to send weekly recap');
+    }
+  };
+
+  const handleImpersonateSeller = async (id, name) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to view and manage the dashboard for ${name || 'this seller'}?`
+    );
+    if (!confirmed) return;
+    try {
+      const { data } = await api.post(`/admin/sellers/${id}/impersonate`);
+      const sellerToken = data.token;
+      const adminToken = localStorage.getItem('token');
+
+      // Determine the seller portal URL
+      const getSellerPortalUrl = () => {
+        const envUrl = import.meta.env.VITE_SELLER_PORTAL_URL;
+        if (envUrl) return envUrl.replace(/\/$/, '');
+
+        const hostname = window.location.hostname;
+        const protocol = window.location.protocol;
+        
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+          return `${protocol}//${hostname}:5174`;
+        }
+        
+        if (hostname.includes('aashansh.org')) {
+          return `${protocol}//seller.aashansh.org`;
+        }
+        
+        if (hostname.endsWith('.vercel.app')) {
+          const newHost = hostname.replace('-admin', '-seller').replace('-customer', '-seller');
+          return `${protocol}//${newHost}`;
+        }
+
+        return window.location.origin;
+      };
+
+      const sellerPortalUrl = getSellerPortalUrl();
+      window.location.href = `${sellerPortalUrl}/login?token=${sellerToken}&adminToken=${adminToken}`;
+    } catch (err) {
+      alert(err.response?.data?.message || 'Impersonation failed');
     }
   };
 
@@ -97,6 +138,9 @@ const AdminSellers = () => {
                       )}
                     </td>
                     <td className="p-4 flex justify-end gap-2">
+                      <button onClick={() => handleImpersonateSeller(seller._id, seller.firstName)} className="btn bg-amber-500/20 text-amber-500 hover:bg-amber-500 hover:text-white p-2 rounded-md" title="Manage Seller Dashboard">
+                        <Eye size={18} />
+                      </button>
                       {seller.status === 'approved' && (
                         <button onClick={() => handleSendWeeklyRecap(seller._id, seller.firstName)} className="btn bg-primary/20 text-primary hover:bg-primary hover:text-white p-2 rounded-md" title="Send Weekly Recap">
                           <Mail size={18} />

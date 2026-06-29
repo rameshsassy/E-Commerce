@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import api from '../../utils/api';
 import { Mail, Lock, LogIn } from 'lucide-react';
 import {
   getCustomerPortalOrigin,
@@ -18,7 +19,7 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { login } = useAuth();
+  const { login, setSession } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -29,6 +30,35 @@ const Login = () => {
   const [loginAs, setLoginAs] = useState(() =>
     isSellerPortal() ? 'seller' : 'customer'
   );
+
+  useEffect(() => {
+    const checkTokenSession = async () => {
+      const params = new URLSearchParams(location.search);
+      const token = params.get('token');
+      if (token) {
+        setError('');
+        setLoading(true);
+        try {
+          localStorage.setItem('token', token);
+          const res = await api.get('/user/profile');
+          const userData = res.data;
+          
+          if (userData.role !== 'admin' && userData.role !== 'admin_staff') {
+            throw new Error('Not authorized as admin');
+          }
+          
+          setSession(token, userData);
+          navigate('/admin/dashboard');
+        } catch (err) {
+          setError(err.message || 'Failed to initialize session');
+          localStorage.removeItem('token');
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    checkTokenSession();
+  }, [location.search, setSession, navigate]);
 
   useEffect(() => {
     const q = new URLSearchParams(location.search).get('portal');

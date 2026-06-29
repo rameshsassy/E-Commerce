@@ -10,12 +10,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 
 export function FeaturedProductsSection() {
-  const { data: layouts = [], isLoading } = useQuery({
+  const { data: layouts = [], isLoading, isFetching } = useQuery({
     queryKey: ["publicFeaturedProducts"],
     queryFn: () => featuredProductsApi.list(),
+    staleTime: 0,
+    gcTime: 0,
   });
 
-  if (isLoading) {
+  if (isLoading || isFetching) {
     return (
       <div className="container-page py-10 flex justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-amber-500" />

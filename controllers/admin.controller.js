@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import Customer from "../models/Customer.js";
 import Seller from "../models/Seller.js";
@@ -734,6 +735,91 @@ export const changeAdminPassword = async (req, res) => {
     await adminDoc.save();
 
     res.json({ message: "Password updated successfully." });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ===============================
+// 👥 IMPERSONATE SELLER (Super Admin only)
+// ===============================
+export const impersonateSeller = async (req, res) => {
+  try {
+    const sellerId = req.params.id;
+    const seller = await Seller.findById(sellerId);
+    if (!seller) {
+      return res.status(404).json({ message: "Seller not found" });
+    }
+
+    console.log(`[Impersonation Audit] Admin ${req.user._id} (${req.user.email}) started impersonating Seller ${seller._id} (${seller.email})`);
+
+    // Generate JWT token containing the seller id and the impersonator id (admin id)
+    const token = jwt.sign(
+      { 
+        id: seller._id, 
+        role: "seller", 
+        impersonatorId: req.user._id 
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" } // 1 day
+    );
+
+    res.json({
+      success: true,
+      message: "Impersonation token generated successfully",
+      token,
+      user: {
+        _id: seller._id,
+        firstName: seller.firstName,
+        lastName: seller.lastName,
+        email: seller.email,
+        role: "seller",
+        status: seller.status,
+        businessName: seller.businessName,
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ===============================
+// 👥 IMPERSONATE CUSTOMER (Super Admin only)
+// ===============================
+export const impersonateCustomer = async (req, res) => {
+  try {
+    const customerId = req.params.id;
+    const customer = await Customer.findById(customerId);
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    console.log(`[Impersonation Audit] Admin ${req.user._id} (${req.user.email}) started impersonating Customer ${customer._id} (${customer.email})`);
+
+    // Generate JWT token containing the customer id and the impersonator id (admin id)
+    const token = jwt.sign(
+      { 
+        id: customer._id, 
+        role: "customer", 
+        impersonatorId: req.user._id 
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" } // 1 day
+    );
+
+    res.json({
+      success: true,
+      message: "Impersonation token generated successfully",
+      token,
+      user: {
+        _id: customer._id,
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        email: customer.email,
+        role: "customer",
+        status: customer.status,
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

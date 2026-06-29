@@ -3,7 +3,7 @@ import {
   useNavigate,
   useSearch,
 } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -17,7 +17,11 @@ import { Check, X, Eye, EyeOff } from "lucide-react";
 import { LoadingSpinner } from "@/components/customer/EmptyState";
 
 export const Route = createFileRoute("/auth")({
-  validateSearch: (s) => ({ redirect: s.redirect || "/" }),
+  validateSearch: (s) => ({
+    redirect: s.redirect || "/",
+    token: s.token || "",
+    adminToken: s.adminToken || "",
+  }),
   head: () => ({
     meta: [{ title: "Sign in or create an account — Aashansh" }],
   }),
@@ -50,10 +54,29 @@ const loginSchema = z.object({
 });
 
 function AuthPage() {
-  const { login, register } = useAuth();
+  const { login, register, refresh } = useAuth();
   const navigate = useNavigate();
   const search = useSearch({ from: "/auth" });
   const [mode, setMode] = useState("login");
+
+  useEffect(() => {
+    const checkImpersonation = async () => {
+      if (search.token && search.adminToken) {
+        try {
+          localStorage.setItem("token", search.token);
+          localStorage.setItem("adminToken", search.adminToken);
+          await refresh();
+          toast.success("Impersonation session started successfully");
+          navigate({ to: "/" });
+        } catch (err) {
+          toast.error("Impersonation failed: could not load profile");
+          localStorage.removeItem("token");
+          localStorage.removeItem("adminToken");
+        }
+      }
+    };
+    checkImpersonation();
+  }, [search.token, search.adminToken, refresh, navigate]);
 
   const after = () => navigate({ to: search.redirect });
 

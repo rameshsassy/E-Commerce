@@ -9,6 +9,7 @@ import { absoluteToWebPath } from "../utils/uploadPaths.js";
 // Fetch settings (Public)
 export const getSettings = async (req, res) => {
   try {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     let settings = await HomepageSetting.findOne({ key: "header_settings" });
     if (!settings) {
       settings = new HomepageSetting({ key: "header_settings" });
@@ -152,6 +153,7 @@ export const uploadHeroImage = async (req, res) => {
 // Fetch active categories (Public)
 export const getHeaderCategories = async (req, res) => {
   try {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     const categories = await HeaderCategory.find({ isActive: true }).sort({ displayOrder: 1 });
     res.json(categories);
   } catch (error) {

@@ -470,6 +470,7 @@ export const getSearchSuggestions = async (req, res) => {
 // ===============================
 export const getAllProducts = async (req, res) => {
   try {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     // Accept both 'keyword' (legacy) and 'search' (customer frontend) as search param
     const searchTerm = req.query.keyword || req.query.search || "";
 

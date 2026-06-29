@@ -45,6 +45,10 @@ export function AuthProvider({ children }) {
     try {
       await authApi.logout();
     } catch {}
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("token");
+      localStorage.removeItem("adminToken");
+    }
     setUser(null);
   };
 

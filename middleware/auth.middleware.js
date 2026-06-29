@@ -50,6 +50,10 @@ export const protect = async (req, res, next) => {
 
     req.user = user; // ✅ attach user
 
+    if (decoded.impersonatorId) {
+      req.impersonatorId = decoded.impersonatorId;
+    }
+
     next();
   } catch (error) {
     console.log("AUTH ERROR:", error.message);
