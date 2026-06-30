@@ -824,3 +824,57 @@ export const impersonateCustomer = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// ===============================
+// 📋 UPDATE SELLER PLAN (Super Admin only)
+// ===============================
+export const updateSellerPlan = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { plan } = req.body;
+
+    if (!["free", "pro", "premium"].includes(plan)) {
+      return res.status(400).json({ message: "Invalid plan. Must be standard (free), pro, or premium." });
+    }
+
+    const seller = await Seller.findById(id);
+    if (!seller) {
+      return res.status(404).json({ message: "Seller not found" });
+    }
+
+    seller.subscriptionPlan = plan;
+    if (plan === "free") {
+      seller.sellerType = "free";
+      seller.subscriptionActive = false;
+      seller.bulkPurchaseEnabled = false;
+      seller.subscriptionValidUntil = null;
+    } else {
+      seller.sellerType = "premium";
+      seller.subscriptionActive = true;
+      seller.bulkPurchaseEnabled = true;
+      const validUntil = new Date();
+      validUntil.setFullYear(validUntil.getFullYear() + 1);
+      seller.subscriptionValidUntil = validUntil;
+    }
+
+    await seller.save();
+
+    res.json({
+      message: "Seller plan updated successfully",
+      seller: {
+        _id: seller._id,
+        sellerId: seller.sellerId,
+        firstName: seller.firstName,
+        lastName: seller.lastName,
+        email: seller.email,
+        subscriptionPlan: seller.subscriptionPlan,
+        sellerType: seller.sellerType,
+        subscriptionActive: seller.subscriptionActive,
+        subscriptionValidUntil: seller.subscriptionValidUntil,
+        bulkPurchaseEnabled: seller.bulkPurchaseEnabled,
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

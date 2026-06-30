@@ -2,11 +2,43 @@ import React, { useState, useEffect } from 'react';
 import api from '../../utils/api';
 import { Check, X, Search, Mail, Eye } from 'lucide-react';
 import ResponsiveTable from '../../components/common/ResponsiveTable';
+import { useAuth } from '../../context/AuthContext';
 
 const AdminSellers = () => {
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'admin';
+
   const [sellers, setSellers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedPlans, setSelectedPlans] = useState({});
+  const [savingPlanId, setSavingPlanId] = useState(null);
+
+  const handlePlanChange = (sellerId, value) => {
+    setSelectedPlans(prev => ({
+      ...prev,
+      [sellerId]: value
+    }));
+  };
+
+  const handleSavePlan = async (sellerId) => {
+    const plan = selectedPlans[sellerId];
+    setSavingPlanId(sellerId);
+    try {
+      await api.put(`/admin/sellers/${sellerId}/plan`, { plan });
+      alert('Seller plan updated successfully');
+      fetchSellers();
+      setSelectedPlans(prev => {
+        const next = { ...prev };
+        delete next[sellerId];
+        return next;
+      });
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to update plan');
+    } finally {
+      setSavingPlanId(null);
+    }
+  };
 
   const fetchSellers = async () => {
     try {
@@ -132,21 +164,46 @@ const AdminSellers = () => {
                 <th className="p-4 font-medium">Seller ID</th>
                 <th className="p-4 font-medium">Name</th>
                 <th className="p-4 font-medium">Email</th>
+                {isSuperAdmin && <th className="p-4 font-medium">Plan</th>}
                 <th className="p-4 font-medium">Status</th>
                 <th className="p-4 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan="5" className="p-8 text-center text-text-muted">Loading sellers...</td></tr>
+                <tr><td colSpan={isSuperAdmin ? 6 : 5} className="p-8 text-center text-text-muted">Loading sellers...</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan="5" className="p-8 text-center text-text-muted">No sellers found.</td></tr>
+                <tr><td colSpan={isSuperAdmin ? 6 : 5} className="p-8 text-center text-text-muted">No sellers found.</td></tr>
               ) : (
                 filtered.map(seller => (
                   <tr key={seller._id} className="border-b border-glass-border hover:bg-surface/30 transition-colors">
                     <td className="p-4 font-mono font-bold text-primary">{seller.sellerId}</td>
                     <td className="p-4 font-medium">{seller.firstName} {seller.lastName}</td>
                     <td className="p-4 text-text-muted">{seller.email}</td>
+                    {isSuperAdmin && (
+                      <td className="p-4">
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={selectedPlans[seller._id] !== undefined ? selectedPlans[seller._id] : (seller.subscriptionPlan || 'free')}
+                            onChange={(e) => handlePlanChange(seller._id, e.target.value)}
+                            className="input-field py-1 px-2 text-sm w-32 border border-glass-border bg-surface text-text-main rounded-md"
+                          >
+                            <option value="free">Standard</option>
+                            <option value="pro">Pro</option>
+                            <option value="premium">Premium</option>
+                          </select>
+                          {selectedPlans[seller._id] !== undefined && selectedPlans[seller._id] !== (seller.subscriptionPlan || 'free') && (
+                            <button
+                              onClick={() => handleSavePlan(seller._id)}
+                              disabled={savingPlanId === seller._id}
+                              className="btn bg-primary/20 text-primary hover:bg-primary hover:text-white py-1 px-3 text-xs rounded-md font-medium"
+                            >
+                              {savingPlanId === seller._id ? 'Saving...' : 'Save'}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    )}
                     <td className="p-4">
                       {seller.status === 'approved' ? (
                         <span className="badge badge-success">Approved</span>

@@ -39,6 +39,7 @@ import {
   changeAdminPassword,
   impersonateSeller,
   impersonateCustomer,
+  updateSellerPlan,
 } from "../controllers/admin.controller.js";
 import { adminSignupRateLimiter } from "../middleware/rateLimit.middleware.js";
 import {
@@ -85,6 +86,7 @@ router.put("/reject/:id", protect, authorizeAdminRole, requireAdminSection("sell
 router.post("/sellers/:id/send-weekly-recap", protect, authorizeAdminRole, requireAdminSection("sellers"), sendWeeklyRecapAction);
 router.post("/sellers/:id/impersonate", protect, authorizeSuperAdmin, impersonateSeller);
 router.post("/customers/:id/impersonate", protect, authorizeSuperAdmin, impersonateCustomer);
+router.put("/sellers/:id/plan", protect, authorizeSuperAdmin, updateSellerPlan);
 
 // ===============================
 // 📄 KYC MANAGEMENT
