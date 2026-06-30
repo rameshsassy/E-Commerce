@@ -107,6 +107,15 @@ export function getSubdomainFromRequest(req) {
   for (const host of hosts) {
     const domain = host.toLowerCase();
 
+    if (
+      domain === "localhost" ||
+      domain === "127.0.0.1" ||
+      domain === "::1" ||
+      /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(domain)
+    ) {
+      continue;
+    }
+
     // Check for production domain
     if (domain.endsWith(".aashansh.org")) {
       const sub = domain.replace(".aashansh.org", "");

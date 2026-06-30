@@ -151,4 +151,6 @@ const sellerSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+sellerSchema.index({ referredBySellerId: 1 }, { sparse: true });
+
 export default mongoose.model("Seller", sellerSchema, "sellers");

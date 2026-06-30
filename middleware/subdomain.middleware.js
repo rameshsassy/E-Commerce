@@ -6,6 +6,9 @@ import { getSubdomainFromRequest } from "../utils/storeDomain.js";
  * fetches the corresponding active SellerStore, and attaches it to req.subdomainStore.
  */
 export const subdomainStoreMiddleware = async (req, res, next) => {
+  if (req.path.startsWith("/uploads") || req.path.startsWith("/api/uploads") || req.path === "/api/health") {
+    return next();
+  }
   try {
     const subdomain = getSubdomainFromRequest(req);
     if (subdomain) {

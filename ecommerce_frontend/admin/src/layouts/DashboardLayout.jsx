@@ -95,7 +95,7 @@ function adminNavLinkClass(pathname, currentHash, to, { exact } = {}) {
     ? pathname === path
     : pathname === path || (path !== '/admin/dashboard' && pathname.startsWith(path));
   const active = pathMatch && hashMatch;
-  return [ADMIN_NAV_LINK, active ? 'bg-surface-hover border-white/50' : ''].filter(Boolean).join(' ');
+  return [ADMIN_NAV_LINK, active ? 'admin-active-link' : ''].filter(Boolean).join(' ');
 }
 
 const DashboardLayout = ({ variant }) => {
@@ -473,16 +473,14 @@ const DashboardLayout = ({ variant }) => {
                   <Link
                     to="/admin/data-migration"
                     className={adminNavLinkClass(location.pathname, location.hash, '/admin/data-migration')}
-                    style={location.pathname.startsWith('/admin/data-migration') ? { background: 'linear-gradient(135deg, rgba(99,102,241,0.2), rgba(236,72,153,0.2))', borderColor: 'rgba(99,102,241,0.5)' } : {}}
                   >
-                    <Database size={20} style={{ color: location.pathname.startsWith('/admin/data-migration') ? '#6366f1' : '' }} /> Data Migration
+                    <Database size={20} className="text-primary" /> Data Migration
                   </Link>
                   <Link
                     to="/admin/rewards"
                     className={adminNavLinkClass(location.pathname, location.hash, '/admin/rewards')}
-                    style={location.pathname.startsWith('/admin/rewards') ? { background: 'linear-gradient(135deg, rgba(251,191,36,0.2), rgba(139,92,246,0.2))', borderColor: 'rgba(251,191,36,0.5)' } : {}}
                   >
-                    <Gift size={20} style={{ color: location.pathname.startsWith('/admin/rewards') ? '#fbbf24' : '' }} /> Rewards Management
+                    <Gift size={20} className="text-primary" /> Rewards Management
                   </Link>
                 </>
               )}
