@@ -29,15 +29,21 @@ export function AuthProvider({ children }) {
   }, [refresh]);
 
   const login = async (email, password) => {
-    await authApi.login({ email, password });
+    const res = await authApi.login({ email, password });
+    if (res && res.token && typeof window !== "undefined") {
+      localStorage.setItem("token", res.token);
+    }
     await refresh();
   };
 
   const register = async (data) => {
     await authApi.register(data);
-    await authApi
+    const res = await authApi
       .login({ email: data.email, password: data.password })
       .catch(() => null);
+    if (res && res.token && typeof window !== "undefined") {
+      localStorage.setItem("token", res.token);
+    }
     await refresh();
   };
 

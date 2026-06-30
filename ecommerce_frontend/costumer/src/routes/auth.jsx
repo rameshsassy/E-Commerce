@@ -21,6 +21,7 @@ export const Route = createFileRoute("/auth")({
     redirect: s.redirect || "/",
     token: s.token || "",
     adminToken: s.adminToken || "",
+    tab: s.tab || "",
   }),
   head: () => ({
     meta: [{ title: "Sign in or create an account — Aashansh" }],
@@ -57,7 +58,15 @@ function AuthPage() {
   const { login, register, refresh } = useAuth();
   const navigate = useNavigate();
   const search = useSearch({ from: "/auth" });
-  const [mode, setMode] = useState("login");
+  const [mode, setMode] = useState(search.tab === "register" ? "signup" : "login");
+
+  useEffect(() => {
+    if (search.tab === "register") {
+      setMode("signup");
+    } else if (search.tab === "login") {
+      setMode("login");
+    }
+  }, [search.tab]);
 
   useEffect(() => {
     const checkImpersonation = async () => {

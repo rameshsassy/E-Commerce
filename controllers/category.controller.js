@@ -1,4 +1,6 @@
 import Category from "../models/Category.js";
+import HeaderCategory from "../models/HeaderCategory.js";
+import Product from "../models/Product.js";
 
 const buildSlug = (value = "") =>
   value
@@ -117,6 +119,29 @@ export const createCategory = async (req, res) => {
     });
 
     await category.save();
+
+    // Sync with HeaderCategory for Homepage/Header navigation
+    try {
+      const existingHeaderCat = await HeaderCategory.findOne({ slug });
+      if (!existingHeaderCat) {
+        const headerCategory = new HeaderCategory({
+          name: name.trim(),
+          slug: slug,
+          icon: icon ? icon.trim() : "",
+          isActive: isActive !== undefined ? isActive : true,
+          displayOrder: 0
+        });
+        await headerCategory.save();
+      } else {
+        existingHeaderCat.name = name.trim();
+        existingHeaderCat.isActive = isActive !== undefined ? isActive : true;
+        if (icon !== undefined) existingHeaderCat.icon = icon ? icon.trim() : "";
+        await existingHeaderCat.save();
+      }
+    } catch (syncError) {
+      console.error("Failed to sync header category on creation:", syncError);
+    }
+
     res.status(201).json({ message: "Category created successfully", category });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -134,6 +159,9 @@ export const updateCategory = async (req, res) => {
     if (!category) {
       return res.status(404).json({ message: "Category not found" });
     }
+
+    const oldSlug = category.slug;
+    const oldName = category.name;
 
     if (name) {
       const nextSlug = buildSlug(name);
@@ -217,6 +245,41 @@ export const updateCategory = async (req, res) => {
     if (isFeatured !== undefined) category.isFeatured = isFeatured;
 
     await category.save();
+
+    // Sync with HeaderCategory
+    try {
+      const headerCategory = await HeaderCategory.findOne({ slug: oldSlug });
+      if (headerCategory) {
+        if (name) {
+          headerCategory.name = name.trim();
+          headerCategory.slug = category.slug;
+        }
+        if (icon !== undefined) headerCategory.icon = icon ? icon.trim() : "";
+        if (isActive !== undefined) headerCategory.isActive = isActive;
+        await headerCategory.save();
+      } else {
+        const newHeaderCategory = new HeaderCategory({
+          name: category.name,
+          slug: category.slug,
+          icon: category.icon ? category.icon.trim() : "",
+          isActive: category.isActive,
+          displayOrder: 0
+        });
+        await newHeaderCategory.save();
+      }
+    } catch (syncError) {
+      console.error("Failed to sync header category on update:", syncError);
+    }
+
+    // Sync associated products
+    try {
+      if (name && oldName !== category.name) {
+        await Product.updateMany({ category: oldName }, { $set: { category: category.name } });
+      }
+    } catch (productSyncError) {
+      console.error("Failed to sync products on category rename:", productSyncError);
+    }
+
     res.json({ message: "Category updated successfully", category });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -233,12 +296,29 @@ export const deleteCategory = async (req, res) => {
       return res.status(404).json({ message: "Category not found" });
     }
 
+    const oldSlug = category.slug;
+    const oldName = category.name;
+
     // Optional: Check if products are tied to this category
     // For now we just delete it
     await Category.deleteOne({ _id: req.params.id });
     
     // Also delete or un-parent subcategories
     await Category.updateMany({ parentCategory: req.params.id }, { $set: { parentCategory: null } });
+
+    // Sync deletion to HeaderCategory
+    try {
+      await HeaderCategory.deleteOne({ slug: oldSlug });
+    } catch (syncError) {
+      console.error("Failed to delete header category on deletion:", syncError);
+    }
+
+    // Sync associated products
+    try {
+      await Product.updateMany({ category: oldName }, { $set: { category: "Uncategorized" } });
+    } catch (productSyncError) {
+      console.error("Failed to sync products on category deletion:", productSyncError);
+    }
 
     res.json({ message: "Category deleted successfully" });
   } catch (error) {

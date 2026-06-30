@@ -55,6 +55,14 @@ const AdminSellers = () => {
       `Are you sure you want to view and manage the dashboard for ${name || 'this seller'}?`
     );
     if (!confirmed) return;
+
+    // Open a blank window immediately to prevent popup blockers
+    const newWindow = window.open('', '_blank');
+    if (newWindow) {
+      newWindow.document.title = 'Loading Dashboard...';
+      newWindow.document.body.innerHTML = '<div style="font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; font-size: 1.25rem; color: #666;">Loading seller dashboard...</div>';
+    }
+
     try {
       const { data } = await api.post(`/admin/sellers/${id}/impersonate`);
       const sellerToken = data.token;
@@ -85,8 +93,17 @@ const AdminSellers = () => {
       };
 
       const sellerPortalUrl = getSellerPortalUrl();
-      window.location.href = `${sellerPortalUrl}/login?token=${sellerToken}&adminToken=${adminToken}`;
+      const targetUrl = `${sellerPortalUrl}/login?token=${sellerToken}&adminToken=${adminToken}`;
+
+      if (newWindow) {
+        newWindow.location.href = targetUrl;
+      } else {
+        window.open(targetUrl, '_blank');
+      }
     } catch (err) {
+      if (newWindow) {
+        newWindow.close();
+      }
       alert(err.response?.data?.message || 'Impersonation failed');
     }
   };

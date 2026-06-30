@@ -660,8 +660,13 @@ const AdminCategories = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const [taxonomyExpanded, setTaxonomyExpanded] = useState({});
+  const [toast, setToast] = useState(null);
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2800);
+  };
   
   // Form State
   const [showForm, setShowForm] = useState(false);
@@ -742,8 +747,10 @@ const AdminCategories = () => {
       setSaving(true);
       if (editingId) {
         await api.put(`/categories/${editingId}`, formData);
+        showToast('Category updated successfully ✓');
       } else {
         await api.post('/categories', formData);
+        showToast('Category created successfully ✓');
       }
       resetFormState();
       fetchCategories();
@@ -776,6 +783,7 @@ const AdminCategories = () => {
     if (window.confirm("Are you sure you want to delete this category? Products might be affected.")) {
       try {
         await api.delete(`/categories/${id}`);
+        showToast('Category deleted successfully ✓');
         fetchCategories();
       } catch (err) {
         const msg = err.response?.data?.message || err.message || "Failed to delete category";
@@ -1182,6 +1190,9 @@ const AdminCategories = () => {
 
       {/* ── Homepage Layout Engine (below category list) ── */}
       <HomepageLayoutEngine />
+
+      {/* Toast */}
+      {toast && <Toast message={toast} />}
     </div>
   );
 };
