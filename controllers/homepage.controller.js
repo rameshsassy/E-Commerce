@@ -174,7 +174,7 @@ export const getAllHeaderCategories = async (req, res) => {
 // Create category (Super Admin Only)
 export const createHeaderCategory = async (req, res) => {
   try {
-    const { name, slug, icon, isActive, displayOrder } = req.body;
+    const { name, slug, icon, isActive, displayOrder, productLink } = req.body;
 
     if (!name || !String(name).trim()) {
       return res.status(400).json({ message: "Category name is required" });
@@ -189,6 +189,7 @@ export const createHeaderCategory = async (req, res) => {
       icon: icon ? icon.trim() : "",
       isActive: isActive !== undefined ? isActive : true,
       displayOrder: Number(displayOrder) || 0,
+      productLink: productLink ? productLink.trim() : "",
     });
 
     await category.save();
@@ -201,7 +202,7 @@ export const createHeaderCategory = async (req, res) => {
 // Update category (Super Admin Only)
 export const updateHeaderCategory = async (req, res) => {
   try {
-    const { name, slug, icon, isActive, displayOrder } = req.body;
+    const { name, slug, icon, isActive, displayOrder, productLink } = req.body;
 
     const category = await HeaderCategory.findById(req.params.id);
     if (!category) {
@@ -213,6 +214,7 @@ export const updateHeaderCategory = async (req, res) => {
     if (icon !== undefined) category.icon = icon.trim();
     if (isActive !== undefined) category.isActive = isActive;
     if (displayOrder !== undefined) category.displayOrder = Number(displayOrder) || 0;
+    if (productLink !== undefined) category.productLink = productLink.trim();
 
     await category.save();
     res.json({ message: "Header category updated successfully", category });

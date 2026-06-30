@@ -532,6 +532,16 @@ export const getAllProducts = async (req, res) => {
       Object.assign(query, categoryFilter);
     }
 
+    if (req.query.collection) {
+      const layout = await FeaturedProductLayout.findById(req.query.collection).select("selectedProducts").lean();
+      if (layout && layout.selectedProducts && layout.selectedProducts.length > 0) {
+        const productIds = layout.selectedProducts.map(p => p.productId);
+        query._id = { $in: productIds };
+      } else {
+        query._id = { $in: [] };
+      }
+    }
+
     if (minPrice || maxPrice) {
       query.price = {};
       if (minPrice) query.price.$gte = Number(minPrice);
@@ -557,19 +567,20 @@ export const getAllProducts = async (req, res) => {
     else if (sort === "newest") sortObj = { createdAt: -1 };
     else if (sort === "rating") sortObj = { averageRating: -1, createdAt: -1 };
 
-    const products = await Product.find(query)
-      .populate({
-        path: "sellerId",
-        match: { status: "approved" },
-        select: "firstName lastName businessName email",
-      })
-      .sort(sortObj)
-      .skip(skip)
-      .limit(limitNumber);
+    const [products, total] = await Promise.all([
+      Product.find(query)
+        .populate({
+          path: "sellerId",
+          match: { status: "approved" },
+          select: "firstName lastName businessName email",
+        })
+        .sort(sortObj)
+        .skip(skip)
+        .limit(limitNumber),
+      Product.countDocuments(query),
+    ]);
 
     const filteredProducts = products.filter((p) => p.sellerId !== null);
-
-    const total = await Product.countDocuments(query);
 
     const categorySeo = buildCategoryPageSeo(resolvedCategory);
 

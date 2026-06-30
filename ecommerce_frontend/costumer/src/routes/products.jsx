@@ -5,7 +5,7 @@ import {
 } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { productApi, categoryApi } from "@/lib/services";
+import { productApi, categoryApi, featuredProductsApi } from "@/lib/services";
 import { ProductCard } from "@/components/customer/ProductCard";
 import { EmptyState, SkeletonGrid } from "@/components/customer/EmptyState";
 import { Input } from "@/components/ui/input";
@@ -28,6 +28,7 @@ export const Route = createFileRoute("/products")({
   validateSearch: (s) => ({
     search: s.search || undefined,
     category: s.category || undefined,
+    collection: s.collection || undefined,
     sort: s.sort || undefined,
     page: s.page ? Number(s.page) : 1,
   }),
@@ -53,6 +54,17 @@ function ProductsPage() {
     queryKey: ["products", search],
     queryFn: () => productApi.list({ ...search, limit: 16 }),
   });
+  const layoutsQuery = useQuery({
+    queryKey: ["publicFeaturedProducts"],
+    queryFn: () => featuredProductsApi.list(),
+    enabled: !!search.collection,
+  });
+
+  const collectionTitle = useMemo(() => {
+    if (!search.collection || !layoutsQuery.data) return "";
+    const matchedLayout = layoutsQuery.data.find((l) => l._id === search.collection);
+    return matchedLayout ? matchedLayout.title : "";
+  }, [search.collection, layoutsQuery.data]);
 
   const { list, total, pages } = useMemo(() => {
     const d = products.data;
@@ -71,7 +83,9 @@ function ProductsPage() {
     <div className="container-page py-8">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Shop products</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {collectionTitle || "Shop products"}
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {products.isLoading ? "Loading…" : `${total} results`}
           </p>

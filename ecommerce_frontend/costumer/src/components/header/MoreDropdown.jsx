@@ -7,6 +7,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { parseInternalLink } from "@/lib/utils";
 
 export function MoreDropdown({ categories }) {
   if (!categories || categories.length === 0) return null;
@@ -23,17 +24,23 @@ export function MoreDropdown({ categories }) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-48 p-1.5 rounded-xl border border-border bg-popover/90 backdrop-blur-md">
-        {categories.map((cat) => (
-          <DropdownMenuItem key={cat._id} asChild>
-            <Link
-              to="/products"
-              search={{ category: cat.slug }}
-              className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors"
-            >
-              {cat.name}
-            </Link>
-          </DropdownMenuItem>
-        ))}
+        {categories.map((cat) => {
+          const linkProps = parseInternalLink(cat.productLink) || {
+            to: "/products",
+            search: { category: cat.slug },
+          };
+          return (
+            <DropdownMenuItem key={cat._id} asChild>
+              <Link
+                to={linkProps.to}
+                search={linkProps.search}
+                className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors"
+              >
+                {cat.name}
+              </Link>
+            </DropdownMenuItem>
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );

@@ -25,6 +25,8 @@ import {
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 
+import { parseInternalLink } from "@/lib/utils";
+
 export function MobileMenu({ config, categories = [] }) {
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
@@ -95,18 +97,24 @@ export function MobileMenu({ config, categories = [] }) {
                 Categories
               </h3>
               <div className="flex flex-col gap-1">
-                {activeCats.map((cat) => (
-                  <SheetClose asChild key={cat._id}>
-                    <Link
-                      to="/products"
-                      search={{ category: cat.slug }}
-                      className="flex items-center justify-between p-3 rounded-xl hover:bg-muted text-sm font-semibold transition-colors"
-                    >
-                      <span className="text-foreground">{cat.name}</span>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                    </Link>
-                  </SheetClose>
-                ))}
+                {activeCats.map((cat) => {
+                  const linkProps = parseInternalLink(cat.productLink) || {
+                    to: "/products",
+                    search: { category: cat.slug },
+                  };
+                  return (
+                    <SheetClose asChild key={cat._id}>
+                      <Link
+                        to={linkProps.to}
+                        search={linkProps.search}
+                        className="flex items-center justify-between p-3 rounded-xl hover:bg-muted text-sm font-semibold transition-colors"
+                      >
+                        <span className="text-foreground">{cat.name}</span>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      </Link>
+                    </SheetClose>
+                  );
+                })}
               </div>
             </div>
           )}

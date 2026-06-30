@@ -13,8 +13,6 @@ export function FeaturedProductsSection() {
   const { data: layouts = [], isLoading, isFetching } = useQuery({
     queryKey: ["publicFeaturedProducts"],
     queryFn: () => featuredProductsApi.list(),
-    staleTime: 0,
-    gcTime: 0,
   });
 
   if (isLoading || isFetching) {

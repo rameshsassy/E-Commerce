@@ -135,8 +135,6 @@ function RootLayout() {
   const { data: settings, isLoading, isFetching } = useQuery({
     queryKey: ["homepageSettings"],
     queryFn: () => publicApi.getHomepageSettings(),
-    staleTime: 0,
-    gcTime: 0,
   });
 
   const handleReturnToAdmin = () => {

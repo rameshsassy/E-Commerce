@@ -46,14 +46,10 @@ function Home() {
   const products = useQuery({
     queryKey: ["products", "featured"],
     queryFn: () => productApi.list({ limit: 8 }),
-    staleTime: 0,
-    gcTime: 0,
   });
   const settings = useQuery({
     queryKey: ["homepageSettings"],
     queryFn: () => publicApi.getHomepageSettings(),
-    staleTime: 0,
-    gcTime: 0,
   });
 
   const productList = Array.isArray(products.data)

@@ -14,6 +14,7 @@ const buildSlug = (value = "") =>
 // ===============================
 export const getCategories = async (req, res) => {
   try {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     const categories = await Category.find().populate("parentCategory", "name slug");
     res.json(categories);
   } catch (error) {
@@ -26,6 +27,7 @@ export const getCategories = async (req, res) => {
 // ===============================
 export const getCategory = async (req, res) => {
   try {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     const category = await Category.findById(req.params.id).populate("parentCategory", "name slug");
     if (!category) {
       return res.status(404).json({ message: "Category not found" });
@@ -120,23 +122,19 @@ export const createCategory = async (req, res) => {
 
     await category.save();
 
-    // Sync with HeaderCategory for Homepage/Header navigation
+    // Sync to HeaderCategory for Homepage reflection
     try {
-      const existingHeaderCat = await HeaderCategory.findOne({ slug });
-      if (!existingHeaderCat) {
-        const headerCategory = new HeaderCategory({
-          name: name.trim(),
-          slug: slug,
-          icon: icon ? icon.trim() : "",
-          isActive: isActive !== undefined ? isActive : true,
-          displayOrder: 0
-        });
-        await headerCategory.save();
-      } else {
-        existingHeaderCat.name = name.trim();
-        existingHeaderCat.isActive = isActive !== undefined ? isActive : true;
-        if (icon !== undefined) existingHeaderCat.icon = icon ? icon.trim() : "";
-        await existingHeaderCat.save();
+      if (isActive) {
+        await HeaderCategory.findOneAndUpdate(
+          { slug },
+          {
+            name: name.trim(),
+            slug: slug,
+            icon: icon || "",
+            isActive: true,
+          },
+          { upsert: true, new: true }
+        );
       }
     } catch (syncError) {
       console.error("Failed to sync header category on creation:", syncError);
@@ -160,7 +158,8 @@ export const updateCategory = async (req, res) => {
       return res.status(404).json({ message: "Category not found" });
     }
 
-    const oldSlug = category.slug;
+    const originalSlug = category.slug;
+
     const oldName = category.name;
 
     if (name) {
@@ -246,29 +245,21 @@ export const updateCategory = async (req, res) => {
 
     await category.save();
 
-    // Sync with HeaderCategory
-    try {
-      const headerCategory = await HeaderCategory.findOne({ slug: oldSlug });
-      if (headerCategory) {
-        if (name) {
-          headerCategory.name = name.trim();
-          headerCategory.slug = category.slug;
-        }
-        if (icon !== undefined) headerCategory.icon = icon ? icon.trim() : "";
-        if (isActive !== undefined) headerCategory.isActive = isActive;
-        await headerCategory.save();
-      } else {
-        const newHeaderCategory = new HeaderCategory({
+    // Sync to HeaderCategory
+    if (category.isActive) {
+      await HeaderCategory.findOneAndUpdate(
+        { slug: originalSlug },
+        {
           name: category.name,
           slug: category.slug,
-          icon: category.icon ? category.icon.trim() : "",
-          isActive: category.isActive,
-          displayOrder: 0
-        });
-        await newHeaderCategory.save();
-      }
-    } catch (syncError) {
-      console.error("Failed to sync header category on update:", syncError);
+          icon: category.icon || "",
+          isActive: true,
+        },
+        { upsert: true, new: true }
+      );
+    } else {
+      // If category is set to inactive, remove from header menu
+      await HeaderCategory.deleteOne({ slug: originalSlug });
     }
 
     // Sync associated products
@@ -296,7 +287,7 @@ export const deleteCategory = async (req, res) => {
       return res.status(404).json({ message: "Category not found" });
     }
 
-    const oldSlug = category.slug;
+    const originalSlug = category.slug;
     const oldName = category.name;
 
     // Optional: Check if products are tied to this category
@@ -306,12 +297,8 @@ export const deleteCategory = async (req, res) => {
     // Also delete or un-parent subcategories
     await Category.updateMany({ parentCategory: req.params.id }, { $set: { parentCategory: null } });
 
-    // Sync deletion to HeaderCategory
-    try {
-      await HeaderCategory.deleteOne({ slug: oldSlug });
-    } catch (syncError) {
-      console.error("Failed to delete header category on deletion:", syncError);
-    }
+    // Sync to HeaderCategory
+    await HeaderCategory.deleteOne({ slug: originalSlug });
 
     // Sync associated products
     try {

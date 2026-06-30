@@ -18,6 +18,50 @@ const CategoryManagement = () => {
     isActive: true,
   });
 
+  const [availableCategories, setAvailableCategories] = useState([]);
+  const [availableCollections, setAvailableCollections] = useState([]);
+  const [linkType, setLinkType] = useState('default');
+  const [linkValue, setLinkValue] = useState('');
+
+  const PREDEFINED_PAGES = [
+    { label: 'Shop All Products (/products)', value: '/products' },
+    { label: 'Bulk Purchase (/bulk-purchase)', value: '/bulk-purchase' },
+    { label: 'My Rewards (/rewards)', value: '/rewards' },
+    { label: 'FAQs (/faqs)', value: '/faqs' },
+    { label: 'Support (/support)', value: '/support' },
+    { label: 'Wishlist (/wishlist)', value: '/wishlist' },
+    { label: 'Live Chat (/chat)', value: '/chat' },
+  ];
+
+  const parseProductLink = (link) => {
+    if (!link) {
+      return { type: 'default', value: '' };
+    }
+    if (link.startsWith('/products?category=')) {
+      return { type: 'category', value: link.substring('/products?category='.length) };
+    }
+    if (link.startsWith('/products?collection=')) {
+      return { type: 'collection', value: link.substring('/products?collection='.length) };
+    }
+    const predefinedPages = ['/products', '/bulk-purchase', '/rewards', '/faqs', '/support', '/wishlist', '/chat'];
+    if (predefinedPages.includes(link)) {
+      return { type: 'predefined', value: link };
+    }
+    return { type: 'custom', value: link };
+  };
+
+  useEffect(() => {
+    if (showModal) {
+      api.get('/categories')
+        .then(res => setAvailableCategories(res.data || []))
+        .catch(err => console.error("Error fetching categories:", err));
+
+      api.get('/admin/featured-products')
+        .then(res => setAvailableCollections(res.data || []))
+        .catch(err => console.error("Error fetching collections:", err));
+    }
+  }, [showModal]);
+
   // Drag states
   const [draggedIndex, setDraggedIndex] = useState(null);
 
@@ -45,6 +89,8 @@ const CategoryManagement = () => {
       icon: '',
       isActive: true,
     });
+    setLinkType('default');
+    setLinkValue('');
     setError('');
     setShowModal(true);
   };
@@ -57,6 +103,9 @@ const CategoryManagement = () => {
       icon: cat.icon || '',
       isActive: cat.isActive,
     });
+    const parsed = parseProductLink(cat.productLink || '');
+    setLinkType(parsed.type);
+    setLinkValue(parsed.value);
     setError('');
     setShowModal(true);
   };
@@ -91,19 +140,55 @@ const CategoryManagement = () => {
       return;
     }
 
+    let finalProductLink = '';
+    if (linkType === 'category') {
+      if (!linkValue) {
+        setError('Please select a product category.');
+        return;
+      }
+      finalProductLink = `/products?category=${linkValue}`;
+    } else if (linkType === 'collection') {
+      if (!linkValue) {
+        setError('Please select a product collection.');
+        return;
+      }
+      finalProductLink = `/products?collection=${linkValue}`;
+    } else if (linkType === 'predefined') {
+      if (!linkValue) {
+        setError('Please select a predefined page.');
+        return;
+      }
+      finalProductLink = linkValue;
+    } else if (linkType === 'custom') {
+      if (!linkValue.trim()) {
+        setError('Custom URL is required.');
+        return;
+      }
+      if (!linkValue.startsWith('/')) {
+        setError('Custom URL must start with a "/" for internal routing.');
+        return;
+      }
+      finalProductLink = linkValue.trim();
+    }
+
     setSaving(true);
     setError('');
 
     try {
+      const payload = {
+        ...formData,
+        productLink: finalProductLink,
+      };
+
       if (editingCategory) {
         // Update
-        const { data } = await api.put(`/homepage-settings/categories/${editingCategory._id}`, formData);
+        const { data } = await api.put(`/homepage-settings/categories/${editingCategory._id}`, payload);
         setCategories(prev => prev.map(c => c._id === editingCategory._id ? data.category : c));
       } else {
         // Create
         const nextOrder = categories.length > 0 ? Math.max(...categories.map(c => c.displayOrder || 0)) + 1 : 0;
         const { data } = await api.post('/homepage-settings/categories', {
-          ...formData,
+          ...payload,
           displayOrder: nextOrder,
         });
         setCategories(prev => [...prev, data.category]);
@@ -226,6 +311,7 @@ const CategoryManagement = () => {
                 <th className="p-3">Category Name</th>
                 <th className="p-3">Slug</th>
                 <th className="p-3">Icon Name</th>
+                <th className="p-3">Product Link</th>
                 <th className="p-3 w-32">Status</th>
                 <th className="p-3 w-28 text-right">Actions</th>
               </tr>
@@ -262,6 +348,15 @@ const CategoryManagement = () => {
                   <td className="p-3 font-mono text-xs text-text-muted align-middle">{cat.slug}</td>
                   <td className="p-3 font-mono text-xs text-text-muted align-middle">
                     {cat.icon || <span className="text-gray-600">-</span>}
+                  </td>
+                  <td className="p-3 font-mono text-xs text-text-muted align-middle">
+                    {cat.productLink ? (
+                      <span className="text-primary truncate max-w-[150px] inline-block font-semibold" title={cat.productLink}>
+                        {cat.productLink}
+                      </span>
+                    ) : (
+                      <span className="text-zinc-600 italic">Default Slug</span>
+                    )}
                   </td>
                   <td className="p-3 align-middle">
                     <button
@@ -374,6 +469,92 @@ const CategoryManagement = () => {
                 />
                 <span className="text-[10px] text-text-muted">Enter a Lucide icon identifier.</span>
               </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-semibold">Link Type</label>
+                <select
+                  value={linkType}
+                  onChange={(e) => {
+                    setLinkType(e.target.value);
+                    setLinkValue('');
+                  }}
+                  className="input-field py-2.5 px-4 rounded-xl text-sm bg-zinc-900 border-zinc-700 text-white"
+                >
+                  <option value="default">None (Default Slug Route)</option>
+                  <option value="category">Product Category</option>
+                  <option value="collection">Product Collection</option>
+                  <option value="predefined">Predefined Page</option>
+                  <option value="custom">Custom URL</option>
+                </select>
+              </div>
+
+              {linkType === 'category' && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-semibold">Select Category</label>
+                  <select
+                    value={linkValue}
+                    onChange={(e) => setLinkValue(e.target.value)}
+                    className="input-field py-2.5 px-4 rounded-xl text-sm bg-zinc-900 border-zinc-700 text-white"
+                  >
+                    <option value="">-- Choose Category --</option>
+                    {availableCategories.map((c) => (
+                      <option key={c._id} value={c.slug}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {linkType === 'collection' && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-semibold">Select Collection (Layout)</label>
+                  <select
+                    value={linkValue}
+                    onChange={(e) => setLinkValue(e.target.value)}
+                    className="input-field py-2.5 px-4 rounded-xl text-sm bg-zinc-900 border-zinc-700 text-white"
+                  >
+                    <option value="">-- Choose Collection --</option>
+                    {availableCollections.map((c) => (
+                      <option key={c._id} value={c._id}>
+                        {c.title} ({c.layoutType})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {linkType === 'predefined' && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-semibold">Select Predefined Page</label>
+                  <select
+                    value={linkValue}
+                    onChange={(e) => setLinkValue(e.target.value)}
+                    className="input-field py-2.5 px-4 rounded-xl text-sm bg-zinc-900 border-zinc-700 text-white"
+                  >
+                    <option value="">-- Choose Predefined Page --</option>
+                    {PREDEFINED_PAGES.map((p) => (
+                      <option key={p.value} value={p.value}>
+                        {p.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {linkType === 'custom' && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-semibold">Custom Internal URL</label>
+                  <input
+                    type="text"
+                    value={linkValue}
+                    onChange={(e) => setLinkValue(e.target.value)}
+                    placeholder="e.g. /products?search=shirt"
+                    className="input-field py-2.5 px-4 rounded-xl text-sm font-mono"
+                  />
+                  <span className="text-[10px] text-text-muted">Must be relative and start with a "/".</span>
+                </div>
+              )}
 
               <div className="flex items-center gap-2.5 mt-2">
                 <input

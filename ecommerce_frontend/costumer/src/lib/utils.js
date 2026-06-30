@@ -45,3 +45,28 @@ export function getImageUrl(imagePath) {
   return clean.startsWith("/") ? clean : `/${clean}`;
 }
 
+export function parseInternalLink(linkStr) {
+  if (!linkStr) return null;
+  try {
+    let relativeUrl = linkStr;
+    if (linkStr.startsWith("http://") || linkStr.startsWith("https://")) {
+      const urlObj = new URL(linkStr);
+      relativeUrl = urlObj.pathname + urlObj.search;
+    }
+    const [path, searchStr] = relativeUrl.split("?");
+    const searchParams = {};
+    if (searchStr) {
+      const params = new URLSearchParams(searchStr);
+      for (const [key, value] of params.entries()) {
+        searchParams[key] = value;
+      }
+    }
+    return {
+      to: path || "/",
+      search: Object.keys(searchParams).length > 0 ? searchParams : undefined
+    };
+  } catch (err) {
+    return { to: linkStr };
+  }
+}
+

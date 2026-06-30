@@ -265,24 +265,33 @@ export const rejectProduct = async (req, res) => {
 // ===============================
 export const getAnalytics = async (req, res) => {
   try {
-    const totalUsers = await Customer.countDocuments();
-    const totalSellers = await Seller.countDocuments();
-    const premiumSellers = await Seller.countDocuments({ subscriptionActive: true });
-    
-    const pendingKYCs = await Seller.countDocuments({ kycStatus: "pending" });
-    
-    const totalProducts = await Product.countDocuments();
-    const totalOrders = await Order.countDocuments();
-    
-    const refundRequests = await ReturnRequest.countDocuments({ status: "Requested" });
-    const pendingSupportTickets = await SupportTicket.countDocuments({ status: "Open" });
-    const pendingBulkInquiries = await BulkInquiry.countDocuments({
-      status: { $in: ["Negotiation Pending", "Meeting Scheduled"] },
-    });
+    const [
+      totalUsers,
+      totalSellers,
+      premiumSellers,
+      pendingKYCs,
+      totalProducts,
+      totalOrders,
+      refundRequests,
+      pendingSupportTickets,
+      pendingBulkInquiries,
+      completedOrders
+    ] = await Promise.all([
+      Customer.countDocuments(),
+      Seller.countDocuments(),
+      Seller.countDocuments({ subscriptionActive: true }),
+      Seller.countDocuments({ kycStatus: "pending" }),
+      Product.countDocuments(),
+      Order.countDocuments(),
+      ReturnRequest.countDocuments({ status: "Requested" }),
+      SupportTicket.countDocuments({ status: "Open" }),
+      BulkInquiry.countDocuments({
+        status: { $in: ["Negotiation Pending", "Meeting Scheduled"] },
+      }),
+      Order.find({ paymentStatus: "completed" }).select("totalAmount").lean()
+    ]);
 
-    // Revenue calc
-    const orders = await Order.find({ paymentStatus: "completed" });
-    const totalRevenue = orders.reduce((sum, order) => sum + order.totalAmount, 0);
+    const totalRevenue = completedOrders.reduce((sum, order) => sum + order.totalAmount, 0);
 
     res.json({
       totalUsers,

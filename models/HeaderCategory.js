@@ -24,6 +24,10 @@ const headerCategorySchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    productLink: {
+      type: String,
+      default: "",
+    },
   },
   { timestamps: true }
 );
