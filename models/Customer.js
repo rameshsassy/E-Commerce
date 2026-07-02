@@ -44,15 +44,39 @@ const customerSchema = new mongoose.Schema(
 
     emailNewProductAlerts: {
       type: Boolean,
-      default: false,
+      default: true,
     },
     marketingEmailsEnabled: {
       type: Boolean,
       default: true,
     },
     lastLogin: Date,
+    profilePicture: String,
+
+    // ===============================
+    // 🤝 CUSTOMER REFERRAL (Refer and Earn)
+    // ===============================
+    customerReferralCode: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+      uppercase: true,
+    },
+    referralSignups: {
+      type: Number,
+      default: 0,
+    },
+    referredByCustomerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Customer",
+      default: null,
+    },
   },
   { timestamps: true }
 );
 
+customerSchema.index({ referredByCustomerId: 1 }, { sparse: true });
+
 export default mongoose.model("Customer", customerSchema, "customers");
+

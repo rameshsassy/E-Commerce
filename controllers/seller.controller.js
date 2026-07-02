@@ -1782,7 +1782,7 @@ export const finalizeKyc = async (req, res) => {
 // ===============================
 export const createSubscriptionOrder = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
+    const user = await Seller.findById(req.user._id);
     if (!user || user.role !== "seller") {
       return res.status(403).json({ message: "Only sellers can subscribe." });
     }
@@ -1927,7 +1927,7 @@ export const verifySubscriptionPayment = async (req, res) => {
       return res.status(403).json({ message: "This order does not belong to your seller account." });
     }
 
-    const user = await User.findById(req.user._id);
+    const user = await Seller.findById(req.user._id);
     if (!user || user.role !== "seller") {
       return res.status(403).json({ message: "Only sellers can activate premium." });
     }
@@ -1963,7 +1963,7 @@ export const verifySubscriptionPayment = async (req, res) => {
     if (user.subscriptionValidUntil && user.subscriptionValidUntil > new Date() && user.subscriptionActive) {
       validUntil = new Date(user.subscriptionValidUntil);
     }
-    validUntil.setFullYear(validUntil.getFullYear() + 1);
+    validUntil.setDate(validUntil.getDate() + 365);
     user.subscriptionValidUntil = validUntil;
 
     user.bulkPurchaseEnabled = true;
@@ -2047,7 +2047,7 @@ export const upgradeSellerToPremiumManual = async (req, res) => {
     if (user.subscriptionValidUntil && user.subscriptionValidUntil > new Date() && user.subscriptionActive) {
       validUntil = new Date(user.subscriptionValidUntil);
     }
-    validUntil.setFullYear(validUntil.getFullYear() + 1);
+    validUntil.setDate(validUntil.getDate() + 365);
     user.subscriptionValidUntil = validUntil;
 
     user.bulkPurchaseEnabled = true;
@@ -2100,7 +2100,7 @@ export const upgradeSellerToPremiumManual = async (req, res) => {
 export const getPremiumPageDetails = async (req, res) => {
   try {
     const sellerId = new mongoose.Types.ObjectId(req.user._id);
-    const user = await User.findById(req.user._id);
+    const user = await Seller.findById(req.user._id);
 
     if (!user) {
       return res.status(404).json({ message: "Seller not found" });
@@ -2375,7 +2375,7 @@ export const setSubscriptionDaysForTest = async (req, res) => {
       return res.status(400).json({ message: "Missing daysLeft in request body" });
     }
 
-    const user = await User.findById(req.user._id);
+    const user = await Seller.findById(req.user._id);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }

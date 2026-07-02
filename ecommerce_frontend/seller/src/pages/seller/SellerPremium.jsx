@@ -353,14 +353,19 @@ Unlock your seller superpowers and grow your B2B business.
                   const el = document.getElementById('pricing-matrix');
                   el?.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="w-full max-w-[200px] flex items-center justify-center gap-2 bg-[#f07c22] text-white hover:bg-[#d86815] active:scale-95 font-bold px-4 py-2.5 rounded-xl transition-all shadow-sm text-sm"
+                style={{ backgroundColor: '#ffd401', color: '#0f172a' }}
+                className="w-full max-w-[220px] flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 font-bold px-4 py-2.5 rounded-xl transition-all shadow-sm text-sm"
               >
                 Upgrade Now
               </button>
             ) : (
-              <span className="text-emerald-600 font-bold flex items-center gap-1.5 text-sm bg-emerald-50 border border-emerald-100 px-4 py-2 rounded-xl">
-                <ShieldCheck size={16} /> Fully Upgraded
-              </span>
+              <button
+                disabled
+                style={{ backgroundColor: '#ffd401', color: '#0f172a' }}
+                className="w-full max-w-[280px] flex items-center justify-center gap-2 font-bold px-4 py-2.5 rounded-xl transition-all shadow-sm text-sm cursor-default"
+              >
+                Congrats, you are a premium Seller
+              </button>
             )}
           </div>
 

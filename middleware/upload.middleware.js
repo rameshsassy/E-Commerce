@@ -106,9 +106,9 @@ const multerUpload = multer({
   storage,
   fileFilter,
   limits: {
-    // 2 MB — matches the client-side validation limit.
+    // 3 MB — matches the client-side validation limit.
     // The imageOptimizer middleware compresses accepted images to ≤100 KB afterwards.
-    fileSize: 2 * 1024 * 1024,
+    fileSize: 3 * 1024 * 1024,
   },
 });
 
@@ -123,7 +123,7 @@ function handleMulterUpload(multerMiddleware) {
         // Multer file-size rejection
         if (err.code === "LIMIT_FILE_SIZE") {
           return res.status(400).json({
-            message: "Image size exceeded. Please upload an image of 2 MB or less.",
+            message: "Image size exceeded. Please upload an image of 3 MB or less.",
           });
         }
         // Other multer / fileFilter errors

@@ -239,7 +239,7 @@ export const importCustomers = async (req, res) => {
         mobile: String(row["Phone Number"] || "").trim(),
         password: await bcrypt.hash(tempPassword, 10),
         status: "approved",
-        emailNewProductAlerts: false,
+        emailNewProductAlerts: true,
         marketingEmailsEnabled: true,
       });
       importedRows++;

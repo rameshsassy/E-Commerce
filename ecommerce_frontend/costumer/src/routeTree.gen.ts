@@ -13,6 +13,7 @@ import { Route as WishlistRouteImport } from './routes/wishlist'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as RewardsRouteImport } from './routes/rewards'
 import { Route as ReturnsRouteImport } from './routes/returns'
+import { Route as ReferAndEarnRouteImport } from './routes/refer-and-earn'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ProductsRouteImport } from './routes/products'
 import { Route as OrdersRouteImport } from './routes/orders'
@@ -50,6 +51,11 @@ const RewardsRoute = RewardsRouteImport.update({
 const ReturnsRoute = ReturnsRouteImport.update({
   id: '/returns',
   path: '/returns',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReferAndEarnRoute = ReferAndEarnRouteImport.update({
+  id: '/refer-and-earn',
+  path: '/refer-and-earn',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -156,6 +162,7 @@ export interface FileRoutesByFullPath {
   '/orders': typeof OrdersRouteWithChildren
   '/products': typeof ProductsRouteWithChildren
   '/profile': typeof ProfileRoute
+  '/refer-and-earn': typeof ReferAndEarnRoute
   '/returns': typeof ReturnsRoute
   '/rewards': typeof RewardsRoute
   '/support': typeof SupportRoute
@@ -180,6 +187,7 @@ export interface FileRoutesByTo {
   '/orders': typeof OrdersRouteWithChildren
   '/products': typeof ProductsRouteWithChildren
   '/profile': typeof ProfileRoute
+  '/refer-and-earn': typeof ReferAndEarnRoute
   '/returns': typeof ReturnsRoute
   '/rewards': typeof RewardsRoute
   '/support': typeof SupportRoute
@@ -205,6 +213,7 @@ export interface FileRoutesById {
   '/orders': typeof OrdersRouteWithChildren
   '/products': typeof ProductsRouteWithChildren
   '/profile': typeof ProfileRoute
+  '/refer-and-earn': typeof ReferAndEarnRoute
   '/returns': typeof ReturnsRoute
   '/rewards': typeof RewardsRoute
   '/support': typeof SupportRoute
@@ -231,6 +240,7 @@ export interface FileRouteTypes {
     | '/orders'
     | '/products'
     | '/profile'
+    | '/refer-and-earn'
     | '/returns'
     | '/rewards'
     | '/support'
@@ -255,6 +265,7 @@ export interface FileRouteTypes {
     | '/orders'
     | '/products'
     | '/profile'
+    | '/refer-and-earn'
     | '/returns'
     | '/rewards'
     | '/support'
@@ -279,6 +290,7 @@ export interface FileRouteTypes {
     | '/orders'
     | '/products'
     | '/profile'
+    | '/refer-and-earn'
     | '/returns'
     | '/rewards'
     | '/support'
@@ -304,6 +316,7 @@ export interface RootRouteChildren {
   OrdersRoute: typeof OrdersRouteWithChildren
   ProductsRoute: typeof ProductsRouteWithChildren
   ProfileRoute: typeof ProfileRoute
+  ReferAndEarnRoute: typeof ReferAndEarnRoute
   ReturnsRoute: typeof ReturnsRoute
   RewardsRoute: typeof RewardsRoute
   SupportRoute: typeof SupportRoute
@@ -342,6 +355,13 @@ declare module '@tanstack/react-router' {
       path: '/returns'
       fullPath: '/returns'
       preLoaderRoute: typeof ReturnsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/refer-and-earn': {
+      id: '/refer-and-earn'
+      path: '/refer-and-earn'
+      fullPath: '/refer-and-earn'
+      preLoaderRoute: typeof ReferAndEarnRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -509,6 +529,7 @@ const rootRouteChildren: RootRouteChildren = {
   OrdersRoute: OrdersRouteWithChildren,
   ProductsRoute: ProductsRouteWithChildren,
   ProfileRoute: ProfileRoute,
+  ReferAndEarnRoute: ReferAndEarnRoute,
   ReturnsRoute: ReturnsRoute,
   RewardsRoute: RewardsRoute,
   SupportRoute: SupportRoute,

@@ -35,6 +35,8 @@ export const customerApi = {
   applyVoucher: (voucherCode, extra = {}) => api.post("/customer/vouchers/validate", { voucherCode, ...extra }),
   listOrders: () => api.get("/customer/orders"),
   getOrder: (id) => api.get(`/customer/orders/${id}`),
+  getReferralDetails: () => api.get("/customer/refer-and-earn"),
+  sendReferralInvite: (data) => api.post("/customer/refer-and-earn/invite", data),
 };
 
 // ---------- Products ----------

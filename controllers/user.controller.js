@@ -19,6 +19,7 @@ export const getProfile = async (req, res) => {
       mobile: user.mobile,
       role: user.role,
       status: user.status,
+      profilePicture: user.profilePicture,
     };
 
     if (user.role === "customer" && user.customerId) {
@@ -57,12 +58,14 @@ export const updateProfile = async (req, res) => {
       city,
       state,
       pincode,
+      profilePicture,
     } = req.body;
 
     // Common fields (seller + customer)
     if (firstName !== undefined) user.firstName = firstName;
     if (lastName !== undefined) user.lastName = lastName;
     if (mobile !== undefined) user.mobile = mobile;
+    if (profilePicture !== undefined) user.profilePicture = profilePicture;
 
     // Seller-only fields
     if (user.role === "seller") {
@@ -85,6 +88,7 @@ export const updateProfile = async (req, res) => {
       mobile: user.mobile,
       role: user.role,
       status: user.status,
+      profilePicture: user.profilePicture,
     };
 
     if (user.role === "customer" && user.customerId) {

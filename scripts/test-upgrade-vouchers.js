@@ -1,6 +1,6 @@
 import "dotenv/config";
 import mongoose from "mongoose";
-import User from "../models/User.js";
+import Seller from "../models/Seller.js";
 import AdminVoucher from "../models/AdminVoucher.js";
 import VoucherUsage from "../models/VoucherUsage.js";
 import { upgradeSellerToPremiumManual } from "../controllers/seller.controller.js";
@@ -16,7 +16,7 @@ const runTests = async () => {
     // Clean up existing test data
     console.log("Cleaning up old test data...");
     const testEmail = "test-seller-vouchers@aashansh.org";
-    await User.deleteMany({ email: testEmail });
+    await Seller.deleteMany({ email: testEmail });
     await AdminVoucher.deleteMany({ voucherCode: { $in: [
       "TEST_PRO_50", "TEST_PREM_20000", "TEST_EXPIRED", "TEST_INACTIVE", "TEST_LIMIT", "TEST_CUSTOMER", "TEST_PRO_100"
     ]}});
@@ -25,7 +25,8 @@ const runTests = async () => {
     ]}});
 
     // Setup Test User
-    const testSeller = await User.create({
+    const testSeller = await Seller.create({
+      sellerId: "SEL-TEST-99",
       firstName: "Test",
       lastName: "Seller",
       email: testEmail,
@@ -297,7 +298,7 @@ const runTests = async () => {
 
     // Clean up test data after execution
     console.log("\nCleaning up test data...");
-    await User.deleteMany({ email: testEmail });
+    await Seller.deleteMany({ email: testEmail });
     await AdminVoucher.deleteMany({ voucherCode: { $in: [
       "TEST_PRO_50", "TEST_PREM_20000", "TEST_EXPIRED", "TEST_INACTIVE", "TEST_LIMIT", "TEST_CUSTOMER", "TEST_PRO_100"
     ]}});

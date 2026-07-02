@@ -12,6 +12,7 @@ const AdminSellers = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPlans, setSelectedPlans] = useState({});
+  const [selectedDates, setSelectedDates] = useState({});
   const [savingPlanId, setSavingPlanId] = useState(null);
 
   const handlePlanChange = (sellerId, value) => {
@@ -19,16 +20,39 @@ const AdminSellers = () => {
       ...prev,
       [sellerId]: value
     }));
+    if (value === 'free') {
+      setSelectedDates(prev => {
+        const next = { ...prev };
+        delete next[sellerId];
+        return next;
+      });
+    } else {
+      const defaultDate = new Date();
+      defaultDate.setDate(defaultDate.getDate() + 365);
+      const yyyy = defaultDate.getFullYear();
+      const mm = String(defaultDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(defaultDate.getDate()).padStart(2, '0');
+      setSelectedDates(prev => ({
+        ...prev,
+        [sellerId]: `${yyyy}-${mm}-${dd}`
+      }));
+    }
   };
 
   const handleSavePlan = async (sellerId) => {
-    const plan = selectedPlans[sellerId];
+    const plan = selectedPlans[sellerId] !== undefined ? selectedPlans[sellerId] : (sellers.find(s => s._id === sellerId)?.subscriptionPlan || 'free');
+    const expiryDate = selectedDates[sellerId];
     setSavingPlanId(sellerId);
     try {
-      await api.put(`/admin/sellers/${sellerId}/plan`, { plan });
+      await api.put(`/admin/sellers/${sellerId}/plan`, { plan, expiryDate });
       alert('Seller plan updated successfully');
       fetchSellers();
       setSelectedPlans(prev => {
+        const next = { ...prev };
+        delete next[sellerId];
+        return next;
+      });
+      setSelectedDates(prev => {
         const next = { ...prev };
         delete next[sellerId];
         return next;
@@ -182,7 +206,7 @@ const AdminSellers = () => {
                     <td className="p-4 text-text-muted">{seller.email}</td>
                     {isSuperAdmin && (
                       <td className="p-4">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                           <select
                             value={selectedPlans[seller._id] !== undefined ? selectedPlans[seller._id] : (seller.subscriptionPlan || 'free')}
                             onChange={(e) => handlePlanChange(seller._id, e.target.value)}
@@ -192,7 +216,30 @@ const AdminSellers = () => {
                             <option value="pro">Pro</option>
                             <option value="premium">Premium</option>
                           </select>
-                          {selectedPlans[seller._id] !== undefined && selectedPlans[seller._id] !== (seller.subscriptionPlan || 'free') && (
+                          {((selectedPlans[seller._id] !== undefined ? selectedPlans[seller._id] : (seller.subscriptionPlan || 'free')) !== 'free') && (
+                            <input
+                              type="date"
+                              value={
+                                selectedDates[seller._id] !== undefined
+                                  ? selectedDates[seller._id]
+                                  : (seller.subscriptionValidUntil ? seller.subscriptionValidUntil.split('T')[0] : '')
+                              }
+                              onChange={(e) => {
+                                setSelectedDates(prev => ({
+                                  ...prev,
+                                  [seller._id]: e.target.value
+                                }));
+                                if (selectedPlans[seller._id] === undefined) {
+                                  setSelectedPlans(prev => ({
+                                    ...prev,
+                                    [seller._id]: seller.subscriptionPlan || 'free'
+                                  }));
+                                }
+                              }}
+                              className="input-field py-1 px-2 text-sm w-36 border border-glass-border bg-surface text-text-main rounded-md"
+                            />
+                          )}
+                          {(selectedPlans[seller._id] !== undefined || selectedDates[seller._id] !== undefined) && (
                             <button
                               onClick={() => handleSavePlan(seller._id)}
                               disabled={savingPlanId === seller._id}

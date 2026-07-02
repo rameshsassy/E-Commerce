@@ -119,7 +119,7 @@ export const createStore = async (req, res) => {
     const content = applyStoreContentFromBody(req.body, req.user);
 
     const storeSlug = await generateUniqueStoreSlug(content.storeName);
-    const storeUrl = `https://${storeSlug}.aashansh.org`;
+    const storeUrl = buildStorePublicUrl({ storeSlug, domainType: "platform_subdomain" });
 
     const logoPath = pickStoreFile(req, "logo");
     const faviconPath = pickStoreFile(req, "favicon");
@@ -204,7 +204,7 @@ export const updateStore = async (req, res) => {
     } else if (!storeSlug) {
       storeSlug = await generateUniqueStoreSlug(nameForSlug, store._id);
     }
-    const storeUrl = `https://${storeSlug}.aashansh.org`;
+    const storeUrl = buildStorePublicUrl({ storeSlug, domainType: "platform_subdomain" });
 
     store.domainType = "platform_subdomain";
     store.subdomain = storeSlug;

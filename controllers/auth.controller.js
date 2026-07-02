@@ -15,6 +15,8 @@ import {
 } from "../services/email.service.js";
 import { generateResetToken } from "../utils/generateResetToken.js";
 import { findReferrerByCode, buildReferralCode } from "../utils/sellerReferral.js";
+import { findCustomerReferrerByCode, buildCustomerReferralCode } from "../utils/customerReferral.js";
+import CustomerReferralInvite from "../models/CustomerReferralInvite.js";
 import { logSellerLogin } from "../services/sellerActivity.service.js";
 import {
   getPortalFromRequest,
@@ -262,16 +264,53 @@ export const registerCustomer = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    const referralInput = req.body.referralCode || req.body.ref || req.query?.ref || null;
+    let referredByCustomerId = null;
+    let referrer = null;
+    if (referralInput) {
+      referrer = await findCustomerReferrerByCode(referralInput);
+      if (referrer) referredByCustomerId = referrer._id;
+    }
+
     const customerId = await generateCustomerId();
-    const user = await Customer.create({
-      customerId,
-      firstName,
-      lastName,
-      email,
-      mobile,
-      password: hashedPassword,
-      role: "customer",
-      status: "approved",
+    let user = null;
+    for (let attempt = 0; attempt < 8 && !user; attempt++) {
+      try {
+        user = await Customer.create({
+          customerId,
+          firstName,
+          lastName,
+          email,
+          mobile,
+          password: hashedPassword,
+          role: "customer",
+          status: "approved",
+          customerReferralCode: buildCustomerReferralCode(),
+          referredByCustomerId,
+        });
+      } catch (createErr) {
+        if (createErr?.code === 11000 && createErr?.keyPattern?.customerReferralCode) {
+          continue;
+        }
+        throw createErr;
+      }
+    }
+    if (!user) {
+      return res.status(500).json({ message: "Could not create customer account. Please try again." });
+    }
+
+    if (referrer) {
+      await Customer.findByIdAndUpdate(referrer._id, {
+        $inc: { referralSignups: 1 },
+      });
+    }
+
+    // Mark customer referral invite as signed_up so follow ups stop
+    await CustomerReferralInvite.findOneAndUpdate(
+      { inviteeEmail: email },
+      { status: "signed_up" }
+    ).catch((err) => {
+      console.error("[auth] Failed to update CustomerReferralInvite status:", err.message);
     });
 
     const token = await issueTokensAndSetCookie(user, res, req);

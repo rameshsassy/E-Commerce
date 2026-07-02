@@ -46,9 +46,17 @@ export function AccountMenu({ config }) {
               className="flex items-center gap-1.5 h-10 px-2 rounded-full hover:bg-muted/85 transition-colors"
               aria-label="Account Menu"
             >
-              <div className="h-7 w-7 rounded-full bg-rose-400 text-white flex items-center justify-center font-bold text-xs select-none">
-                {user?.firstName ? user.firstName[0].toUpperCase() : "T"}
-              </div>
+              {user?.profilePicture ? (
+                <img
+                  src={user.profilePicture}
+                  alt=""
+                  className="h-7 w-7 rounded-full object-cover select-none border border-border/50"
+                />
+              ) : (
+                <div className="h-7 w-7 rounded-full bg-rose-400 text-white flex items-center justify-center font-bold text-xs select-none">
+                  {user?.firstName ? user.firstName[0].toUpperCase() : "T"}
+                </div>
+              )}
               <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
             </Button>
           </DropdownMenuTrigger>
@@ -109,6 +117,13 @@ export function AccountMenu({ config }) {
               <Link to="/rewards" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-amber-500/10 cursor-pointer transition-colors" style={{ color: 'var(--color-warning, #fbbf24)' }}>
                 <Gift className="h-4 w-4" style={{ color: '#fbbf24' }} />
                 My Rewards
+              </Link>
+            </DropdownMenuItem>
+
+            <DropdownMenuItem asChild>
+              <Link to="/refer-and-earn" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-amber-500/10 cursor-pointer transition-colors" style={{ color: 'var(--color-warning, #fbbf24)' }}>
+                <Gift className="h-4 w-4" style={{ color: '#fbbf24' }} />
+                Refer & Earn
               </Link>
             </DropdownMenuItem>
 

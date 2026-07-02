@@ -41,7 +41,7 @@ function OrdersPage() {
             title="No orders yet"
             description="When you place an order, it will appear here."
             action={
-              <Button asChild>
+              <Button asChild className="bg-[#ffd401] text-black hover:bg-[#ffd401]/90">
                 <Link to="/products">Start shopping</Link>
               </Button>
             }

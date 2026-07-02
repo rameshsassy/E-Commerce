@@ -117,7 +117,7 @@ const AdminCustomers = () => {
                       )}
                     </td>
                     <td className="p-4 flex justify-end gap-2">
-                      <button onClick={() => handleImpersonateCustomer(customer._id, customer.firstName)} className="btn bg-amber-500/20 text-amber-500 hover:bg-amber-500 hover:text-white p-2 rounded-md" title="Manage Customer Dashboard">
+                      <button onClick={() => handleImpersonateCustomer(customer._id, customer.firstName)} className="btn bg-[#ffd401] text-black hover:bg-[#ffd401]/90 p-2 rounded-md" title="Manage Customer Dashboard">
                         <Eye size={18} />
                       </button>
                     </td>

@@ -5,9 +5,11 @@ import {
   useRouter,
   HeadContent,
   Scripts,
+  Link,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { Toaster } from "sonner";
+import { MessageCircle } from "lucide-react";
 
 import appCss from "../styles.css?url";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
@@ -201,6 +203,15 @@ function RootLayout() {
         <Outlet />
       </main>
       <Footer />
+      {/* Floating support button */}
+      <Link
+        to="/chat"
+        className="fixed bottom-6 right-6 z-[9999] flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-2xl hover:scale-110 active:scale-95 transition-all duration-300 group border border-primary/20 cursor-pointer overflow-visible"
+        title="Chat with Support"
+      >
+        <span className="absolute -inset-0.5 animate-ping rounded-full bg-primary/40 opacity-75 group-hover:bg-primary/50 duration-1000 pointer-events-none" />
+        <MessageCircle className="h-6 w-6 relative z-10" />
+      </Link>
     </div>
   );
 }

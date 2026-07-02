@@ -28,7 +28,7 @@ function ChatPage() {
   useEffect(() => {
     chatApi
       .startConversation({ type: "customer_admin" })
-      .then((c) => setConversationId(c._id || c.conversationId || c.id))
+      .then((c) => setConversationId(c.conversation?._id || c._id || c.conversationId || c.id))
       .catch((e) => toast.error(e.message));
   }, []);
 

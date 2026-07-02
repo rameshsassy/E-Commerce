@@ -8,7 +8,7 @@ import { EmptyState, LoadingSpinner } from "@/components/customer/EmptyState";
 import { Package } from "lucide-react";
 
 export const Route = createFileRoute("/returns")({
-  head: () => ({ meta: [{ title: "My returns — Aashansh" }] }),
+  head: () => ({ meta: [{ title: "Return, Refund, and Replacements — Aashansh" }] }),
   component: () => (
     <ProtectedRoute>
       <ReturnsPage />
@@ -30,7 +30,7 @@ function ReturnsPage() {
   const list = q.data || [];
   return (
     <div className="container-page py-8">
-      <h1 className="text-3xl font-bold">Returns & refunds</h1>
+      <h1 className="text-3xl font-bold">Return, Refund, and Replacements</h1>
       <div className="mt-6 space-y-3">
         {list.length === 0 ? (
           <EmptyState

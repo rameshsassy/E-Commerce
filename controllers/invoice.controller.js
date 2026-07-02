@@ -15,8 +15,18 @@ function formatDate(date) {
   return `${day}-${month}-${year}`;
 }
 
+// Helper to generate Invoice Number: sellerId + DDMMYYYY of the document date
+// e.g. sellerId=1001, date=12-06-2026 => "100112062026"
+function generateInvoiceNumber(sellerId, date) {
+  const d = new Date(date);
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+  return `${sellerId}${day}${month}${year}`;
+}
+
 // PDF Builder Helpers
-function generateInvoiceHeader(doc, title, docNumber, docDate) {
+function generateInvoiceHeader(doc, title, invoiceNumber, docDate) {
   // Brand Header band
   doc.fillColor("#ffd401").rect(0, 0, doc.page.width, 30).fill();
 
@@ -33,7 +43,7 @@ function generateInvoiceHeader(doc, title, docNumber, docDate) {
     .text(title, 400, 45, { align: "right" })
     .fontSize(9)
     .font("Helvetica")
-    .text(`Doc #: ${docNumber}`, 400, 62, { align: "right" })
+    .text(`Invoice No: ${invoiceNumber}`, 400, 62, { align: "right" })
     .text(`Date: ${docDate}`, 400, 75, { align: "right" });
 
   doc.moveDown(2);
@@ -209,7 +219,8 @@ export const downloadSubscriptionInvoice = async (req, res) => {
     const baseAmount = Math.round((totalAmount / 1.18) * 100) / 100;
     const gstAmount = Math.round((totalAmount - baseAmount) * 100) / 100;
 
-    const docNumber = `INV-SUB-${seller._id.toString().slice(-6)}-${yearRange.replace(/[^a-zA-Z0-9]/g, "")}`;
+    const invoiceDate = new Date();
+    const invoiceNumber = generateInvoiceNumber(seller.sellerId, invoiceDate);
     const filename = `subscription_invoice_${yearRange.replace(/\s+/g, "_")}.pdf`;
 
     res.setHeader("Content-Type", "application/pdf");
@@ -222,7 +233,7 @@ export const downloadSubscriptionInvoice = async (req, res) => {
     const doc = new PDFDocument({ margin: 50, size: "A4" });
     doc.pipe(res);
 
-    generateInvoiceHeader(doc, "SUBSCRIPTION INVOICE", docNumber, formatDate(new Date()));
+    generateInvoiceHeader(doc, "SUBSCRIPTION INVOICE", invoiceNumber, formatDate(invoiceDate));
     
     // Platform info as the issuer
     const platformIssuer = {
@@ -331,7 +342,7 @@ export const downloadSalesInvoiceByProduct = async (req, res) => {
     const baseAmount = Math.round((itemTotal / 1.18) * 100) / 100;
     const gstAmount = Math.round((itemTotal - baseAmount) * 100) / 100;
 
-    const docNumber = `INV-SALE-${order._id.toString().slice(-6)}-${prodId.slice(-4)}`;
+    const invoiceNumber = generateInvoiceNumber(seller.sellerId, order.createdAt);
     const filename = `sales_invoice_${order._id.toString().slice(-6)}.pdf`;
 
     res.setHeader("Content-Type", "application/pdf");
@@ -344,7 +355,7 @@ export const downloadSalesInvoiceByProduct = async (req, res) => {
     const doc = new PDFDocument({ margin: 50, size: "A4" });
     doc.pipe(res);
 
-    generateInvoiceHeader(doc, "TAX INVOICE", docNumber, formatDate(order.createdAt));
+    generateInvoiceHeader(doc, "TAX INVOICE", invoiceNumber, formatDate(order.createdAt));
 
     // Buyer info
     const buyer = order.user
@@ -448,7 +459,8 @@ export const downloadSalesInvoiceByDateRange = async (req, res) => {
     const baseAmount = Math.round((grandTotal / 1.18) * 100) / 100;
     const gstAmount = Math.round((grandTotal - baseAmount) * 100) / 100;
 
-    const docNumber = `INV-COLL-${seller._id.toString().slice(-6)}-${formatDate(start).replace(/-/g, "")}-${formatDate(end).replace(/-/g, "")}`;
+    const invoiceDate = new Date();
+    const invoiceNumber = generateInvoiceNumber(seller.sellerId, invoiceDate);
     const filename = `collective_sales_invoice_${formatDate(start)}_${formatDate(end)}.pdf`;
 
     res.setHeader("Content-Type", "application/pdf");
@@ -461,7 +473,7 @@ export const downloadSalesInvoiceByDateRange = async (req, res) => {
     const doc = new PDFDocument({ margin: 50, size: "A4" });
     doc.pipe(res);
 
-    generateInvoiceHeader(doc, "COLLECTIVE TAX INVOICE", docNumber, formatDate(new Date()));
+    generateInvoiceHeader(doc, "COLLECTIVE TAX INVOICE", invoiceNumber, formatDate(invoiceDate));
     
     // Collective summary billing
     const buyerSummary = {
@@ -576,7 +588,7 @@ export const downloadReferralReceiptByPayout = async (req, res) => {
     const { kycReward, premiumBonus } = getReferralRewardRates(seller);
     const amount = type === "kyc" ? kycReward : premiumBonus;
 
-    const docNumber = `REC-REF-${referredSeller._id.toString().slice(-6)}-${type.toUpperCase()}`;
+    const invoiceNumber = generateInvoiceNumber(seller.sellerId, referredSeller.createdAt);
     const filename = `referral_receipt_${referredSeller._id.toString().slice(-6)}.pdf`;
 
     res.setHeader("Content-Type", "application/pdf");
@@ -589,7 +601,7 @@ export const downloadReferralReceiptByPayout = async (req, res) => {
     const doc = new PDFDocument({ margin: 50, size: "A4" });
     doc.pipe(res);
 
-    generateInvoiceHeader(doc, "REFERRAL EARNING RECEIPT", docNumber, formatDate(referredSeller.createdAt));
+    generateInvoiceHeader(doc, "REFERRAL EARNING RECEIPT", invoiceNumber, formatDate(referredSeller.createdAt));
 
     // Platform is paying the seller
     const platformIssuer = {
@@ -678,7 +690,8 @@ export const downloadReferralReceiptByDateRange = async (req, res) => {
       return res.status(404).json({ message: "No referral earnings found in this date range." });
     }
 
-    const docNumber = `REC-REF-COLL-${seller._id.toString().slice(-6)}-${formatDate(start).replace(/-/g, "")}-${formatDate(end).replace(/-/g, "")}`;
+    const invoiceDate = new Date();
+    const invoiceNumber = generateInvoiceNumber(seller.sellerId, invoiceDate);
     const filename = `collective_referral_receipt_${formatDate(start)}_${formatDate(end)}.pdf`;
 
     res.setHeader("Content-Type", "application/pdf");
@@ -691,7 +704,7 @@ export const downloadReferralReceiptByDateRange = async (req, res) => {
     const doc = new PDFDocument({ margin: 50, size: "A4" });
     doc.pipe(res);
 
-    generateInvoiceHeader(doc, "COLLECTIVE REFERRAL RECEIPT", docNumber, formatDate(new Date()));
+    generateInvoiceHeader(doc, "COLLECTIVE REFERRAL RECEIPT", invoiceNumber, formatDate(invoiceDate));
 
     const platformIssuer = {
       businessName: "Funds And Toil Private Limited (Aashansh)",

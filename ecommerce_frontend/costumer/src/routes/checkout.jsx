@@ -235,7 +235,7 @@ function CheckoutPage() {
               <EmptyState
                 title="No saved addresses"
                 action={
-                  <Button asChild>
+                  <Button asChild className="bg-[#ffd401] hover:bg-[#ffd401]/90 text-black font-semibold">
                     <Link to="/addresses">Add address</Link>
                   </Button>
                 }

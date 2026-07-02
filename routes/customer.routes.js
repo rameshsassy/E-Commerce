@@ -2,6 +2,8 @@ import express from "express";
 import {
   getCustomerProfile,
   updateCustomerEmailPreferences,
+  getCustomerReferAndEarn,
+  sendCustomerReferralInvite,
 } from "../controllers/customer.controller.js";
 
 import {
@@ -43,6 +45,12 @@ const router = express.Router();
 // ===============================
 router.post("/vouchers/validate", protect, authorizeRoles("customer"), validateCustomerVoucher);
 
+
+// ===============================
+// 🤝 REFER AND EARN
+// ===============================
+router.get("/refer-and-earn", protect, authorizeRoles("customer"), getCustomerReferAndEarn);
+router.post("/refer-and-earn/invite", protect, authorizeRoles("customer"), sendCustomerReferralInvite);
 
 // ===============================
 // ✅ CUSTOMER PROFILE

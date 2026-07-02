@@ -166,7 +166,7 @@ export function Footer() {
               </li>
               <li className="flex items-center gap-2">
                 <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
-                <Link to="/support" className="hover:text-white transition-colors">
+                <Link to="/refer-and-earn" className="hover:text-white transition-colors">
                   Refer & Earn
                 </Link>
               </li>

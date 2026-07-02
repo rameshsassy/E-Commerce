@@ -3,6 +3,7 @@ import SellerStore from "../models/SellerStore.js";
 import Product from "../models/Product.js";
 import Seller from "../models/Seller.js";
 import { isSubscribedSeller } from "../utils/productInventoryRules.js";
+import { buildStorePublicUrl } from "../utils/storeDomain.js";
 
 // Helper to get default customizable layout
 const getDefaultCustomizableLayout = (storeName, tagline) => {
@@ -230,7 +231,7 @@ export const getStoreConfigPublic = async (req, res) => {
         favicon: store.favicon,
         detailedAddress: store.detailedAddress,
         tagline: store.tagline,
-        storeUrl: store.storeUrl,
+        storeUrl: buildStorePublicUrl(store),
         subdomain: store.subdomain,
       },
       isSubscribedSeller: isSubscribed,

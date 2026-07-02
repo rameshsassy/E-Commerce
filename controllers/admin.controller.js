@@ -840,7 +840,7 @@ export const impersonateCustomer = async (req, res) => {
 export const updateSellerPlan = async (req, res) => {
   try {
     const { id } = req.params;
-    const { plan } = req.body;
+    const { plan, expiryDate } = req.body;
 
     if (!["free", "pro", "premium"].includes(plan)) {
       return res.status(400).json({ message: "Invalid plan. Must be standard (free), pro, or premium." });
@@ -859,11 +859,15 @@ export const updateSellerPlan = async (req, res) => {
       seller.subscriptionValidUntil = null;
     } else {
       seller.sellerType = "premium";
-      seller.subscriptionActive = true;
       seller.bulkPurchaseEnabled = true;
-      const validUntil = new Date();
-      validUntil.setFullYear(validUntil.getFullYear() + 1);
-      seller.subscriptionValidUntil = validUntil;
+      if (expiryDate) {
+        seller.subscriptionValidUntil = new Date(expiryDate);
+      } else {
+        const validUntil = new Date();
+        validUntil.setDate(validUntil.getDate() + 365);
+        seller.subscriptionValidUntil = validUntil;
+      }
+      seller.subscriptionActive = new Date(seller.subscriptionValidUntil) > new Date();
     }
 
     await seller.save();

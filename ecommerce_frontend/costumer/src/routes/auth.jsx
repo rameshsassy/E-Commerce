@@ -22,6 +22,7 @@ export const Route = createFileRoute("/auth")({
     token: s.token || "",
     adminToken: s.adminToken || "",
     tab: s.tab || "",
+    ref: s.ref || "",
   }),
   head: () => ({
     meta: [{ title: "Sign in or create an account — Aashansh" }],
@@ -238,6 +239,7 @@ function LoginForm({ login, onForgot, onSuccess }) {
 }
 
 function SignupForm({ register: regUser, onSuccess }) {
+  const search = useSearch({ from: "/auth" });
   const {
     register,
     handleSubmit,
@@ -263,7 +265,11 @@ function SignupForm({ register: regUser, onSuccess }) {
     <form
       onSubmit={handleSubmit(async (v) => {
         try {
-          await regUser(v);
+          const payload = {
+            ...v,
+            referralCode: search.ref || "",
+          };
+          await regUser(payload);
           onSuccess();
         } catch (e) {
           toast.error(e.message || "Signup failed");

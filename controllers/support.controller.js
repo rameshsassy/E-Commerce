@@ -6,7 +6,7 @@ import { absoluteToWebPath } from "../utils/uploadPaths.js";
 // @access  Private
 export const createTicket = async (req, res) => {
   try {
-    const { subject, issueType, message, orderId } = req.body;
+    const { subject, issueType, message, description, orderId } = req.body;
 
     let attachments = [];
     if (req.files && req.files.length > 0) {
@@ -17,9 +17,9 @@ export const createTicket = async (req, res) => {
       user: req.user._id,
       userModel: req.user.role === "seller" ? "Seller" : "Customer",
       order: orderId || null,
-      subject,
+      subject: subject || issueType || "Support Ticket",
       issueType,
-      message,
+      message: message || description,
       attachments
     });
 

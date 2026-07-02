@@ -22,7 +22,12 @@ const supportTicketSchema = new mongoose.Schema({
   },
   issueType: {
     type: String,
-    enum: ['Order Issue', 'Payment Issue', 'Return/Refund', 'Account Issue', 'Other'],
+    enum: [
+      'Order Issue', 'Payment Issue', 'Return/Refund', 'Account Issue', 'Other',
+      'Payments', 'Delivery', 'Returns, replacements, and refunds', 'Product issues',
+      'Account and login', 'Website/app issues', 'Coupons and pricing',
+      'Support and policy questions', 'Others'
+    ],
     required: true,
   },
   message: {

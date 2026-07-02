@@ -13,6 +13,7 @@ import newProductEmail from "../templates/customer/newProductEmail.js";
 import festivalEmail from "../templates/customer/festivalEmail.js";
 import sellerWelcome from "../templates/seller/sellerWelcome.js";
 import sellerReferralInvite from "../templates/seller/sellerReferralInvite.js";
+import customerReferralInvite from "../templates/customer/customerReferralInvite.js";
 import sellerReferralFollowUp from "../templates/seller/sellerReferralFollowUp.js";
 import newOrderSeller from "../templates/seller/newOrderSeller.js";
 import weeklyReport from "../templates/seller/weeklyReport.js";
@@ -112,6 +113,48 @@ export const sendKycRejectionEmail = async (user) => {
   if (result?.skipped) return result;
   if (!result?.ok) {
     throw new Error(result?.error || "KYC rejection email failed to send");
+  }
+  return result;
+};
+
+export const sendCustomerReferralInviteEmail = async ({
+  to,
+  inviteeFirstName,
+  inviteeLastName,
+  senderName,
+  customerFirstName,
+  referralLink,
+  referrerId,
+}) => {
+  const email = to != null ? String(to).trim() : "";
+  if (!email) {
+    return { ok: false, skipped: true };
+  }
+
+  const logoUrl = `${base()}/brand/aashansh-logo.png`;
+  const html = customerReferralInvite({
+    inviteeFirstName,
+    senderName,
+    customerFirstName,
+    referralLink,
+    logoUrl,
+  });
+
+  const result = await dispatchEmail({
+    templateType: "customer_referral_invite",
+    to: email,
+    subject: `${senderName || "A friend"} invited you to Aashansh`,
+    html,
+    senderType: "customer",
+    meta: {
+      referrerId,
+      inviteeLastName: inviteeLastName || null,
+    },
+  });
+
+  if (result?.skipped) return result;
+  if (!result?.ok) {
+    throw new Error(result?.error || "Referral invitation email failed to send");
   }
   return result;
 };

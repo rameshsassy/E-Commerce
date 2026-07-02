@@ -63,6 +63,20 @@ export function validateCustomDomain(domain) {
   return { ok: true, value: d };
 }
 
+/**
+ * Returns the customer frontend origin (no trailing slash).
+ * Uses FRONTEND_URL env var, falls back to https://aashansh.org.
+ */
+export function getCustomerFrontendBase() {
+  const raw = process.env.FRONTEND_URL;
+  if (raw) {
+    // FRONTEND_URL may contain comma-separated values; take the first one
+    const first = raw.split(",")[0].trim();
+    return first.replace(/\/+$/, "");
+  }
+  return "https://aashansh.org";
+}
+
 export function buildStorePublicUrl(store) {
   if (!store) return null;
   if (store.domainType === "own_domain" && store.customDomain) {
@@ -70,14 +84,16 @@ export function buildStorePublicUrl(store) {
   }
   const slug = store.storeSlug || store.subdomain;
   if (slug) {
-    return `https://${slug}.aashansh.org`;
+    const base = getCustomerFrontendBase();
+    return `${base}/store/${slug}`;
   }
   return null;
 }
 
 export function getSubdomainPreview(subdomain) {
   const slug = normalizeSubdomain(subdomain) || "your-store";
-  return `https://${slug}.aashansh.org`;
+  const base = getCustomerFrontendBase();
+  return `${base}/store/${slug}`;
 }
 
 import mongoose from "mongoose";

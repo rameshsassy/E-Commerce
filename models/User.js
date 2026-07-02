@@ -166,6 +166,27 @@ const userSchema = new mongoose.Schema(
     },
 
     // ===============================
+    // 🤝 CUSTOMER REFERRAL (Refer and Earn)
+    // ===============================
+    customerReferralCode: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+      uppercase: true,
+    },
+    customerReferralSignups: {
+      type: Number,
+      default: 0,
+    },
+    referredByCustomerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+
+    // ===============================
     // 🔐 FORGOT PASSWORD
     // ===============================
     resetPasswordToken: String,
@@ -176,13 +197,14 @@ const userSchema = new mongoose.Schema(
     // ===============================
     emailNewProductAlerts: {
       type: Boolean,
-      default: false,
+      default: true,
     },
     marketingEmailsEnabled: {
       type: Boolean,
       default: true,
     },
     lastLogin: Date,
+    profilePicture: String,
   },
   { timestamps: true }
 );

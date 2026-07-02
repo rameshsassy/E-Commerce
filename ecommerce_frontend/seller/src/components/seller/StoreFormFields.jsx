@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { Plus, XCircle, Zap, ExternalLink } from 'lucide-react';
 import { BASE_URL } from '../../utils/api';
 import { compressAndStandardizeImage } from '../../utils/imageCompression';
+import { getCustomerPortalOrigin } from '../../utils/portalHost';
 import StoreSeoPreview from './StoreSeoPreview';
 
 export const STORE_NAME_MAX = 1500;
@@ -178,7 +179,7 @@ export default function StoreFormFields({
           maxLength={STORE_NAME_MAX + 50}
         />
         <p className="text-[12px] text-[#6D7175] mt-2">
-          https://{storeSlug}.aashansh.org
+          {`${getCustomerPortalOrigin()}/store/${storeSlug}`}
         </p>
         <div className="mt-3">
           <label className="block text-[12px] text-[#6D7175] mb-1">
@@ -384,7 +385,7 @@ export default function StoreFormFields({
             />
             <div>
               <div className="leading-snug">
-                Your store link — <span className="font-medium text-[#005bd3]">{`https://${storeSlug}.aashansh.org`}</span>
+                Your store link — <span className="font-medium text-[#005bd3]">{`${getCustomerPortalOrigin()}/store/${storeSlug}`}</span>
               </div>
             </div>
           </label>
@@ -393,7 +394,7 @@ export default function StoreFormFields({
             <button
               type="button"
               onClick={() => {
-                navigator.clipboard.writeText(`https://${storeSlug}.aashansh.org`);
+                navigator.clipboard.writeText(`${getCustomerPortalOrigin()}/store/${storeSlug}`);
                 alert("Store link copied to clipboard!");
               }}
               className="px-3 py-1.5 bg-[#F6F6F7] hover:bg-[#E4E5E7] text-[#202223] border border-[#8C9196] rounded-md text-[13px] font-medium transition-colors cursor-pointer"
@@ -401,7 +402,7 @@ export default function StoreFormFields({
               Copy Link
             </button>
             <a
-              href={`https://${storeSlug}.aashansh.org`}
+              href={`${getCustomerPortalOrigin()}/store/${storeSlug}`}
               target="_blank"
               rel="noopener noreferrer"
               className="px-3 py-1.5 bg-[#008060] hover:bg-[#006e52] text-white rounded-md text-[13px] font-medium transition-colors flex items-center gap-1 cursor-pointer"
