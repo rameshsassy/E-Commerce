@@ -63,6 +63,9 @@ const Login = () => {
     setError('');
     setLoading(true);
 
+    // Clear any stale admin impersonation token so the banner won't show for regular seller logins
+    localStorage.removeItem('adminToken');
+
     try {
       const user = await login(email, password, loginAs);
       // Redirect based on role
