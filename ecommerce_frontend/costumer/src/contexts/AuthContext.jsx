@@ -15,6 +15,14 @@ export function AuthProvider({ children }) {
 
   const refresh = useCallback(async () => {
     try {
+      // Skip the API call entirely if there's no token —
+      // the user is clearly not authenticated.
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      if (!token) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
       const u = await userApi.getProfile();
       setUser(u);
     } catch {

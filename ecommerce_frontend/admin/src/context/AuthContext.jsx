@@ -13,31 +13,19 @@ export const AuthProvider = ({ children }) => {
     const initializeAuth = async () => {
       const token = localStorage.getItem('token');
       const storedUser = localStorage.getItem('user');
-      
-      const safetyTimeout = setTimeout(() => {
-        setLoading(false);
-      }, 5000); // 5s safety
 
       try {
         if (token && storedUser) {
           setUser(JSON.parse(storedUser));
-        } else {
-          // Silent refresh check
-          const res = await api.post('/auth/refresh-token');
-          if (res?.data?.token && res?.data?.user) {
-            localStorage.setItem('token', res.data.token);
-            const userObj = { ...res.data.user, name: res.data.user.firstName };
-            localStorage.setItem('user', JSON.stringify(userObj));
-            setUser(userObj);
-          }
         }
+        // No token/user in localStorage — user is not authenticated,
+        // skip the refresh-token API call to avoid blocking the UI.
       } catch (_error) {
         // Silent failure is fine here, means user needs to log in
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         setUser(null);
       } finally {
-        clearTimeout(safetyTimeout);
         setLoading(false);
       }
     };
@@ -121,7 +109,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={{ user, loading, login, logout, setSession, mergeUser }}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };
